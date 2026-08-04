@@ -1,0 +1,7 @@
+# logic_tests — minimal config: no WiFi/BT/PSRAM needed for pure-logic tests
+CONFIG_IDF_TARGET_ESP32S3=y
+CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y
+CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y
+CONFIG_ESPTOOLPY_FLASHMODE_QIO=y
+# No PSRAM needed for pure-logic Unity tests
+# No custom partition table — use default

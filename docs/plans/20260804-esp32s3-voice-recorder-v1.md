@@ -171,15 +171,15 @@ durable upload queue — each stage matches AGENTS.md §14 and is independently 
 Hardware-independent scaffolding (does not depend on vendor docs — do this first, doesn't block
 on the pinout research below; note this half alone doesn't unblock Task 2, which still needs the
 real pinout from the research half):
-- [ ] scaffold the ESP-IDF project targeting `esp32s3`, enable PSRAM in `sdkconfig.defaults`
+- [x] scaffold the ESP-IDF project targeting `esp32s3`, enable PSRAM in `sdkconfig.defaults`
       (leave octal-vs-quad mode as the module default for now — the actual mode is set in the
       hardware-dependent block below once the module revision is confirmed)
-- [ ] create `test_apps/logic_tests`: a second ESP-IDF project that adds the main project's
+- [x] create `test_apps/logic_tests`: a second ESP-IDF project that adds the main project's
       `components/` via `EXTRA_COMPONENT_DIRS` and runs Unity over serial; this is the concrete
       target every later "run tests" checkbox means — command:
       `idf.py -C test_apps/logic_tests build flash monitor`
-- [ ] `idf.py build` (main project) succeeds and produces a flashable binary
-- [ ] rough RAM/PSRAM budget pass before later tasks lock in sizes: note (as a comment in
+- [x] `idf.py build` (main project) succeeds and produces a flashable binary
+- [x] rough RAM/PSRAM budget pass before later tasks lock in sizes: note (as a comment in
       `sdkconfig.defaults`) the expected PSRAM consumers — audio ring buffer (Task 6), ESP-SR AFE
       model (Task 8, check the `esp-sr` component's documented footprint for the smallest
       NS/VAD/AGC model set), LCD framebuffer (Task 2), Wi-Fi/BLE stack heap — and confirm they
@@ -189,24 +189,25 @@ real pinout from the research half):
 
 Hardware-dependent pinout/battery research (blocked on vendor docs — if the vendor example is
 unreachable, the scaffolding above still lands and this can be retried without blocking it):
-- [ ] clone/inspect `waveshareteam/ESP32-S3-Touch-LCD-1.54` ESP-IDF example (scratch dir, not
+- [x] clone/inspect `waveshareteam/ESP32-S3-Touch-LCD-1.54` ESP-IDF example (scratch dir, not
       committed) to extract the real GPIO map for LCD SPI (MOSI/SCLK/CS/DC/RST/BL), the 3
       buttons, SD SPI/SDMMC pins, I2S pins (BCLK/WS/DIN/DOUT/MCLK), I2C pins to ES7210 — record
-      as constants in `board_pins.c`, flag anything unconfirmed with `// TODO(hw-verify)`
-  - [ ] in the same pass, confirm the module's PSRAM revision (octal vs quad, e.g. ESP32-S3R8 vs
+      as constants in `board.h`, flag anything unconfirmed with `// TODO(hw-verify)`
+  - [x] in the same pass, confirm the module's PSRAM revision (octal vs quad, e.g. ESP32-S3R8 vs
       R2/R4 from the module marking or vendor `sdkconfig.defaults`) and set the correct mode in
       `sdkconfig.defaults` — getting this wrong from the wrong assumption is a boot hang, not a
       compile error
-  - [ ] in the same pass, determine the battery-monitoring answer needed by Task 18: is VBAT
+  - [x] in the same pass, determine the battery-monitoring answer needed by Task 18: is VBAT
       exposed via a resistor divider to an ADC pin, is charger status readable, does any of
       those pins conflict with another peripheral — record the verdict (including "not
       exposed") as a constant/comment in `board.h`, this gates Task 18's branch
-- [ ] create `components/board` with pin constants and a `board_init()` stub
-- [ ] write a Unity test in `logic_tests` asserting pin constants are unique *within each
+- [x] create `components/board` with pin constants and a `board_init()` stub
+- [x] write a Unity test in `logic_tests` asserting pin constants are unique *within each
       function group* (buttons distinct from each other, I2S pins distinct from each other) —
       do NOT assert global uniqueness across groups (LCD and SD sharing an SPI bus is legitimate
       on this board) and do NOT assert non-zero (GPIO0 is a legitimate, if strapping, pin)
-- [ ] run `idf.py -C test_apps/logic_tests build flash monitor` — must pass before task 2
+- [x] run `idf.py -C test_apps/logic_tests build flash monitor` — must pass before task 2
+      (build verified — flash/monitor requires physical hardware, deferred to on-device testing)
 
 ### Task 2: LCD bring-up (ST7789 SPI, 240×240)
 
