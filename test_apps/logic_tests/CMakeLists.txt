@@ -14,7 +14,8 @@ set(EXTRA_COMPONENT_DIRS
     ${CMAKE_CURRENT_SOURCE_DIR}/../../components/board
     ${CMAKE_CURRENT_SOURCE_DIR}/../../components/storage
     # TODO(task-5): add components/ui after face_engine exists
-    # TODO(task-6): add components/audio after audio_capture.c exists
+    # components/audio: audio_ringbuf.c is compiled directly in main/CMakeLists.txt
+    # (the full audio component requires esp_codec_dev which isn't available here)
     # TODO(task-7): add components/recorder after recorder.c exists
     # TODO(task-14): add components/network after wifi_manager.c exists
     # TODO(task-16): add components/telegram after telegram_client.c exists

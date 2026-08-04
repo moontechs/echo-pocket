@@ -105,6 +105,33 @@ extern void test_subdir_names_are_expected(void);
 extern void test_error_strings_are_distinct(void);
 extern void test_mounted_flag_initially_false(void);
 
+/* ── Ring buffer tests (Task 6) ─────────────────────────────────────── */
+/* Defined in test_ring_buffer.c (compiled alongside this file) */
+extern void test_rb_alloc_free(void);
+extern void test_rb_alloc_zero_returns_null(void);
+extern void test_rb_free_null_is_safe(void);
+extern void test_rb_capacity_null_safe(void);
+extern void test_rb_available_null_safe(void);
+extern void test_rb_overflow_null_safe(void);
+extern void test_rb_write_read_roundtrip(void);
+extern void test_rb_read_empty_returns_zero(void);
+extern void test_rb_read_less_than_available(void);
+extern void test_rb_write_null_params(void);
+extern void test_rb_read_null_params(void);
+extern void test_rb_overflow_drops_oldest(void);
+extern void test_rb_overflow_reset_counter(void);
+extern void test_rb_wrap_write_across_boundary(void);
+extern void test_rb_wrap_read_across_boundary(void);
+extern void test_rb_wrap_write_exactly_to_end(void);
+extern void test_rb_producer_consumer_interleaved(void);
+extern void test_rb_producer_faster_than_consumer(void);
+extern void test_downmix_silent(void);
+extern void test_downmix_identical_channels(void);
+extern void test_downmix_opposite_channels(void);
+extern void test_downmix_rounds_toward_zero(void);
+extern void test_downmix_null_safety(void);
+extern void test_downmix_large_values(void);
+
 /* ── Config INI tests (Task 5) ──────────────────────────────────────── */
 /* Defined in test_config.c (compiled alongside this file) */
 extern void test_config_defaults(void);
@@ -158,6 +185,32 @@ void app_main(void)
     RUN_TEST(test_subdir_names_are_expected);
     RUN_TEST(test_error_strings_are_distinct);
     RUN_TEST(test_mounted_flag_initially_false);
+
+    /* Task 6: audio ring buffer and downmix helper */
+    RUN_TEST(test_rb_alloc_free);
+    RUN_TEST(test_rb_alloc_zero_returns_null);
+    RUN_TEST(test_rb_free_null_is_safe);
+    RUN_TEST(test_rb_capacity_null_safe);
+    RUN_TEST(test_rb_available_null_safe);
+    RUN_TEST(test_rb_overflow_null_safe);
+    RUN_TEST(test_rb_write_read_roundtrip);
+    RUN_TEST(test_rb_read_empty_returns_zero);
+    RUN_TEST(test_rb_read_less_than_available);
+    RUN_TEST(test_rb_write_null_params);
+    RUN_TEST(test_rb_read_null_params);
+    RUN_TEST(test_rb_overflow_drops_oldest);
+    RUN_TEST(test_rb_overflow_reset_counter);
+    RUN_TEST(test_rb_wrap_write_across_boundary);
+    RUN_TEST(test_rb_wrap_read_across_boundary);
+    RUN_TEST(test_rb_wrap_write_exactly_to_end);
+    RUN_TEST(test_rb_producer_consumer_interleaved);
+    RUN_TEST(test_rb_producer_faster_than_consumer);
+    RUN_TEST(test_downmix_silent);
+    RUN_TEST(test_downmix_identical_channels);
+    RUN_TEST(test_downmix_opposite_channels);
+    RUN_TEST(test_downmix_rounds_toward_zero);
+    RUN_TEST(test_downmix_null_safety);
+    RUN_TEST(test_downmix_large_values);
 
     /* Task 5: config INI parser */
     RUN_TEST(test_config_defaults);
