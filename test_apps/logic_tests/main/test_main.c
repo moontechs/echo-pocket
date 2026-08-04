@@ -132,6 +132,46 @@ extern void test_downmix_rounds_toward_zero(void);
 extern void test_downmix_null_safety(void);
 extern void test_downmix_large_values(void);
 
+/* ── WAV writer tests (Task 7) ──────────────────────────────────────── */
+/* Defined in test_wav_writer.c (compiled alongside this file) */
+extern void test_wav_header_mono_16k_zero_data(void);
+extern void test_wav_header_mono_16k_small_data(void);
+extern void test_wav_header_mono_16k_10min_data(void);
+extern void test_wav_header_mono_16k_max_data(void);
+extern void test_wav_header_stereo_44k(void);
+extern void test_wav_header_stereo_48k_24bit(void);
+extern void test_wav_header_size(void);
+extern void test_wav_header_offsets(void);
+extern void test_wav_header_fill_null(void);
+
+/* ── Recorder split threshold tests (Task 7) ────────────────────────── */
+extern void test_recorder_split_below_threshold(void);
+extern void test_recorder_split_at_threshold(void);
+extern void test_recorder_split_above_threshold(void);
+extern void test_recorder_split_threshold_matches_19_minutes(void);
+
+/* ── Rec ID tests (Task 7) ──────────────────────────────────────────── */
+/* Defined in test_rec_id.c (compiled alongside this file) */
+extern void test_rec_id_synced_basic(void);
+extern void test_rec_id_synced_counter_advanced(void);
+extern void test_rec_id_synced_midnight(void);
+extern void test_rec_id_synced_leap_year(void);
+extern void test_rec_id_synced_max_counter(void);
+extern void test_rec_id_offline_zero_uptime(void);
+extern void test_rec_id_offline_with_uptime(void);
+extern void test_rec_id_offline_max_uptime(void);
+extern void test_rec_id_offline_uptime_wraps_at_output_size(void);
+extern void test_rec_id_counter_overflow(void);
+extern void test_rec_id_counter_at_boundary(void);
+extern void test_rec_id_buffer_too_small(void);
+extern void test_rec_id_buffer_exact_size(void);
+extern void test_rec_id_buffer_one_byte_too_small(void);
+extern void test_rec_id_null_buffer(void);
+extern void test_rec_id_zero_buf_size(void);
+extern void test_rec_id_consecutive_are_unique(void);
+extern void test_rec_id_offline_consecutive_are_unique(void);
+extern void test_rec_id_error_strings_distinct(void);
+
 /* ── Config INI tests (Task 5) ──────────────────────────────────────── */
 /* Defined in test_config.c (compiled alongside this file) */
 extern void test_config_defaults(void);
@@ -211,6 +251,44 @@ void app_main(void)
     RUN_TEST(test_downmix_rounds_toward_zero);
     RUN_TEST(test_downmix_null_safety);
     RUN_TEST(test_downmix_large_values);
+
+    /* Task 7: WAV header math */
+    RUN_TEST(test_wav_header_mono_16k_zero_data);
+    RUN_TEST(test_wav_header_mono_16k_small_data);
+    RUN_TEST(test_wav_header_mono_16k_10min_data);
+    RUN_TEST(test_wav_header_mono_16k_max_data);
+    RUN_TEST(test_wav_header_stereo_44k);
+    RUN_TEST(test_wav_header_stereo_48k_24bit);
+    RUN_TEST(test_wav_header_size);
+    RUN_TEST(test_wav_header_offsets);
+    RUN_TEST(test_wav_header_fill_null);
+
+    /* Task 7: recorder split threshold (state machine) */
+    RUN_TEST(test_recorder_split_below_threshold);
+    RUN_TEST(test_recorder_split_at_threshold);
+    RUN_TEST(test_recorder_split_above_threshold);
+    RUN_TEST(test_recorder_split_threshold_matches_19_minutes);
+
+    /* Task 7: recording ID generation */
+    RUN_TEST(test_rec_id_synced_basic);
+    RUN_TEST(test_rec_id_synced_counter_advanced);
+    RUN_TEST(test_rec_id_synced_midnight);
+    RUN_TEST(test_rec_id_synced_leap_year);
+    RUN_TEST(test_rec_id_synced_max_counter);
+    RUN_TEST(test_rec_id_offline_zero_uptime);
+    RUN_TEST(test_rec_id_offline_with_uptime);
+    RUN_TEST(test_rec_id_offline_max_uptime);
+    RUN_TEST(test_rec_id_offline_uptime_wraps_at_output_size);
+    RUN_TEST(test_rec_id_counter_overflow);
+    RUN_TEST(test_rec_id_counter_at_boundary);
+    RUN_TEST(test_rec_id_buffer_too_small);
+    RUN_TEST(test_rec_id_buffer_exact_size);
+    RUN_TEST(test_rec_id_buffer_one_byte_too_small);
+    RUN_TEST(test_rec_id_null_buffer);
+    RUN_TEST(test_rec_id_zero_buf_size);
+    RUN_TEST(test_rec_id_consecutive_are_unique);
+    RUN_TEST(test_rec_id_offline_consecutive_are_unique);
+    RUN_TEST(test_rec_id_error_strings_distinct);
 
     /* Task 5: config INI parser */
     RUN_TEST(test_config_defaults);
