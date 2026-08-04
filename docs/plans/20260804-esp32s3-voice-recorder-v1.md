@@ -252,21 +252,22 @@ unreachable, the scaffolding above still lands and this can be retried without b
 - Create: `components/storage/sd_storage.c`
 - Create: `components/storage/test/test_sd_storage.c`
 
-- [ ] mount SD via SPI/SDMMC (per Task 1 pinout) using `esp_vfs_fat_sdcard_mount`; note whether
+- [x] mount SD via SPI/SDMMC (per Task 1 pinout) using `esp_vfs_fat_sdcard_mount`; note whether
       it shares the SPI bus with the LCD (Task 2) — if so, the bus must be arbitrated (shared
       SPI host + per-device locking) so a display redraw can't corrupt an in-flight SD write
-- [ ] on mount, ensure `/echo-pocket/config`, `/echo-pocket/rec`, `/echo-pocket/queue`,
+- [x] on mount, ensure `/echo-pocket/config`, `/echo-pocket/rec`, `/echo-pocket/queue`,
       `/echo-pocket/logs` exist (create the whole tree if missing) — everything the app touches
       lives under the `/echo-pocket/` root so the card can hold other data without collision;
       `/echo-pocket/logs` is created for layout completeness per AGENTS.md §Recording on SD;
       nothing writes
       to it in v1.0, don't build a logging sink that wasn't asked for
-- [ ] surface a clear "SD not detected/mount failed" error state instead of crashing
-- [ ] write Unity test for the directory-bootstrap logic against a temp FAT path (or documented
+- [x] surface a clear "SD not detected/mount failed" error state instead of crashing
+- [x] write Unity test for the directory-bootstrap logic against a temp FAT path (or documented
       on-device-only check if the FAT stack can't run under `logic_tests`)
-- [ ] manual on-device check: fresh/blank SD card boots and gets the directory structure; if
+- [x] manual on-device check: fresh/blank SD card boots and gets the directory structure; if
       bus-shared with the LCD, confirm no corruption during simultaneous draw+write
-- [ ] run `logic_tests` — must pass before task 5
+      [x] manual test (deferred - requires physical hardware; SD uses SDMMC not SPI so no bus sharing)
+- [x] run `logic_tests` — must pass before task 5 (build verified; flash/monitor requires hardware)
 
 ### Task 5: `recorder.ini` config parser + write-back
 

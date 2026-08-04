@@ -95,6 +95,16 @@ extern void test_consecutive_presses(void);
 extern void test_idle_noise_no_event(void);
 extern void test_independent_instances(void);
 
+/* ── SD storage tests (Task 4) ──────────────────────────────────────── */
+/* Defined in test_sd_storage.c (compiled alongside this file) */
+extern void test_mount_point_not_empty(void);
+extern void test_app_root_nested_under_mount(void);
+extern void test_subdirs_under_app_root(void);
+extern void test_subdirs_are_distinct(void);
+extern void test_subdir_names_are_expected(void);
+extern void test_error_strings_are_distinct(void);
+extern void test_mounted_flag_initially_false(void);
+
 /* ── Test runner ─────────────────────────────────────────────────────── */
 
 void app_main(void)
@@ -118,6 +128,15 @@ void app_main(void)
     RUN_TEST(test_consecutive_presses);
     RUN_TEST(test_idle_noise_no_event);
     RUN_TEST(test_independent_instances);
+
+    /* Task 4: SD storage paths and error handling */
+    RUN_TEST(test_mount_point_not_empty);
+    RUN_TEST(test_app_root_nested_under_mount);
+    RUN_TEST(test_subdirs_under_app_root);
+    RUN_TEST(test_subdirs_are_distinct);
+    RUN_TEST(test_subdir_names_are_expected);
+    RUN_TEST(test_error_strings_are_distinct);
+    RUN_TEST(test_mounted_flag_initially_false);
 
     UNITY_END();
 }
