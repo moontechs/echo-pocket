@@ -5,6 +5,8 @@
 #include "board.h"
 #include "display.h"
 #include "sd_storage.h"
+#include "config.h"
+#include "wifi_manager.h"
 
 static const char *TAG = "app_main";
 
@@ -26,6 +28,15 @@ void app_main(void)
         ESP_LOGI(TAG, "SD storage mounted");
         display_draw_text(48, 200, "SD OK",
                           (uint16_t)0x07E0); /* green */
+
+        /* Load config — safe defaults if file missing/malformed */
+        RecorderConfig cfg = config_load("/sdcard/echo-pocket/config/recorder.ini", NULL);
+        ESP_LOGI(TAG, "Config loaded: device=%s, wifi_count=%d, bot_token=%s",
+                 cfg.device_name, cfg.wifi_count,
+                 cfg.bot_token[0] ? "[set]" : "[not set]");
+
+        /* Start Wi-Fi manager (non-blocking — runs in its own task) */
+        wifi_manager_init(&cfg);
     }
 
     ESP_LOGI(TAG, "echo-pocket initialized");
@@ -35,5 +46,6 @@ void app_main(void)
     }
 
     /* Not reached in normal operation, but clean for completeness */
+    wifi_manager_deinit();
     sd_storage_deinit(sd);
 }

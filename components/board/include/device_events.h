@@ -67,6 +67,12 @@ typedef enum {
     /** Battery critical (≤ 10 %).  Triggers safe-stop in recorder. */
     RECORDER_EVENT_BATTERY_CRITICAL,
 
+    /** Wi-Fi connected (IP obtained, SNTP sync started). */
+    RECORDER_EVENT_WIFI_CONNECTED,
+
+    /** Wi-Fi disconnected. */
+    RECORDER_EVENT_WIFI_DISCONNECTED,
+
     /* ── Sentinel ────────────────────────────────────────────────── */
     RECORDER_EVENT_COUNT
 } recorder_event_id_t;

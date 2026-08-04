@@ -272,6 +272,28 @@ extern void test_face_submenu_center_first(void);
 extern void test_face_submenu_navigate_null_safety(void);
 extern void test_menu_to_face_and_back(void);
 
+/* ── Net selection tests (Task 14) ──────────────────────────────────── */
+/* Defined in test_net_selection.c (compiled alongside this file) */
+extern void test_ns_first_attempt_with_networks(void);
+extern void test_ns_first_attempt_single_network(void);
+extern void test_ns_first_attempt_no_networks(void);
+extern void test_ns_first_attempt_negative_count(void);
+extern void test_ns_already_connected_ignores_last_result(void);
+extern void test_ns_already_connected_on_first_attempt(void);
+extern void test_ns_success_stays_on_same_network(void);
+extern void test_ns_success_on_last_network(void);
+extern void test_ns_failure_advances_to_next(void);
+extern void test_ns_failure_advances_multiple_steps(void);
+extern void test_ns_failure_last_network_returns_no_more(void);
+extern void test_ns_failure_single_network_returns_no_more(void);
+extern void test_ns_full_walkthrough_all_fail(void);
+extern void test_ns_full_walkthrough_success_on_second(void);
+extern void test_ns_null_out_next_on_try_index(void);
+extern void test_ns_null_out_next_on_no_more(void);
+extern void test_ns_disconnect_then_retry_same_network(void);
+extern void test_ns_large_network_count(void);
+extern void test_ns_large_network_count_all_fail(void);
+
 /* ── List pagination tests (Task 13) ─────────────────────────────────── */
 /* Defined in test_list_pagination.c (compiled alongside this file) */
 extern void test_pagination_init_normal(void);
@@ -541,6 +563,27 @@ void app_main(void)
     RUN_TEST(test_pagination_cursor_up_null);
     RUN_TEST(test_pagination_full_traverse_down_and_back);
     RUN_TEST(test_pagination_scroll_two_pages_exact);
+
+    /* Task 14: net selection next-attempt logic */
+    RUN_TEST(test_ns_first_attempt_with_networks);
+    RUN_TEST(test_ns_first_attempt_single_network);
+    RUN_TEST(test_ns_first_attempt_no_networks);
+    RUN_TEST(test_ns_first_attempt_negative_count);
+    RUN_TEST(test_ns_already_connected_ignores_last_result);
+    RUN_TEST(test_ns_already_connected_on_first_attempt);
+    RUN_TEST(test_ns_success_stays_on_same_network);
+    RUN_TEST(test_ns_success_on_last_network);
+    RUN_TEST(test_ns_failure_advances_to_next);
+    RUN_TEST(test_ns_failure_advances_multiple_steps);
+    RUN_TEST(test_ns_failure_last_network_returns_no_more);
+    RUN_TEST(test_ns_failure_single_network_returns_no_more);
+    RUN_TEST(test_ns_full_walkthrough_all_fail);
+    RUN_TEST(test_ns_full_walkthrough_success_on_second);
+    RUN_TEST(test_ns_null_out_next_on_try_index);
+    RUN_TEST(test_ns_null_out_next_on_no_more);
+    RUN_TEST(test_ns_disconnect_then_retry_same_network);
+    RUN_TEST(test_ns_large_network_count);
+    RUN_TEST(test_ns_large_network_count_all_fail);
 
     /* Task 5: config INI parser */
     RUN_TEST(test_config_defaults);

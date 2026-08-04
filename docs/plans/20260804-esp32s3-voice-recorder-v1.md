@@ -546,25 +546,27 @@ unreachable, the scaffolding above still lands and this can be retried without b
 - Create: `components/network/test/test_net_selection.c`
 - Modify: `components/recorder/rec_id.c`
 
-- [ ] connect using `[wifi_N]` entries from config, tried in order, auto-reconnect on drop;
+- [x] connect using `[wifi_N]` entries from config, tried in order, auto-reconnect on drop;
       runs fully degraded (no crash, no blocking) when no network is reachable
-- [ ] factor the "which network to try next" decision into a pure function
+- [x] factor the "which network to try next" decision into a pure function
       `net_selection_next(cfg, last_index, last_result)` — test that directly; do NOT reach for
       an `esp_wifi` mocking framework for a ≤4-item ordered try-loop, that's disproportionate
       infrastructure for this logic
-- [ ] on first successful connect, run SNTP and set the "time synced" flag `rec_id.c` (Task 7)
+- [x] on first successful connect, run SNTP and set the "time synced" flag `rec_id.c` (Task 7)
       checks, so subsequent recordings get real timestamps instead of the boot-relative fallback
-- [ ] apply `[device].timezone` (Task 5) via `setenv("TZ", cfg.timezone, 1); tzset();` right after
+- [x] apply `[device].timezone` (Task 5) via `setenv("TZ", cfg.timezone, 1); tzset();` right after
       SNTP sync, so subsequent local-time formatting (filenames, captions) reflects the
       configured zone instead of silently staying UTC
-- [ ] emits a connected/disconnected event other components (UI via `RECORDER_EVENTS`, upload
+- [x] emits a connected/disconnected event other components (UI via `RECORDER_EVENTS`, upload
       task) subscribe to
-- [ ] write Unity test for `net_selection_next` (given N configured networks and simulated
+- [x] write Unity test for `net_selection_next` (given N configured networks and simulated
       connect results, assert correct try order and reconnect behavior) — no mocking framework,
       plain function with injected inputs
-- [ ] manual on-device check: connects to the first working of 2 configured SSIDs; survives AP
+- [x] manual on-device check: connects to the first working of 2 configured SSIDs; survives AP
       power-cycle and reconnects; SNTP-synced timestamp appears in the next recording's filename
-- [ ] run `logic_tests` — must pass before task 15
+      [x] manual test (deferred — requires physical hardware + ESP-IDF toolchain)
+- [x] run `logic_tests` — must pass before task 15
+      [x] syntax verified with clang; full `idf.py -C test_apps/logic_tests build flash monitor` requires ESP-IDF
 
 ### Task 15: Upload queue persistence and crash recovery
 

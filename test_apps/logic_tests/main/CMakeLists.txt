@@ -2,6 +2,8 @@ idf_component_register(
     SRCS "test_main.c" "test_buttons.c" "test_sd_storage.c" "test_config.c"
          "test_display_stubs.c" "test_face_themes.cpp"
          "test_list_pagination.c"
+         "../../../components/network/test/test_net_selection.c"
+         "../../../components/network/net_selection.c"
          "../../../components/audio/audio_ringbuf.c"
          "../../../components/audio/audio_mono_ringbuf.c"
          "../../../components/audio/voice_level.c"
@@ -29,5 +31,6 @@ idf_component_register(
                 "../../../components/ui/include"
                 "../../../components/ui/face_engine"
                 "../../../components/ui/face_engine/include"
+                "../../../components/network/include"
     REQUIRES unity board storage log
 )
