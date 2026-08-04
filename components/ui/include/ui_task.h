@@ -28,6 +28,8 @@ typedef enum {
     UI_SCREEN_SAVED,          /**< Brief "Saved" display after stop      */
     UI_SCREEN_MENU,           /**< Main menu (9 items)                   */
     UI_SCREEN_FACE_SUBMENU,   /**< Face theme picker submenu             */
+    UI_SCREEN_RECORDINGS_LIST,/**< Paged list of recorded WAV files      */
+    UI_SCREEN_UNSENT_LIST,    /**< Paged list of unsent queue entries    */
 } ui_screen_t;
 
 /* ── Actions the screen state machine can request ────────────────────── */
@@ -41,6 +43,9 @@ typedef enum {
     UI_ACTION_SEND_ALL,           /**< Trigger manual upload drain        */
     UI_ACTION_STUB,               /**< Show stub screen (Wi-Fi/etc.)      */
     UI_ACTION_SELECT_THEME,       /**< Select a face theme (index in arg) */
+    UI_ACTION_SHOW_RECORDINGS,    /**< Navigate to Recordings list screen  */
+    UI_ACTION_SHOW_UNSENT,        /**< Navigate to Unsent list screen      */
+    UI_ACTION_UNSENT_SEND_ALL,    /**< Send All from Unsent screen         */
 } ui_action_t;
 
 /* ── Status info passed to screen renderers ──────────────────────────── */
@@ -120,6 +125,18 @@ void home_screen_draw(const ui_status_t *status);
 
 /** Draw the recording screen: face + REC indicator + timer overlay. */
 void recording_screen_draw(const ui_status_t *status);
+
+/** Draw the Recordings list screen (paged WAV file browser). */
+void recordings_list_screen_draw(void);
+
+/** Handle a button press on the Recordings list screen. */
+void recordings_list_navigate(ButtonId button, bool *should_exit);
+
+/** Draw the Unsent list screen (paged queue browser, stubbed until Task 15). */
+void unsent_list_screen_draw(void);
+
+/** Handle a button press on the Unsent list screen. */
+void unsent_list_navigate(ButtonId button, bool *should_exit);
 
 #ifdef __cplusplus
 }

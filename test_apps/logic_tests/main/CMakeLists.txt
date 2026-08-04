@@ -1,6 +1,7 @@
 idf_component_register(
     SRCS "test_main.c" "test_buttons.c" "test_sd_storage.c" "test_config.c"
          "test_display_stubs.c" "test_face_themes.cpp"
+         "test_list_pagination.c"
          "../../../components/audio/audio_ringbuf.c"
          "../../../components/audio/audio_mono_ringbuf.c"
          "../../../components/audio/voice_level.c"
@@ -13,6 +14,7 @@ idf_component_register(
          "../../../components/recorder/test/test_rec_id.c"
          "../../../components/ui/ui_screen_logic.c"
          "../../../components/ui/screens/menu.c"
+         "../../../components/ui/screens/list_pagination.c"
          "../../../components/ui/test/test_ui_button_routing.c"
          "../../../components/ui/test/test_menu_nav.c"
          "../../../components/ui/face_engine/face_registry.cpp"

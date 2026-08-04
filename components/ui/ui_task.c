@@ -17,6 +17,7 @@
 
 #include "ui_task.h"
 #include "menu.h"
+#include "list_screens.h"
 #include "display.h"
 #include "board.h"
 #include "device_events.h"
@@ -236,10 +237,21 @@ static void ui_task_loop(void *arg)
                     break;
 
                 case MENU_ACTION_SHOW_STUB:
-                    /* Stub screens: Recordings, Unsent, Wi-Fi,
-                     * Telegram, Settings, Info — just log */
-                    ESP_LOGI(TAG, "Menu item '%s' selected (stub)",
-                             menu_item_label(s_menu_state.cursor));
+                    /* Route specific stub items to their
+                     * real screens if available. */
+                    if (s_menu_state.cursor == MENU_ITEM_RECORDINGS) {
+                        s_screen = UI_SCREEN_RECORDINGS_LIST;
+                        recordings_list_enter();
+                        screen_changed = true;
+                    } else if (s_menu_state.cursor == MENU_ITEM_UNSENT) {
+                        s_screen = UI_SCREEN_UNSENT_LIST;
+                        unsent_list_enter();
+                        screen_changed = true;
+                    } else {
+                        /* Wi-Fi, Telegram, Settings, Info — stubs */
+                        ESP_LOGI(TAG, "Menu item '%s' selected (stub)",
+                                 menu_item_label(s_menu_state.cursor));
+                    }
                     break;
 
                 case MENU_ACTION_BACK_TO_HOME:
@@ -274,6 +286,39 @@ static void ui_task_loop(void *arg)
                     screen_changed = true;
                 }
 
+                if (screen_changed) break;
+                continue;
+            }
+
+            /* ── Recordings list screen ───────────────────────── */
+            if (s_screen == UI_SCREEN_RECORDINGS_LIST) {
+                bool should_exit = false;
+                recordings_list_navigate(btn_evt.button, &should_exit);
+                if (should_exit) {
+                    s_screen = UI_SCREEN_MENU;
+                    screen_changed = true;
+                } else {
+                    /* Cursor moved — re-render */
+                    screen_changed = true;
+                }
+                if (screen_changed) break;
+                continue;
+            }
+
+            /* ── Unsent list screen ───────────────────────────── */
+            if (s_screen == UI_SCREEN_UNSENT_LIST) {
+                bool should_exit = false;
+                unsent_list_navigate(btn_evt.button, &should_exit);
+                if (should_exit) {
+                    s_screen = UI_SCREEN_MENU;
+                    screen_changed = true;
+                } else if (btn_evt.button == BUTTON_CENTER) {
+                    /* CENTER on Unsent = Send All (Task 17 wires this) */
+                    ESP_LOGI(TAG, "Send All from Unsent screen (stub — Task 17)");
+                } else {
+                    /* Cursor moved — re-render */
+                    screen_changed = true;
+                }
                 if (screen_changed) break;
                 continue;
             }
@@ -370,6 +415,14 @@ static void ui_task_loop(void *arg)
 
             case UI_SCREEN_FACE_SUBMENU:
                 face_submenu_screen_draw(&s_face_submenu_state);
+                break;
+
+            case UI_SCREEN_RECORDINGS_LIST:
+                recordings_list_screen_draw();
+                break;
+
+            case UI_SCREEN_UNSENT_LIST:
+                unsent_list_screen_draw();
                 break;
             }
 

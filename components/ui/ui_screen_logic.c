@@ -23,6 +23,8 @@ const char *ui_screen_name(ui_screen_t screen)
     case UI_SCREEN_SAVED:         return "Saved";
     case UI_SCREEN_MENU:          return "Menu";
     case UI_SCREEN_FACE_SUBMENU:  return "Face";
+    case UI_SCREEN_RECORDINGS_LIST: return "RecordingsList";
+    case UI_SCREEN_UNSENT_LIST:   return "UnsentList";
     default:                      return "Unknown";
     }
 }
@@ -75,6 +77,22 @@ ui_screen_t ui_screen_next(ui_screen_t current, ButtonId button,
             return UI_SCREEN_MENU;
         }
         /* RIGHT and CENTER handled by ui_task via face_submenu_navigate() */
+        break;
+
+    case UI_SCREEN_RECORDINGS_LIST:
+        if (button == BUTTON_LEFT) {
+            /* Back to main menu */
+            return UI_SCREEN_MENU;
+        }
+        /* RIGHT handled by ui_task via recordings_list_navigate() */
+        break;
+
+    case UI_SCREEN_UNSENT_LIST:
+        if (button == BUTTON_LEFT) {
+            /* Back to main menu */
+            return UI_SCREEN_MENU;
+        }
+        /* RIGHT and CENTER handled by ui_task via unsent_list_navigate() */
         break;
     }
 

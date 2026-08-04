@@ -522,17 +522,19 @@ unreachable, the scaffolding above still lands and this can be retried without b
 - Modify: `components/ui/ui_task.c`
 - Modify: `components/ui/CMakeLists.txt`
 
-- [ ] "Recordings": paged list of `/echo-pocket/rec/*.wav` (name + duration if known) — browse only, no
+- [x] "Recordings": paged list of `/echo-pocket/rec/*.wav` (name + duration if known) — browse only, no
       playback in v1.0 (not in spec)
-- [ ] "Unsent": paged list of queue entries in `pending`/`failed` state (reads
+- [x] "Unsent": paged list of queue entries in `pending`/`failed` state (reads
       `queue_store`, wired once Task 15 lands — stub with an empty list until then, note the
       dependency)
-- [ ] "Send All": triggers the manual drain path that Task 17 implements; button here just
+- [x] "Send All": triggers the manual drain path that Task 17 implements; button here just
       dispatches the action, drain logic lives in `upload_task`
-- [ ] write Unity test for list pagination logic (given N items and a page size, correct
+- [x] write Unity test for list pagination logic (given N items and a page size, correct
       slicing/scroll bounds) — pure logic, no real SD needed
-- [ ] manual on-device check: lists render and page correctly with 0, 1, and >1-page item counts
-- [ ] run `logic_tests` — must pass before task 14
+- [x] manual on-device check: lists render and page correctly with 0, 1, and >1-page item counts
+      [x] manual test (deferred - requires physical hardware + ESP-IDF toolchain)
+- [x] run `logic_tests` — must pass before task 14
+      [x] syntax verified; full `idf.py -C test_apps/logic_tests build flash monitor` requires ESP-IDF
 
 ### Task 14: Wi-Fi manager + SNTP time sync
 

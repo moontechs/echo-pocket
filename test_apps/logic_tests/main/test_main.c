@@ -272,6 +272,35 @@ extern void test_face_submenu_center_first(void);
 extern void test_face_submenu_navigate_null_safety(void);
 extern void test_menu_to_face_and_back(void);
 
+/* ── List pagination tests (Task 13) ─────────────────────────────────── */
+/* Defined in test_list_pagination.c (compiled alongside this file) */
+extern void test_pagination_init_normal(void);
+extern void test_pagination_init_zero_items(void);
+extern void test_pagination_init_negative_items(void);
+extern void test_pagination_init_zero_page_size(void);
+extern void test_pagination_init_negative_page_size(void);
+extern void test_pagination_init_null(void);
+extern void test_pagination_scroll_items_fewer_than_page(void);
+extern void test_pagination_scroll_items_equal_to_page(void);
+extern void test_pagination_scroll_cursor_in_first_page(void);
+extern void test_pagination_scroll_cursor_middle(void);
+extern void test_pagination_scroll_cursor_near_end(void);
+extern void test_pagination_scroll_one_item(void);
+extern void test_pagination_scroll_zero_items(void);
+extern void test_pagination_scroll_null(void);
+extern void test_pagination_cursor_down_basic(void);
+extern void test_pagination_cursor_down_wraps(void);
+extern void test_pagination_cursor_down_single_item(void);
+extern void test_pagination_cursor_down_zero_items(void);
+extern void test_pagination_cursor_down_null(void);
+extern void test_pagination_cursor_up_basic(void);
+extern void test_pagination_cursor_up_wraps(void);
+extern void test_pagination_cursor_up_single_item(void);
+extern void test_pagination_cursor_up_zero_items(void);
+extern void test_pagination_cursor_up_null(void);
+extern void test_pagination_full_traverse_down_and_back(void);
+extern void test_pagination_scroll_two_pages_exact(void);
+
 /* ── Config INI tests (Task 5) ──────────────────────────────────────── */
 /* Defined in test_config.c (compiled alongside this file) */
 extern void test_config_defaults(void);
@@ -484,6 +513,34 @@ void app_main(void)
     RUN_TEST(test_face_submenu_center_first);
     RUN_TEST(test_face_submenu_navigate_null_safety);
     RUN_TEST(test_menu_to_face_and_back);
+
+    /* Task 13: list pagination state machine */
+    RUN_TEST(test_pagination_init_normal);
+    RUN_TEST(test_pagination_init_zero_items);
+    RUN_TEST(test_pagination_init_negative_items);
+    RUN_TEST(test_pagination_init_zero_page_size);
+    RUN_TEST(test_pagination_init_negative_page_size);
+    RUN_TEST(test_pagination_init_null);
+    RUN_TEST(test_pagination_scroll_items_fewer_than_page);
+    RUN_TEST(test_pagination_scroll_items_equal_to_page);
+    RUN_TEST(test_pagination_scroll_cursor_in_first_page);
+    RUN_TEST(test_pagination_scroll_cursor_middle);
+    RUN_TEST(test_pagination_scroll_cursor_near_end);
+    RUN_TEST(test_pagination_scroll_one_item);
+    RUN_TEST(test_pagination_scroll_zero_items);
+    RUN_TEST(test_pagination_scroll_null);
+    RUN_TEST(test_pagination_cursor_down_basic);
+    RUN_TEST(test_pagination_cursor_down_wraps);
+    RUN_TEST(test_pagination_cursor_down_single_item);
+    RUN_TEST(test_pagination_cursor_down_zero_items);
+    RUN_TEST(test_pagination_cursor_down_null);
+    RUN_TEST(test_pagination_cursor_up_basic);
+    RUN_TEST(test_pagination_cursor_up_wraps);
+    RUN_TEST(test_pagination_cursor_up_single_item);
+    RUN_TEST(test_pagination_cursor_up_zero_items);
+    RUN_TEST(test_pagination_cursor_up_null);
+    RUN_TEST(test_pagination_full_traverse_down_and_back);
+    RUN_TEST(test_pagination_scroll_two_pages_exact);
 
     /* Task 5: config INI parser */
     RUN_TEST(test_config_defaults);
