@@ -13,7 +13,8 @@ include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 set(EXTRA_COMPONENT_DIRS
     ${CMAKE_CURRENT_SOURCE_DIR}/../../components/board
     ${CMAKE_CURRENT_SOURCE_DIR}/../../components/storage
-    # TODO(task-5): add components/ui after face_engine exists
+    # components/ui: face_engine sources are compiled directly in main/CMakeLists.txt
+    # (the full ui component requires esp_driver_spi + esp_lcd which aren't available here)
     # components/audio: audio_ringbuf.c is compiled directly in main/CMakeLists.txt
     # (the full audio component requires esp_codec_dev which isn't available here)
     # components/recorder: pure-logic files are compiled directly in main/CMakeLists.txt

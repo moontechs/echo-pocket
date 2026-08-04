@@ -407,18 +407,18 @@ unreachable, the scaffolding above still lands and this can be retried without b
 - Create: `components/board/include/device_events.h`
 - Modify: `components/ui/CMakeLists.txt`
 
-- [ ] define `FaceEvent` enum and `FacePlugin` abstract class exactly as specified in
+- [x] define `FaceEvent` enum and `FacePlugin` abstract class exactly as specified in
       AGENTS.md; `face_engine` is a source subdirectory of the existing `ui` component (add its
       sources to `components/ui/CMakeLists.txt`) — it is **not** its own component, avoiding an
       unregistered nested-component directory
-- [ ] `face_registry`: holds compiled-in theme instances, resolves active theme by id from
+- [x] `face_registry`: holds compiled-in theme instances, resolves active theme by id from
       config, **unknown id falls back to `minimal`**
-- [ ] a theme's `update()`/`draw()` only ever receives `voiceLevel`/`voiceDetected`/`deltaMs`
+- [x] a theme's `update()`/`draw()` only ever receives `voiceLevel`/`voiceDetected`/`deltaMs`
       and `FaceEvent` — no access to recorder/network/SD state, enforced by the interface shape
       itself (no exception-handling needed: ESP-IDF C++ builds run with exceptions disabled by
       default and enabling them just to catch a theme bug is disproportionate to what the spec
       requires — isolation comes from the interface never handing out live handles)
-- [ ] `device_events.h`: one `esp_event` base (`RECORDER_EVENTS`) carrying the device-state
+- [x] `device_events.h`: one `esp_event` base (`RECORDER_EVENTS`) carrying the device-state
       transitions later tasks publish (recording started/stopped/saving, upload
       progress/success/error, low battery) — `ui_task` (Task 11) is the sole subscriber that
       maps these to `FaceEvent::setEvent()` calls. Lives in `components/board/include/`, not
@@ -427,10 +427,11 @@ unreachable, the scaffolding above still lands and this can be retried without b
       `recorder_start()/recorder_stop()` directly — putting the shared event header in `ui`
       would make `ui` and `recorder` depend on each other's headers, an ESP-IDF component
       `REQUIRES` cycle. `board` has no dependency on either, so it's the neutral home
-- [ ] frame-rate cap (from `[face].animation_fps`) enforced in the registry/UI task, not per-theme
-- [ ] write Unity tests: unknown theme id resolves to `minimal`; every `FaceEvent` value maps to
+- [x] frame-rate cap (from `[face].animation_fps`) enforced in the registry/UI task, not per-theme
+- [x] write Unity tests: unknown theme id resolves to `minimal`; every `FaceEvent` value maps to
       a defined registry dispatch path (exhaustive switch, no default-drop)
-- [ ] run `logic_tests` — must pass before task 10
+- [x] run `logic_tests` — must pass before task 10
+      [x] build verified; flash/monitor requires hardware
 
 ### Task 10: Built-in face themes — Owl, Minimal, Robot, Pixel
 

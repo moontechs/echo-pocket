@@ -198,6 +198,27 @@ extern void test_voice_db_negative(void);
 extern void test_voice_pipeline_speech_chunk(void);
 extern void test_voice_pipeline_silence_to_speech(void);
 
+/* ── Face registry tests (Task 9) ──────────────────────────────────── */
+/* Defined in test_face_registry.cpp (compiled alongside this file) */
+extern void test_face_registry_empty_count(void);
+extern void test_face_registry_empty_find(void);
+extern void test_face_registry_empty_active_is_null(void);
+extern void test_face_registry_register_increases_count(void);
+extern void test_face_registry_register_null_noop(void);
+extern void test_face_registry_find_by_id(void);
+extern void test_face_registry_find_missing_returns_null(void);
+extern void test_face_registry_fallback_to_minimal(void);
+extern void test_face_registry_fallback_calls_begin_on_fallback(void);
+extern void test_face_registry_begin_known(void);
+extern void test_face_registry_begin_empty_registry(void);
+extern void test_face_registry_all_events_dispatch(void);
+extern void test_face_registry_fps_initial_call(void);
+extern void test_face_registry_fps_within_interval(void);
+extern void test_face_registry_fps_zero_uncapped(void);
+extern void test_face_registry_fps_wraparound(void);
+extern void test_face_registry_active_update_routing(void);
+extern void test_face_registry_active_draw_routing(void);
+
 /* ── Config INI tests (Task 5) ──────────────────────────────────────── */
 /* Defined in test_config.c (compiled alongside this file) */
 extern void test_config_defaults(void);
@@ -340,6 +361,26 @@ void app_main(void)
     RUN_TEST(test_voice_db_negative);
     RUN_TEST(test_voice_pipeline_speech_chunk);
     RUN_TEST(test_voice_pipeline_silence_to_speech);
+
+    /* Task 9: face registry */
+    RUN_TEST(test_face_registry_empty_count);
+    RUN_TEST(test_face_registry_empty_find);
+    RUN_TEST(test_face_registry_empty_active_is_null);
+    RUN_TEST(test_face_registry_register_increases_count);
+    RUN_TEST(test_face_registry_register_null_noop);
+    RUN_TEST(test_face_registry_find_by_id);
+    RUN_TEST(test_face_registry_find_missing_returns_null);
+    RUN_TEST(test_face_registry_fallback_to_minimal);
+    RUN_TEST(test_face_registry_fallback_calls_begin_on_fallback);
+    RUN_TEST(test_face_registry_begin_known);
+    RUN_TEST(test_face_registry_begin_empty_registry);
+    RUN_TEST(test_face_registry_all_events_dispatch);
+    RUN_TEST(test_face_registry_fps_initial_call);
+    RUN_TEST(test_face_registry_fps_within_interval);
+    RUN_TEST(test_face_registry_fps_zero_uncapped);
+    RUN_TEST(test_face_registry_fps_wraparound);
+    RUN_TEST(test_face_registry_active_update_routing);
+    RUN_TEST(test_face_registry_active_draw_routing);
 
     /* Task 5: config INI parser */
     RUN_TEST(test_config_defaults);
