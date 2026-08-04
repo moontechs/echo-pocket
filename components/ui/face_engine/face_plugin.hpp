@@ -34,6 +34,19 @@ enum class FaceEvent {
 /** Number of distinct FaceEvent values (for exhaustive-switch tests). */
 #define FACE_EVENT_COUNT 9
 
+/* ── FaceConfig (per-theme settings from [face] section) ─────────────── */
+
+struct FaceConfig {
+    int  eye_min_size;     /**< Minimum eye radius/height (px)       */
+    int  eye_max_size;     /**< Maximum eye radius/height (px)       */
+    bool react_to_voice;   /**< Eye size follows voiceLevel           */
+    bool blink;            /**< Automatic blink animation enabled     */
+
+    FaceConfig()
+        : eye_min_size(5), eye_max_size(22),
+          react_to_voice(true), blink(true) {}
+};
+
 /* ── FacePlugin (abstract interface) ─────────────────────────────────── */
 
 class FacePlugin {

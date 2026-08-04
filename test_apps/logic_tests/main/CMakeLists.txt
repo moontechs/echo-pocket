@@ -1,5 +1,6 @@
 idf_component_register(
     SRCS "test_main.c" "test_buttons.c" "test_sd_storage.c" "test_config.c"
+         "test_display_stubs.c" "test_face_themes.cpp"
          "../../../components/audio/audio_ringbuf.c"
          "../../../components/audio/audio_mono_ringbuf.c"
          "../../../components/audio/voice_level.c"
@@ -11,6 +12,10 @@ idf_component_register(
          "../../../components/recorder/test/test_wav_writer.c"
          "../../../components/recorder/test/test_rec_id.c"
          "../../../components/ui/face_engine/face_registry.cpp"
+         "../../../components/ui/face_engine/owl_face.cpp"
+         "../../../components/ui/face_engine/minimal_face.cpp"
+         "../../../components/ui/face_engine/robot_face.cpp"
+         "../../../components/ui/face_engine/pixel_face.cpp"
          "../../../components/ui/face_engine/test/test_face_registry.cpp"
     INCLUDE_DIRS "."
                 "../../../components/audio/include"

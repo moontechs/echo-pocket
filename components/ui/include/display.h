@@ -35,6 +35,44 @@ void display_clear(uint16_t color);
  */
 void display_draw_text(int x, int y, const char *text, uint16_t color);
 
+/**
+ * @brief Fill a rectangle with a solid color.
+ *
+ * Pixels outside the display bounds are silently clipped.
+ *
+ * @p x, y   Top-left corner.
+ * @p w, h   Width and height in pixels.
+ * @p color  16-bit RGB565 fill color.
+ */
+void display_fill_rect(int x, int y, int w, int h, uint16_t color);
+
+/**
+ * @brief Draw a 1-pixel outline rectangle.
+ *
+ * @p x, y   Top-left corner.
+ * @p w, h   Width and height in pixels.
+ * @p color  16-bit RGB565 outline color.
+ */
+void display_draw_rect(int x, int y, int w, int h, uint16_t color);
+
+/**
+ * @brief Draw a filled circle (midpoint algorithm).
+ *
+ * @p cx, cy  Center point.
+ * @p r       Radius in pixels.
+ * @p color   16-bit RGB565 fill color.
+ */
+void display_fill_circle(int cx, int cy, int r, uint16_t color);
+
+/**
+ * @brief Draw a horizontal line.
+ *
+ * @p x, y   Starting point.
+ * @p w      Width in pixels.
+ * @p color  16-bit RGB565 color.
+ */
+void display_draw_hline(int x, int y, int w, uint16_t color);
+
 #ifdef __cplusplus
 }
 #endif

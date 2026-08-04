@@ -4,6 +4,7 @@
 
 #include "face_registry.h"
 #include "face_plugin.hpp"
+#include "face_themes.h"
 #include <string.h>
 #include <stdio.h>
 
@@ -133,4 +134,15 @@ bool face_registry_should_update(uint32_t now_ms)
     }
 
     return false;
+}
+
+/* ── Default theme registration ───────────────────────────────────────── */
+
+void face_registry_register_defaults(void)
+{
+    FaceConfig defaults;
+    face_registry_register(create_owl_face(defaults));
+    face_registry_register(create_minimal_face(defaults));
+    face_registry_register(create_robot_face(defaults));
+    face_registry_register(create_pixel_face(defaults));
 }

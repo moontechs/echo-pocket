@@ -292,3 +292,83 @@ void display_draw_text(int x, int y, const char *text, uint16_t color)
         x += 8;
     }
 }
+
+void display_fill_rect(int x, int y, int w, int h, uint16_t color)
+{
+    if (!fb) return;
+    /* Clip to bounds */
+    if (x < 0) { w += x; x = 0; }
+    if (y < 0) { h += y; y = 0; }
+    if (x + w > BOARD_LCD_H_RES) w = BOARD_LCD_H_RES - x;
+    if (y + h > BOARD_LCD_V_RES) h = BOARD_LCD_V_RES - y;
+    if (w <= 0 || h <= 0) return;
+
+    for (int row = y; row < y + h; row++) {
+        for (int col = x; col < x + w; col++) {
+            fb[row * BOARD_LCD_H_RES + col] = color;
+        }
+    }
+}
+
+void display_draw_rect(int x, int y, int w, int h, uint16_t color)
+{
+    if (!fb) return;
+    /* Clip to bounds */
+    if (x < 0) { w += x; x = 0; }
+    if (y < 0) { h += y; y = 0; }
+    if (x + w > BOARD_LCD_H_RES) w = BOARD_LCD_H_RES - x;
+    if (y + h > BOARD_LCD_V_RES) h = BOARD_LCD_V_RES - y;
+    if (w <= 0 || h <= 0) return;
+
+    /* Top edge */
+    for (int col = x; col < x + w; col++) fb_put(col, y, color);
+    /* Bottom edge */
+    for (int col = x; col < x + w; col++) fb_put(col, y + h - 1, color);
+    /* Left edge */
+    for (int row = y + 1; row < y + h - 1; row++) fb_put(x, row, color);
+    /* Right edge */
+    for (int row = y + 1; row < y + h - 1; row++) fb_put(x + w - 1, row, color);
+}
+
+void display_fill_circle(int cx, int cy, int r, uint16_t color)
+{
+    if (!fb || r < 0) return;
+    if (r == 0) { fb_put(cx, cy, color); return; }
+
+    /* Midpoint circle algorithm — draw horizontal spans */
+    int dx = r;
+    int dy = 0;
+    int err = 1 - r;
+
+    while (dx >= dy) {
+        /* Horizontal spans for this y value */
+        for (int col = cx - dx; col <= cx + dx; col++) {
+            fb_put(col, cy + dy, color);
+            fb_put(col, cy - dy, color);
+        }
+        for (int col = cx - dy; col <= cx + dy; col++) {
+            fb_put(col, cy + dx, color);
+            fb_put(col, cy - dx, color);
+        }
+
+        dy++;
+        if (err <= 0) {
+            err += 2 * dy + 1;
+        } else {
+            dx--;
+            err += 2 * (dy - dx) + 1;
+        }
+    }
+}
+
+void display_draw_hline(int x, int y, int w, uint16_t color)
+{
+    if (!fb) return;
+    if (x < 0) { w += x; x = 0; }
+    if (x + w > BOARD_LCD_H_RES) w = BOARD_LCD_H_RES - x;
+    if (w <= 0 || y < 0 || y >= BOARD_LCD_V_RES) return;
+
+    for (int col = x; col < x + w; col++) {
+        fb_put(col, y, color);
+    }
+}

@@ -219,6 +219,19 @@ extern void test_face_registry_fps_wraparound(void);
 extern void test_face_registry_active_update_routing(void);
 extern void test_face_registry_active_draw_routing(void);
 
+/* ── Face theme tests (Task 10) ──────────────────────────────────────── */
+/* Defined in test_face_themes.cpp (compiled alongside this file) */
+extern void test_face_theme_owl_all_events(void);
+extern void test_face_theme_minimal_all_events(void);
+extern void test_face_theme_minimal_is_fallback(void);
+extern void test_face_theme_robot_all_events(void);
+extern void test_face_theme_pixel_all_events(void);
+extern void test_face_theme_config_eye_range(void);
+extern void test_face_theme_config_no_react(void);
+extern void test_face_theme_config_no_blink(void);
+extern void test_face_theme_begin_resets_state(void);
+extern void test_face_theme_unique_ids(void);
+
 /* ── Config INI tests (Task 5) ──────────────────────────────────────── */
 /* Defined in test_config.c (compiled alongside this file) */
 extern void test_config_defaults(void);
@@ -381,6 +394,18 @@ void app_main(void)
     RUN_TEST(test_face_registry_fps_wraparound);
     RUN_TEST(test_face_registry_active_update_routing);
     RUN_TEST(test_face_registry_active_draw_routing);
+
+    /* Task 10: face themes */
+    RUN_TEST(test_face_theme_owl_all_events);
+    RUN_TEST(test_face_theme_minimal_all_events);
+    RUN_TEST(test_face_theme_minimal_is_fallback);
+    RUN_TEST(test_face_theme_robot_all_events);
+    RUN_TEST(test_face_theme_pixel_all_events);
+    RUN_TEST(test_face_theme_config_eye_range);
+    RUN_TEST(test_face_theme_config_no_react);
+    RUN_TEST(test_face_theme_config_no_blink);
+    RUN_TEST(test_face_theme_begin_resets_state);
+    RUN_TEST(test_face_theme_unique_ids);
 
     /* Task 5: config INI parser */
     RUN_TEST(test_config_defaults);

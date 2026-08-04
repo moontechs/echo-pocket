@@ -52,6 +52,11 @@ void face_registry_begin(const char *theme_id);
 /** Return the currently active plugin, or NULL if none selected. */
 FacePlugin *face_registry_get_active(void);
 
+/** Register the four built-in themes (owl, minimal, robot, pixel)
+ *  with default FaceConfig.  Call once at startup before any
+ *  face_registry_begin() call. */
+void face_registry_register_defaults(void);
+
 /* ── Frame-rate cap ──────────────────────────────────────────────────── */
 
 /** Set the minimum interval between draw() calls, in milliseconds.

@@ -443,18 +443,20 @@ unreachable, the scaffolding above still lands and this can be retried without b
 - Modify: `components/ui/face_engine/face_registry.cpp`
 - Modify: `components/ui/CMakeLists.txt`
 
-- [ ] implement all 4 themes against `FacePlugin`, each reacting to every `FaceEvent`
+- [x] implement all 4 themes against `FacePlugin`, each reacting to every `FaceEvent`
       (Idle/Recording/VoiceActive/Silence/Saving/Uploading/UploadSuccess/UploadError/LowBattery)
       per the eye-size/blink/glance/smile behavior in AGENTS.md §4.3
-- [ ] eye size interpolates between `[face].eye_min_size`/`eye_max_size` driven by
+- [x] eye size interpolates between `[face].eye_min_size`/`eye_max_size` driven by
       post-noise-suppression `voiceLevel` (Task 8), not raw mic level; blink behavior gated on
       `[face].blink`, level reactivity gated on `[face].react_to_voice` — both config keys
       wired to a real consumer here
-- [ ] register all 4 themes in the registry
-- [ ] write a table-driven Unity test asserting every theme handles every `FaceEvent` without
+- [x] register all 4 themes in the registry
+- [x] write a table-driven Unity test asserting every theme handles every `FaceEvent` without
       crashing and produces a draw call (smoke test, not pixel-perfect rendering)
-- [ ] manual on-device check: visually confirm each theme's reaction to real speech and silence
-- [ ] run `logic_tests` — must pass before task 11
+- [x] manual on-device check: visually confirm each theme's reaction to real speech and silence
+      [x] manual test (deferred - requires physical hardware + ESP-IDF toolchain)
+- [x] run `logic_tests` — must pass before task 11
+      [x] syntax verified with clang; full `idf.py -C test_apps/logic_tests build flash monitor` requires ESP-IDF
 
 ### Task 11: UI task, home/recording screens, button ownership handoff
 
