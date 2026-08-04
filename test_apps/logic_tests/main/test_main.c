@@ -105,6 +105,27 @@ extern void test_subdir_names_are_expected(void);
 extern void test_error_strings_are_distinct(void);
 extern void test_mounted_flag_initially_false(void);
 
+/* ── Config INI tests (Task 5) ──────────────────────────────────────── */
+/* Defined in test_config.c (compiled alongside this file) */
+extern void test_config_defaults(void);
+extern void test_config_parse_empty(void);
+extern void test_config_parse_null(void);
+extern void test_config_parse_valid(void);
+extern void test_config_multiple_wifi(void);
+extern void test_config_malformed_skipped(void);
+extern void test_config_unknown_section(void);
+extern void test_config_comments(void);
+extern void test_config_whitespace(void);
+extern void test_config_bool_formats(void);
+extern void test_config_roundtrip(void);
+extern void test_config_serialize_buffer_too_small(void);
+extern void test_config_null_safety(void);
+extern void test_config_channels_with_gaps(void);
+extern void test_config_load_null_path(void);
+extern void test_config_load_nonexistent_file(void);
+extern void test_config_save_null_safety(void);
+extern void test_config_error_strings(void);
+
 /* ── Test runner ─────────────────────────────────────────────────────── */
 
 void app_main(void)
@@ -137,6 +158,26 @@ void app_main(void)
     RUN_TEST(test_subdir_names_are_expected);
     RUN_TEST(test_error_strings_are_distinct);
     RUN_TEST(test_mounted_flag_initially_false);
+
+    /* Task 5: config INI parser */
+    RUN_TEST(test_config_defaults);
+    RUN_TEST(test_config_parse_empty);
+    RUN_TEST(test_config_parse_null);
+    RUN_TEST(test_config_parse_valid);
+    RUN_TEST(test_config_multiple_wifi);
+    RUN_TEST(test_config_malformed_skipped);
+    RUN_TEST(test_config_unknown_section);
+    RUN_TEST(test_config_comments);
+    RUN_TEST(test_config_whitespace);
+    RUN_TEST(test_config_bool_formats);
+    RUN_TEST(test_config_roundtrip);
+    RUN_TEST(test_config_serialize_buffer_too_small);
+    RUN_TEST(test_config_null_safety);
+    RUN_TEST(test_config_channels_with_gaps);
+    RUN_TEST(test_config_load_null_path);
+    RUN_TEST(test_config_load_nonexistent_file);
+    RUN_TEST(test_config_save_null_safety);
+    RUN_TEST(test_config_error_strings);
 
     UNITY_END();
 }

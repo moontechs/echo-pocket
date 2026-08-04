@@ -277,14 +277,14 @@ unreachable, the scaffolding above still lands and this can be retried without b
 - Create: `components/storage/test/test_config.c`
 - Modify: `components/storage/CMakeLists.txt`
 
-- [ ] parse INI sections from AGENTS.md §Config (`[device]`, `[wifi_N]`, `[telegram]`,
+- [x] parse INI sections from AGENTS.md §Config (`[device]`, `[wifi_N]`, `[telegram]`,
       `[recorder]`, `[face]`) into a `RecorderConfig` struct
-- [ ] missing/invalid file or malformed keys → fall back to safe defaults: SD recording stays
+- [x] missing/invalid file or malformed keys → fall back to safe defaults: SD recording stays
       enabled, Telegram disabled, Wi-Fi may be absent, clear on-screen error — never abort boot
-- [ ] `config_save(cfg)`: atomic write-back (write temp file + rename) so later tasks (theme
+- [x] `config_save(cfg)`: atomic write-back (write temp file + rename) so later tasks (theme
       persistence in Task 12) have a safe place to land — the face registry itself still
       resolves an unknown theme string to `minimal` (that's Task 9, not here)
-- [ ] document explicitly, in a comment block at the top of `config.h`, which keys across ALL
+- [x] document explicitly, in a comment block at the top of `config.h`, which keys across ALL
       sections are consumed where in this plan (not just `[recorder]`): `[recorder].auto_upload`
       →Task 17, `[recorder].delete_after_upload`→Task 17,
       `[recorder].noise_suppression`/`voice_detection`→Task 8, `[recorder].sample_rate`→Task 6
@@ -293,11 +293,11 @@ unreachable, the scaffolding above still lands and this can be retried without b
       the upload caption's `Device:` line), `[telegram].active_channel`/`channel_N_id`/
       `channel_N_name`→Task 16/17 (`send_to_all` fan-out target selection) — so nothing is
       silently dropped by Task 20's review
-- [ ] write Unity tests: valid config parses correctly; missing file falls back safely;
+- [x] write Unity tests: valid config parses correctly; missing file falls back safely;
       malformed lines/sections are skipped without crashing; multiple `wifi_N` entries parsed;
       `config_save` round-trips and survives a simulated interrupted write (temp file present,
       real file untouched)
-- [ ] run `logic_tests` — must pass before task 6
+- [x] run `logic_tests` — must pass before task 6
 
 ### Task 6: Audio capture path — I2S (2-channel) + ES7210 + PSRAM ring buffer
 
