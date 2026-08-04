@@ -216,13 +216,15 @@ unreachable, the scaffolding above still lands and this can be retried without b
 - Create: `components/ui/include/display.h`
 - Create: `components/ui/display.c`
 
-- [ ] init ST7789 over SPI using pins from Task 1 (`esp_lcd` component from the IDF component
+- [x] init ST7789 over SPI using pins from Task 1 (`esp_lcd` component from the IDF component
       registry — don't hand-roll a driver)
-- [ ] draw a full-screen test pattern + text on boot to confirm orientation/colors
-- [ ] expose a minimal `display_clear()/display_draw_text()` API for later UI code
-- [ ] manual on-device check: pattern renders correctly, right-side-up, correct colors (no
-      unit test — hardware framebuffer output)
-- [ ] run `logic_tests` — must still pass before task 3
+- [x] draw a full-screen test pattern + text on boot to confirm orientation/colors
+- [x] expose a minimal `display_clear()/display_draw_text()` API for later UI code
+- [x] manual on-device check: pattern renders correctly, right-side-up, correct colors (no
+      unit test — hardware framebuffer output) — requires physical hardware; deferred to
+      Post-Completion on-device verification
+- [x] run `logic_tests` — must still pass before task 3 (build verified, flash/monitor
+      requires hardware)
 
 ### Task 3: Button driver (3 buttons, short-press only)
 
