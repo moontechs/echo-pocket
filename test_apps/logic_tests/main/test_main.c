@@ -84,18 +84,40 @@ static void test_battery_pins_defined(void)
     TEST_ASSERT_TRUE(BOARD_BAT_POWER_PIN >= 0 || BOARD_BAT_POWER_PIN == GPIO_NUM_NC);
 }
 
+/* ── Button debounce tests (Task 3) ─────────────────────────────────── */
+/* Defined in test_buttons.c (compiled alongside this file) */
+extern void test_debounce_init_state(void);
+extern void test_single_press_release(void);
+extern void test_press_bounce_no_false_event(void);
+extern void test_release_bounce_single_event(void);
+extern void test_long_press_one_event(void);
+extern void test_consecutive_presses(void);
+extern void test_idle_noise_no_event(void);
+extern void test_independent_instances(void);
+
 /* ── Test runner ─────────────────────────────────────────────────────── */
 
 void app_main(void)
 {
     UNITY_BEGIN();
 
+    /* Task 1: pin distinctness */
     RUN_TEST(test_button_pins_distinct);
     RUN_TEST(test_lcd_spi_pins_distinct);
     RUN_TEST(test_sd_pins_distinct);
     RUN_TEST(test_i2c_pins_distinct);
     RUN_TEST(test_i2s_pins_distinct);
     RUN_TEST(test_battery_pins_defined);
+
+    /* Task 3: button debounce state machine */
+    RUN_TEST(test_debounce_init_state);
+    RUN_TEST(test_single_press_release);
+    RUN_TEST(test_press_bounce_no_false_event);
+    RUN_TEST(test_release_bounce_single_event);
+    RUN_TEST(test_long_press_one_event);
+    RUN_TEST(test_consecutive_presses);
+    RUN_TEST(test_idle_noise_no_event);
+    RUN_TEST(test_independent_instances);
 
     UNITY_END();
 }

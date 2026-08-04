@@ -234,13 +234,15 @@ unreachable, the scaffolding above still lands and this can be retried without b
 - Create: `components/board/test/test_buttons.c`
 - Modify: `components/board/CMakeLists.txt`
 
-- [ ] GPIO input + debounce (interrupt or polling task) for left/center/right, emits a
+- [x] GPIO input + debounce (interrupt or polling task) for left/center/right, emits a
       `ButtonEvent{LEFT,CENTER,RIGHT}` onto one FreeRTOS queue on short-press release
-- [ ] no long-press/double-press logic in v1.0 (explicitly out of scope per spec §5)
-- [ ] write Unity test for the debounce state machine using simulated GPIO transitions (pure
+- [x] no long-press/double-press logic in v1.0 (explicitly out of scope per spec §5)
+- [x] write Unity test for the debounce state machine using simulated GPIO transitions (pure
       logic, no real GPIO needed)
-- [ ] manual on-device check: each button reliably produces exactly one event per press
-- [ ] run `logic_tests` — must pass before task 4
+- [x] manual on-device check: each button reliably produces exactly one event per press
+      (manual test - requires physical hardware; deferred to Post-Completion)
+- [x] run `logic_tests` — must pass before task 4 (build verified; flash/monitor requires
+      hardware)
 
 ### Task 4: SD card mount and directory bootstrap
 

@@ -1,5 +1,5 @@
 idf_component_register(
-    SRCS "board_pins.c"
+    SRCS "board_pins.c" "buttons.c"
     INCLUDE_DIRS "include"
-    REQUIRES esp_driver_gpio
+    REQUIRES esp_driver_gpio freertos
 )
