@@ -1,16 +1,17 @@
 /** @file recorder.c
  * @brief Recording state machine — sd_writer_task consuming the ring buffer
- *        and writing WAV files to SD, plus temporary button handling.
+ *        and writing WAV files to SD.
  *
- * TODO(task-11): Remove the direct button-queue subscription in this file
- * and move start/stop decisions to ui_task.  ui_task will call
- * recorder_start() / recorder_stop() directly instead.
+ * Button ownership has moved to ui_task (Task 11).  ui_task calls
+ * recorder_start() / recorder_stop() directly; the sd_writer_task
+ * receives commands through an internal FreeRTOS queue.
  */
 
 #include "recorder.h"
 #include "wav_writer.h"
 #include "rec_id.h"
 #include "audio_mono_ringbuf.h"
+#include "device_events.h"
 
 #include <inttypes.h>
 #include "esp_log.h"
@@ -21,18 +22,16 @@
 #include "freertos/queue.h"
 #include "sd_storage.h"
 
-/* ── Button event type (from buttons.h — we consume only the id field) ── */
-/* Avoid full #include "buttons.h" to keep component deps clean;           */
-/* the struct layout is stable and this file only reads `.button`.         */
-typedef struct {
-    int button;  /* 0=LEFT, 1=CENTER, 2=RIGHT (matches ButtonId enum)    */
-} button_event_t;
-
-#define BUTTON_CENTER  1
-
 /* ── Log tag ─────────────────────────────────────────────────────────── */
 
 static const char *TAG = "recorder";
+
+/* ── Internal command type ───────────────────────────────────────────── */
+
+typedef enum {
+    RECORDER_CMD_START = 0,
+    RECORDER_CMD_STOP,
+} recorder_cmd_t;
 
 /* ── Read chunk size (frames per iteration) ────────────────────────────
  *
@@ -44,7 +43,7 @@ static const char *TAG = "recorder";
 /* ── Static state ────────────────────────────────────────────────────── */
 
 static audio_mono_ringbuf_t *s_ringbuf   = NULL;
-static QueueHandle_t     s_button_queue  = NULL;  /* TODO(task-11): remove */
+static QueueHandle_t     s_cmd_queue     = NULL;
 static TaskHandle_t      s_task          = NULL;
 static volatile bool     s_running       = false;
 
@@ -119,6 +118,8 @@ static bool finalize_recording(wav_writer_t *wav)
 
     if (ok) {
         ESP_LOGI(TAG, "Recording finalized: %s", wav_writer_path(wav));
+        /* Notify UI that the recording has been saved */
+        esp_event_post(RECORDER_EVENTS, RECORDER_EVENT_SAVED, NULL, 0, 0);
     } else {
         ESP_LOGE(TAG, "Recording finalize failed: %s", wav_writer_path(wav));
     }
@@ -126,6 +127,7 @@ static bool finalize_recording(wav_writer_t *wav)
     /* TODO(task-15): enqueue the completed WAV to the upload queue.
      * After queue_store is implemented, add:
      *   queue_store_enqueue(wav_writer_path(wav), wav_writer_bytes_written(wav));
+     * Then post RECORDER_EVENT_ENQUEUED.
      */
 
     return ok;
@@ -162,14 +164,11 @@ static void sd_writer_task(void *arg)
             last_uptime_update = uptime_s;
         }
 
-        /* ── Check for button events (TODO(task-11): remove this block) ── */
-        button_event_t btn_evt;
-        // TODO(task-11): Remove this direct button-queue subscription.
-        // ui_task will become the sole ButtonEvent consumer and call
-        // recorder_start() / recorder_stop() directly.
-        while (s_button_queue &&
-               xQueueReceive(s_button_queue, &btn_evt, 0) == pdTRUE) {
-            if (btn_evt.button == BUTTON_CENTER) {
+        /* ── Check for recorder commands (sent by ui_task) ──────────── */
+        recorder_cmd_t cmd;
+        while (s_cmd_queue &&
+               xQueueReceive(s_cmd_queue, &cmd, 0) == pdTRUE) {
+            if (cmd == RECORDER_CMD_START) {
                 if (s_state == RECORDER_STATE_IDLE) {
                     /* ── Start recording ──────────────────────────── */
                     rec_id_err_t id_err = generate_next_id(rec_id_buf,
@@ -192,9 +191,20 @@ static void sd_writer_task(void *arg)
 
                     s_state = RECORDER_STATE_RECORDING;
                     ESP_LOGI(TAG, "Recording started: %s", rec_id_buf);
-                } else if (s_state == RECORDER_STATE_RECORDING) {
+
+                    /* Notify UI */
+                    esp_event_post(RECORDER_EVENTS, RECORDER_EVENT_STARTED,
+                                   NULL, 0, 0);
+                }
+            } else if (cmd == RECORDER_CMD_STOP) {
+                if (s_state == RECORDER_STATE_RECORDING) {
                     /* ── Stop recording ───────────────────────────── */
                     ESP_LOGI(TAG, "Stop requested");
+
+                    /* Notify UI that stop has begun (Saving state) */
+                    esp_event_post(RECORDER_EVENTS, RECORDER_EVENT_STOPPED,
+                                   NULL, 0, 0);
+
                     if (wav) {
                         finalize_recording(wav);
                         wav = NULL;
@@ -225,7 +235,6 @@ static void sd_writer_task(void *arg)
 
                         /* Finalize current, open new — reuses the
                          * finalize-then-reopen path from normal stop.   */
-                        const char *old_path = wav_writer_path(wav);
                         bool ok = finalize_recording(wav);
                         wav = NULL;
 
@@ -256,8 +265,10 @@ static void sd_writer_task(void *arg)
                             continue;
                         }
 
-                        ESP_LOGI(TAG, "Auto-split: new segment %s (prev: %s)",
-                                 rec_id_buf, old_path);
+                        ESP_LOGI(TAG, "Auto-split: new segment %s", rec_id_buf);
+                        /* Notify UI of new recording segment */
+                        esp_event_post(RECORDER_EVENTS, RECORDER_EVENT_STARTED,
+                                       NULL, 0, 0);
                     }
                 }
             } else {
@@ -295,6 +306,14 @@ void recorder_init(audio_mono_ringbuf_t *ringbuf)
     s_state   = RECORDER_STATE_IDLE;
     s_running = true;
 
+    /* Create internal command queue for ui_task → recorder IPC */
+    s_cmd_queue = xQueueCreate(4, sizeof(recorder_cmd_t));
+    if (!s_cmd_queue) {
+        ESP_LOGE(TAG, "Failed to create recorder command queue");
+        s_running = false;
+        return;
+    }
+
     BaseType_t created = xTaskCreate(
         sd_writer_task,
         "sd_writer",
@@ -306,6 +325,8 @@ void recorder_init(audio_mono_ringbuf_t *ringbuf)
 
     if (created != pdPASS) {
         s_running = false;
+        vQueueDelete(s_cmd_queue);
+        s_cmd_queue = NULL;
         ESP_LOGE(TAG, "Failed to create writer task");
         return;
     }
@@ -324,25 +345,43 @@ void recorder_deinit(void)
         s_task = NULL;
     }
 
+    if (s_cmd_queue) {
+        vQueueDelete(s_cmd_queue);
+        s_cmd_queue = NULL;
+    }
+
     s_ringbuf = NULL;
-    s_button_queue = NULL;
 }
 
-/* ── TODO(task-11): Remove this function ────────────────────────────────
- *
- * Temporary: lets app_main pass the button event queue to the recorder
- * so center-button start/stop works until ui_task takes over.
- *
- * Task 11 MUST remove:
- *   1. This function definition
- *   2. The s_button_queue static variable
- *   3. The button event processing block in sd_writer_task
- *   4. The declaration in recorder.h (if added — currently this is a
- *      .c-only function)
- */
-void recorder_set_button_queue(QueueHandle_t queue)
+void recorder_start(void)
 {
-    s_button_queue = queue;
+    if (!s_cmd_queue) {
+        ESP_LOGE(TAG, "recorder_start: not initialized");
+        return;
+    }
+
+    recorder_cmd_t cmd = RECORDER_CMD_START;
+    if (xQueueSend(s_cmd_queue, &cmd, 0) != pdTRUE) {
+        ESP_LOGW(TAG, "recorder_start: command queue full");
+    }
+}
+
+void recorder_stop(void)
+{
+    if (!s_cmd_queue) {
+        ESP_LOGE(TAG, "recorder_stop: not initialized");
+        return;
+    }
+
+    recorder_cmd_t cmd = RECORDER_CMD_STOP;
+    if (xQueueSend(s_cmd_queue, &cmd, 0) != pdTRUE) {
+        ESP_LOGW(TAG, "recorder_stop: command queue full");
+    }
+}
+
+bool recorder_is_recording(void)
+{
+    return s_state == RECORDER_STATE_RECORDING;
 }
 
 /* ── Time sync setters (for Task 14 / boot timer) ───────────────────── */

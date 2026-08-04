@@ -11,6 +11,8 @@ idf_component_register(
          "../../../components/recorder/recorder_logic.c"
          "../../../components/recorder/test/test_wav_writer.c"
          "../../../components/recorder/test/test_rec_id.c"
+         "../../../components/ui/ui_screen_logic.c"
+         "../../../components/ui/test/test_ui_button_routing.c"
          "../../../components/ui/face_engine/face_registry.cpp"
          "../../../components/ui/face_engine/owl_face.cpp"
          "../../../components/ui/face_engine/minimal_face.cpp"
@@ -20,6 +22,7 @@ idf_component_register(
     INCLUDE_DIRS "."
                 "../../../components/audio/include"
                 "../../../components/recorder/include"
+                "../../../components/ui/include"
                 "../../../components/ui/face_engine"
                 "../../../components/ui/face_engine/include"
     REQUIRES unity board storage log

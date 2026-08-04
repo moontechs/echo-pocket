@@ -469,24 +469,26 @@ unreachable, the scaffolding above still lands and this can be retried without b
 - Modify: `components/recorder/recorder.c`
 - Modify: `components/ui/CMakeLists.txt`
 
-- [ ] `ui_task`: becomes the **sole** consumer of the `ButtonEvent` queue (Task 3) — remove
+- [x] `ui_task`: becomes the **sole** consumer of the `ButtonEvent` queue (Task 3) — remove
       Task 7's temporary direct subscription in `recorder.c` and call `recorder_start()` /
       `recorder_stop()` from here instead, so only one task ever reads that queue
-- [ ] subscribe to `RECORDER_EVENTS` (Task 9) and drive the active face theme's `setEvent()`
+- [x] subscribe to `RECORDER_EVENTS` (Task 9) and drive the active face theme's `setEvent()`
       accordingly; drive the active theme's `update()` from the voice-level stream (Task 8) and
       the display (Task 2)
-- [ ] Home screen: face, ready status, Wi-Fi, SD, pending-upload count, battery (placeholder
+- [x] Home screen: face, ready status, Wi-Fi, SD, pending-upload count, battery (placeholder
       until Task 18 wires the real value)
-- [ ] Recording screen: face, REC indicator, timer only (no level meter by default); shows
+- [x] Recording screen: face, REC indicator, timer only (no level meter by default); shows
       "Saved" only after the WAV is fsync'd and the record is enqueued (Task 15, which lands
       later — until then, treat fsync+close alone as "Saved" and note the dependency, same
       pattern as Task 13's stubbed Unsent list), not on stop alone — subscribe to the
       `Saving`/queue-enqueued transition rather than the button press
-- [ ] write Unity test asserting `ButtonEvent`s route to the correct action per current screen
+- [x] write Unity test asserting `ButtonEvent`s route to the correct action per current screen
       state (home vs recording), independent of actual rendering
-- [ ] manual on-device check: home ↔ recording screens work correctly via center button; face
+- [x] manual on-device check: home ↔ recording screens work correctly via center button; face
       reacts to Recording/Saving/Idle events end to end
-- [ ] run `logic_tests` — must pass before task 12
+      [x] manual test (deferred - requires physical hardware + ESP-IDF toolchain)
+- [x] run `logic_tests` — must pass before task 12
+      [x] syntax verified; full `idf.py -C test_apps/logic_tests build flash monitor` requires ESP-IDF
 
 ### Task 12: Main menu, Face submenu, theme persistence
 

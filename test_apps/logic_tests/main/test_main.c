@@ -232,6 +232,20 @@ extern void test_face_theme_config_no_blink(void);
 extern void test_face_theme_begin_resets_state(void);
 extern void test_face_theme_unique_ids(void);
 
+/* ── UI button routing tests (Task 11) ────────────────────────────────── */
+/* Defined in test_ui_button_routing.c (compiled alongside this file) */
+extern void test_home_center_starts_recording(void);
+extern void test_home_left_noop(void);
+extern void test_home_right_noop(void);
+extern void test_recording_center_stops(void);
+extern void test_recording_left_noop(void);
+extern void test_recording_right_noop(void);
+extern void test_saved_any_button_returns_home(void);
+extern void test_screen_next_null_action(void);
+extern void test_full_record_cycle(void);
+extern void test_screen_name_known(void);
+extern void test_screen_name_unknown(void);
+
 /* ── Config INI tests (Task 5) ──────────────────────────────────────── */
 /* Defined in test_config.c (compiled alongside this file) */
 extern void test_config_defaults(void);
@@ -406,6 +420,19 @@ void app_main(void)
     RUN_TEST(test_face_theme_config_no_blink);
     RUN_TEST(test_face_theme_begin_resets_state);
     RUN_TEST(test_face_theme_unique_ids);
+
+    /* Task 11: UI button routing state machine */
+    RUN_TEST(test_home_center_starts_recording);
+    RUN_TEST(test_home_left_noop);
+    RUN_TEST(test_home_right_noop);
+    RUN_TEST(test_recording_center_stops);
+    RUN_TEST(test_recording_left_noop);
+    RUN_TEST(test_recording_right_noop);
+    RUN_TEST(test_saved_any_button_returns_home);
+    RUN_TEST(test_screen_next_null_action);
+    RUN_TEST(test_full_record_cycle);
+    RUN_TEST(test_screen_name_known);
+    RUN_TEST(test_screen_name_unknown);
 
     /* Task 5: config INI parser */
     RUN_TEST(test_config_defaults);

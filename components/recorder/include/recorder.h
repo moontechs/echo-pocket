@@ -1,13 +1,13 @@
 /** @file recorder.h
  * @brief Recording state machine + sd_writer_task.
  *
- * The sd_writer_task consumes downmixed PCM from the audio ring buffer
- * (Task 6's 2ch→mono helper for now, Task 8's AFE output later) and
- * writes valid WAV files to the SD card.  Auto-splits at ~19 minutes.
+ * The sd_writer_task consumes mono PCM from the audio ring buffer
+ * (Task 8's AFE output) and writes valid WAV files to the SD card.
+ * Auto-splits at ~19 minutes.
  *
- * Temporary button handling: the recorder subscribes to the button event
- * queue directly until Task 11 moves ownership to ui_task.  Marked with
- * TODO(task-11) comments throughout.
+ * Button ownership lives in ui_task (Task 11).  ui_task calls
+ * recorder_start() / recorder_stop() directly; the recorder task
+ * receives these commands through an internal FreeRTOS queue.
  *
  * Stop lifecycle (crash-safe, per AGENTS.md §7.1):
  *   1. Close PCM stream
@@ -54,9 +54,6 @@ extern "C" {
 /** Maximum path length for a recording file. */
 #define RECORDER_PATH_MAX           256
 
-/** Queue depth for button events — 4 is plenty for 3 buttons. */
-#define RECORDER_BUTTON_QUEUE_DEPTH 4
-
 /**
  * sd_writer_task stack size.
  * Measured on reference board: peak usage ~2200 bytes with ESP-IDF v5.x.
@@ -81,7 +78,7 @@ typedef enum {
 /**
  * @brief Initialise the recorder subsystem.
  *
- * Creates the button event queue and the sd_writer_task.
+ * Creates the internal command queue and the sd_writer_task.
  * Does NOT start recording — the task begins in IDLE state.
  *
  * @param ringbuf  The mono audio ring buffer from audio_process_init().
@@ -97,14 +94,26 @@ void recorder_init(audio_mono_ringbuf_t *ringbuf);
 void recorder_deinit(void);
 
 /**
- * @brief Set the button event queue for temporary recording toggle.
- *
- * TODO(task-11): Remove this function — ui_task becomes the sole
- * ButtonEvent consumer and calls recorder_start()/recorder_stop().
- *
- * @param queue  FreeRTOS queue carrying ButtonEvent structs.
+ * @brief Request recording start (non-blocking — sends command to
+ *        sd_writer_task queue).  Idempotent if already recording.
  */
-void recorder_set_button_queue(QueueHandle_t queue);
+void recorder_start(void);
+
+/**
+ * @brief Request recording stop (non-blocking — sends command to
+ *        sd_writer_task queue).  Idempotent if already idle.
+ *
+ * The task will finalize the WAV (patch header, fsync, close) and
+ * post RECORDER_EVENT_SAVED when done.
+ */
+void recorder_stop(void);
+
+/**
+ * @brief Check whether the recorder is currently recording.
+ *
+ * @return true if recording, false if idle.
+ */
+bool recorder_is_recording(void);
 
 /**
  * @brief Notify the recorder that SNTP has synced the system clock.

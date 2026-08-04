@@ -1,5 +1,12 @@
 #include "board.h"
+#include "device_events.h"
 #include "esp_log.h"
+
+/* Define the esp_event base declared in device_events.h.
+ * This lives here because board is the neutral home — no component
+ * dependency cycle (publishers are recorder/network/board, subscriber
+ * is ui_task). */
+ESP_EVENT_DEFINE_BASE(RECORDER_EVENTS);
 
 static const char *TAG = "board";
 
