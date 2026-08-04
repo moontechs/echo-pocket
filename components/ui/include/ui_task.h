@@ -12,6 +12,7 @@
 #pragma once
 
 #include "buttons.h"
+#include "menu.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
 
@@ -25,6 +26,8 @@ typedef enum {
     UI_SCREEN_HOME = 0,       /**< Home screen (face + status bar)       */
     UI_SCREEN_RECORDING,      /**< Recording screen (face + timer)       */
     UI_SCREEN_SAVED,          /**< Brief "Saved" display after stop      */
+    UI_SCREEN_MENU,           /**< Main menu (9 items)                   */
+    UI_SCREEN_FACE_SUBMENU,   /**< Face theme picker submenu             */
 } ui_screen_t;
 
 /* ── Actions the screen state machine can request ────────────────────── */
@@ -33,6 +36,11 @@ typedef enum {
     UI_ACTION_NONE = 0,           /**< No side-effect required            */
     UI_ACTION_START_RECORDING,    /**< Call recorder_start()              */
     UI_ACTION_STOP_RECORDING,     /**< Call recorder_stop()               */
+    UI_ACTION_ENTER_MENU,         /**< Navigate to the main menu          */
+    UI_ACTION_ENTER_FACE_SUBMENU, /**< Navigate to face theme picker      */
+    UI_ACTION_SEND_ALL,           /**< Trigger manual upload drain        */
+    UI_ACTION_STUB,               /**< Show stub screen (Wi-Fi/etc.)      */
+    UI_ACTION_SELECT_THEME,       /**< Select a face theme (index in arg) */
 } ui_action_t;
 
 /* ── Status info passed to screen renderers ──────────────────────────── */

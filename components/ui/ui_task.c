@@ -6,12 +6,17 @@
  * (buttons.c → ui_task → recorder_start/stop).  It also subscribes to
  * RECORDER_EVENTS and maps them to the active face theme's setEvent().
  *
+ * Includes the main menu (Task 12): LEFT=back, CENTER=select,
+ * RIGHT=next — with Face submenu for live theme switching and
+ * config persistence via config_save().
+ *
  * FreeRTOS priority: NORMAL (below audio capture/AFE/writer).
  * Stack size: generous to accommodate screen rendering + face theme
  *             stack frames; measured peak ~2800 bytes on reference.
  */
 
 #include "ui_task.h"
+#include "menu.h"
 #include "display.h"
 #include "board.h"
 #include "device_events.h"
@@ -51,6 +56,9 @@ static const char *TAG = "ui_task";
 /** Button event queue depth (same as what buttons_init expects). */
 #define UI_BUTTON_QUEUE_DEPTH     4
 
+/** Path to config file on SD for theme persistence. */
+#define CONFIG_FILE_PATH          "/sdcard/echo-pocket/config/recorder.ini"
+
 /* ── Internal state ──────────────────────────────────────────────────── */
 
 static QueueHandle_t  s_button_queue  = NULL;
@@ -67,6 +75,10 @@ static int            s_pending_uploads = 0;
 static bool           s_battery_present = false;
 static int            s_battery_percent = -1;
 static bool           s_charging        = false;
+
+/* Menu / Face submenu state (Task 12) */
+static menu_state_t         s_menu_state;
+static face_submenu_state_t s_face_submenu_state;
 
 /* ── RECORDER_EVENTS handler ─────────────────────────────────────────── */
 
@@ -142,6 +154,39 @@ static void build_status(ui_status_t *status)
     }
 }
 
+/* ── Theme persistence helper ────────────────────────────────────────── */
+
+/**
+ * Switch to the theme at @p theme_index in the registry and persist the
+ * new theme id to recorder.ini via config_save().
+ */
+static void apply_and_persist_theme(int theme_index)
+{
+    FacePlugin *plugin = face_registry_get_by_index(theme_index);
+    if (!plugin) {
+        ESP_LOGE(TAG, "No theme at index %d", theme_index);
+        return;
+    }
+
+    const char *theme_id = plugin->id();
+    ESP_LOGI(TAG, "Switching to theme '%s'", theme_id);
+
+    /* Live switch — no reboot needed */
+    face_registry_begin(theme_id);
+
+    /* Persist to config */
+    RecorderConfig cfg = config_load(CONFIG_FILE_PATH, NULL);
+    strncpy(cfg.theme, theme_id, CONFIG_MAX_THEME_NAME - 1);
+    cfg.theme[CONFIG_MAX_THEME_NAME - 1] = '\0';
+    config_err_t err = config_save(&cfg, CONFIG_FILE_PATH);
+
+    if (err == CONFIG_OK) {
+        ESP_LOGI(TAG, "Theme '%s' persisted to config", theme_id);
+    } else {
+        ESP_LOGW(TAG, "Failed to persist theme: %s", config_err_str(err));
+    }
+}
+
 /* ── Main task loop ──────────────────────────────────────────────────── */
 
 static void ui_task_loop(void *arg)
@@ -155,12 +200,85 @@ static void ui_task_loop(void *arg)
     ESP_LOGI(TAG, "UI task started (prio %d, stack %d)",
              (int)UI_TASK_PRIORITY, (int)UI_TASK_STACK_SIZE);
 
+    /* Initialise menu state — cursor at first item */
+    menu_state_init(&s_menu_state);
+
     while (s_running) {
         uint32_t now_ms = (uint32_t)(esp_timer_get_time() / 1000);
         bool screen_changed = false;
 
         /* ── Process button events ────────────────────────────── */
         while (xQueueReceive(s_button_queue, &btn_evt, 0) == pdTRUE) {
+
+            /* ── Menu screen: use menu_navigate() ─────────────── */
+            if (s_screen == UI_SCREEN_MENU) {
+                menu_action_t menu_action;
+                menu_navigate(&s_menu_state, btn_evt.button, &menu_action);
+
+                switch (menu_action) {
+                case MENU_ACTION_START_RECORDING:
+                    s_rec_start_ms = now_ms;
+                    recorder_start();
+                    s_screen = UI_SCREEN_RECORDING;
+                    screen_changed = true;
+                    break;
+
+                case MENU_ACTION_ENTER_FACE_SUBMENU:
+                    face_submenu_state_init(&s_face_submenu_state,
+                                            face_registry_count());
+                    s_screen = UI_SCREEN_FACE_SUBMENU;
+                    screen_changed = true;
+                    break;
+
+                case MENU_ACTION_SEND_ALL:
+                    /* Task 17 will wire this — currently a stub */
+                    ESP_LOGI(TAG, "Send All (stub — Task 17)");
+                    break;
+
+                case MENU_ACTION_SHOW_STUB:
+                    /* Stub screens: Recordings, Unsent, Wi-Fi,
+                     * Telegram, Settings, Info — just log */
+                    ESP_LOGI(TAG, "Menu item '%s' selected (stub)",
+                             menu_item_label(s_menu_state.cursor));
+                    break;
+
+                case MENU_ACTION_BACK_TO_HOME:
+                    s_screen = UI_SCREEN_HOME;
+                    screen_changed = true;
+                    break;
+
+                case MENU_ACTION_NONE:
+                default:
+                    break;
+                }
+
+                if (screen_changed) break;
+                continue;
+            }
+
+            /* ── Face submenu: use face_submenu_navigate() ───── */
+            if (s_screen == UI_SCREEN_FACE_SUBMENU) {
+                int theme_index = -1;
+                bool should_exit = false;
+                face_submenu_navigate(&s_face_submenu_state,
+                                      btn_evt.button,
+                                      &theme_index, &should_exit);
+
+                if (should_exit) {
+                    s_screen = UI_SCREEN_MENU;
+                    screen_changed = true;
+                } else if (theme_index >= 0) {
+                    /* User selected a theme — switch and persist */
+                    apply_and_persist_theme(theme_index);
+                    s_screen = UI_SCREEN_MENU;
+                    screen_changed = true;
+                }
+
+                if (screen_changed) break;
+                continue;
+            }
+
+            /* ── Standard screens (Home/Recording/Saved) ──────── */
             ui_action_t action;
             ui_screen_t next = ui_screen_next(s_screen, btn_evt.button, &action);
 
@@ -179,6 +297,12 @@ static void ui_task_loop(void *arg)
             case UI_ACTION_STOP_RECORDING:
                 recorder_stop();
                 ESP_LOGI(TAG, "UI: stop recording");
+                break;
+
+            case UI_ACTION_ENTER_MENU:
+                /* Reset menu cursor to top when entering menu */
+                menu_state_init(&s_menu_state);
+                ESP_LOGI(TAG, "UI: entering main menu");
                 break;
 
             case UI_ACTION_NONE:
@@ -204,17 +328,27 @@ static void ui_task_loop(void *arg)
         }
 
         /* ── Render frame (rate-limited) ────────────────────── */
-        if (face_registry_should_update(now_ms) || screen_changed) {
-            /* Update face animation state */
-            FacePlugin *face = face_registry_get_active();
-            if (face) {
-                uint32_t delta = (last_update_ms > 0 && now_ms > last_update_ms)
-                                 ? now_ms - last_update_ms : UI_UPDATE_PERIOD_MS;
-                if (delta > 500) delta = 500; /* clamp missed updates */
+        bool menu_always_render = (s_screen == UI_SCREEN_MENU ||
+                                   s_screen == UI_SCREEN_FACE_SUBMENU);
+        bool should_render = face_registry_should_update(now_ms)
+                             || screen_changed || menu_always_render;
 
-                float voice_level = audio_process_get_voice_level();
-                bool voice_active = audio_process_is_voice_active();
-                face->update(voice_level, voice_active, delta);
+        if (should_render) {
+            /* Update face animation state (not needed for menus
+             * but kept for Home/Recording fallthrough) */
+            if (s_screen == UI_SCREEN_HOME ||
+                s_screen == UI_SCREEN_RECORDING ||
+                s_screen == UI_SCREEN_SAVED) {
+                FacePlugin *face = face_registry_get_active();
+                if (face) {
+                    uint32_t delta = (last_update_ms > 0 && now_ms > last_update_ms)
+                                     ? now_ms - last_update_ms : UI_UPDATE_PERIOD_MS;
+                    if (delta > 500) delta = 500; /* clamp missed updates */
+
+                    float voice_level = audio_process_get_voice_level();
+                    bool voice_active = audio_process_is_voice_active();
+                    face->update(voice_level, voice_active, delta);
+                }
             }
 
             /* Build status struct and render the current screen */
@@ -228,6 +362,14 @@ static void ui_task_loop(void *arg)
             case UI_SCREEN_RECORDING:
             case UI_SCREEN_SAVED:
                 recording_screen_draw(&status);
+                break;
+
+            case UI_SCREEN_MENU:
+                menu_screen_draw(&s_menu_state);
+                break;
+
+            case UI_SCREEN_FACE_SUBMENU:
+                face_submenu_screen_draw(&s_face_submenu_state);
                 break;
             }
 

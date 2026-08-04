@@ -10,7 +10,7 @@
 
 /* ── Home screen transitions ─────────────────────────────────────────── */
 
-static void test_home_center_starts_recording(void)
+void test_home_center_starts_recording(void)
 {
     ui_action_t action = UI_ACTION_NONE;
     ui_screen_t next = ui_screen_next(UI_SCREEN_HOME, BUTTON_CENTER, &action);
@@ -19,7 +19,7 @@ static void test_home_center_starts_recording(void)
     TEST_ASSERT_EQUAL(UI_ACTION_START_RECORDING, action);
 }
 
-static void test_home_left_noop(void)
+void test_home_left_noop(void)
 {
     ui_action_t action = UI_ACTION_NONE;
     ui_screen_t next = ui_screen_next(UI_SCREEN_HOME, BUTTON_LEFT, &action);
@@ -28,19 +28,19 @@ static void test_home_left_noop(void)
     TEST_ASSERT_EQUAL(UI_ACTION_NONE, action);
 }
 
-static void test_home_right_noop(void)
+void test_home_right_opens_menu(void)
 {
     ui_action_t action = UI_ACTION_NONE;
     ui_screen_t next = ui_screen_next(UI_SCREEN_HOME, BUTTON_RIGHT, &action);
 
-    /* Right button from home is no-op in v1.0 — menu is Task 12 */
-    TEST_ASSERT_EQUAL(UI_SCREEN_HOME, next);
-    TEST_ASSERT_EQUAL(UI_ACTION_NONE, action);
+    /* Right button from home opens the main menu (Task 12) */
+    TEST_ASSERT_EQUAL(UI_SCREEN_MENU, next);
+    TEST_ASSERT_EQUAL(UI_ACTION_ENTER_MENU, action);
 }
 
 /* ── Recording screen transitions ────────────────────────────────────── */
 
-static void test_recording_center_stops(void)
+void test_recording_center_stops(void)
 {
     ui_action_t action = UI_ACTION_NONE;
     ui_screen_t next = ui_screen_next(UI_SCREEN_RECORDING, BUTTON_CENTER, &action);
@@ -49,7 +49,7 @@ static void test_recording_center_stops(void)
     TEST_ASSERT_EQUAL(UI_ACTION_STOP_RECORDING, action);
 }
 
-static void test_recording_left_noop(void)
+void test_recording_left_noop(void)
 {
     ui_action_t action = UI_ACTION_NONE;
     ui_screen_t next = ui_screen_next(UI_SCREEN_RECORDING, BUTTON_LEFT, &action);
@@ -60,7 +60,7 @@ static void test_recording_left_noop(void)
     TEST_ASSERT_EQUAL(UI_ACTION_NONE, action);
 }
 
-static void test_recording_right_noop(void)
+void test_recording_right_noop(void)
 {
     ui_action_t action = UI_ACTION_NONE;
     ui_screen_t next = ui_screen_next(UI_SCREEN_RECORDING, BUTTON_RIGHT, &action);
@@ -71,7 +71,7 @@ static void test_recording_right_noop(void)
 
 /* ── Saved screen transitions ────────────────────────────────────────── */
 
-static void test_saved_any_button_returns_home(void)
+void test_saved_any_button_returns_home(void)
 {
     ui_action_t action;
 
@@ -96,7 +96,7 @@ static void test_saved_any_button_returns_home(void)
 
 /* ── Null safety ─────────────────────────────────────────────────────── */
 
-static void test_screen_next_null_action(void)
+void test_screen_next_null_action(void)
 {
     /* Should not crash — returns current screen */
     ui_screen_t next = ui_screen_next(UI_SCREEN_HOME, BUTTON_CENTER, NULL);
@@ -105,7 +105,7 @@ static void test_screen_next_null_action(void)
 
 /* ── Full sequence: home → record → saved → home ─────────────────────── */
 
-static void test_full_record_cycle(void)
+void test_full_record_cycle(void)
 {
     ui_action_t action;
     ui_screen_t screen = UI_SCREEN_HOME;
@@ -127,14 +127,16 @@ static void test_full_record_cycle(void)
 
 /* ── Screen names ────────────────────────────────────────────────────── */
 
-static void test_screen_name_known(void)
+void test_screen_name_known(void)
 {
     TEST_ASSERT_EQUAL_STRING("Home", ui_screen_name(UI_SCREEN_HOME));
     TEST_ASSERT_EQUAL_STRING("Recording", ui_screen_name(UI_SCREEN_RECORDING));
     TEST_ASSERT_EQUAL_STRING("Saved", ui_screen_name(UI_SCREEN_SAVED));
+    TEST_ASSERT_EQUAL_STRING("Menu", ui_screen_name(UI_SCREEN_MENU));
+    TEST_ASSERT_EQUAL_STRING("Face", ui_screen_name(UI_SCREEN_FACE_SUBMENU));
 }
 
-static void test_screen_name_unknown(void)
+void test_screen_name_unknown(void)
 {
     /* Out-of-range value should not crash */
     const char *name = ui_screen_name((ui_screen_t)99);

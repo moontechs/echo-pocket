@@ -4,6 +4,7 @@ idf_component_register(
          "ui_screen_logic.c"
          "screens/home_screen.c"
          "screens/recording_screen.c"
+         "screens/menu.c"
          "face_engine/face_registry.cpp"
          "face_engine/owl_face.cpp"
          "face_engine/minimal_face.cpp"
@@ -11,5 +12,5 @@ idf_component_register(
          "face_engine/pixel_face.cpp"
     INCLUDE_DIRS "include"
                  "face_engine/include"
-    REQUIRES esp_driver_spi esp_lcd board esp_log esp_event recorder audio esp_timer
+    REQUIRES esp_driver_spi esp_lcd board log esp_event recorder audio esp_timer storage
 )

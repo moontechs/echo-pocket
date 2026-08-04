@@ -229,12 +229,12 @@ extern "C" void test_face_theme_unique_ids(void)
     FacePlugin *robot = create_robot_face(cfg);
     FacePlugin *pixel = create_pixel_face(cfg);
 
-    TEST_ASSERT_NOT_EQUAL_STRING(owl->id(),   min->id());
-    TEST_ASSERT_NOT_EQUAL_STRING(owl->id(),   robot->id());
-    TEST_ASSERT_NOT_EQUAL_STRING(owl->id(),   pixel->id());
-    TEST_ASSERT_NOT_EQUAL_STRING(min->id(),   robot->id());
-    TEST_ASSERT_NOT_EQUAL_STRING(min->id(),   pixel->id());
-    TEST_ASSERT_NOT_EQUAL_STRING(robot->id(), pixel->id());
+    TEST_ASSERT_TRUE(strcmp(owl->id(),   min->id()) != 0);
+    TEST_ASSERT_TRUE(strcmp(owl->id(),   robot->id()) != 0);
+    TEST_ASSERT_TRUE(strcmp(owl->id(),   pixel->id()) != 0);
+    TEST_ASSERT_TRUE(strcmp(min->id(),   robot->id()) != 0);
+    TEST_ASSERT_TRUE(strcmp(min->id(),   pixel->id()) != 0);
+    TEST_ASSERT_TRUE(strcmp(robot->id(), pixel->id()) != 0);
 
     delete owl;
     delete min;

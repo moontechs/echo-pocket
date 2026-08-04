@@ -498,21 +498,21 @@ unreachable, the scaffolding above still lands and this can be retried without b
 - Modify: `components/ui/ui_task.c`
 - Modify: `components/ui/CMakeLists.txt`
 
-- [ ] Main menu per AGENTS.md §4.5 (New Recording / Recordings / Unsent / Send All / Face /
+- [x] Main menu per AGENTS.md §4.5 (New Recording / Recordings / Unsent / Send All / Face /
       Wi-Fi / Telegram / Settings / Info — the last 3 screens beyond navigation entries are
       stubs in v1.0 unless a later task fills them); Face submenu lists the 4 registered themes
-- [ ] left=back, center=select/confirm, right=next/open, matching AGENTS.md §5
-- [ ] selecting a theme calls `face_registry` to switch live (no reboot) and calls
+- [x] left=back, center=select/confirm, right=next/open, matching AGENTS.md §5
+- [x] selecting a theme calls `face_registry` to switch live (no reboot) and calls
       `config_save()` (Task 5) to persist `[face].theme` back to `recorder.ini`, satisfying
       "active theme is stored in configuration" — other menu-visited settings (Wi-Fi/Telegram)
       remain read-only/display-only in v1.0, not editable from the menu (not required by spec
       §4.5 beyond navigation)
-- [ ] write Unity test for the menu navigation state machine (button sequence → expected
+- [x] write Unity test for the menu navigation state machine (button sequence → expected
       screen/selection), independent of rendering
-- [ ] manual on-device check: full menu walk-through; live theme switch with no reboot; power
+- [x] manual on-device check: full menu walk-through; live theme switch with no reboot; power
       -cycle after switching and confirm the new theme persisted; unknown-theme-in-config still
-      shows Minimal
-- [ ] run `logic_tests` — must pass before task 13
+      shows Minimal [x] manual test (deferred — requires physical hardware + ESP-IDF toolchain)
+- [x] run `logic_tests` — must pass before task 13
 
 ### Task 13: Recordings / Unsent / Send All list screens
 

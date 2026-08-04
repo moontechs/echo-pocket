@@ -104,6 +104,29 @@ FacePlugin *face_registry_get_active(void)
     return s_active;
 }
 
+const char *face_registry_get_active_id(void)
+{
+    return s_active ? s_active->id() : NULL;
+}
+
+FacePlugin *face_registry_get_by_index(int index)
+{
+    if (index < 0 || index >= s_plugin_count) return NULL;
+    return s_plugins[index];
+}
+
+const char *face_registry_get_id_by_index(int index)
+{
+    FacePlugin *p = face_registry_get_by_index(index);
+    return p ? p->id() : NULL;
+}
+
+const char *face_registry_get_display_name_by_index(int index)
+{
+    FacePlugin *p = face_registry_get_by_index(index);
+    return p ? p->displayName() : NULL;
+}
+
 /* ── Frame-rate cap ──────────────────────────────────────────────────── */
 
 void face_registry_set_frame_interval_ms(uint32_t interval_ms)

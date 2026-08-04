@@ -236,7 +236,7 @@ extern void test_face_theme_unique_ids(void);
 /* Defined in test_ui_button_routing.c (compiled alongside this file) */
 extern void test_home_center_starts_recording(void);
 extern void test_home_left_noop(void);
-extern void test_home_right_noop(void);
+extern void test_home_right_opens_menu(void);
 extern void test_recording_center_stops(void);
 extern void test_recording_left_noop(void);
 extern void test_recording_right_noop(void);
@@ -245,6 +245,32 @@ extern void test_screen_next_null_action(void);
 extern void test_full_record_cycle(void);
 extern void test_screen_name_known(void);
 extern void test_screen_name_unknown(void);
+
+/* ── Menu navigation tests (Task 12) ────────────────────────────────── */
+/* Defined in test_menu_nav.c (compiled alongside this file) */
+extern void test_menu_init_cursor(void);
+extern void test_menu_init_null_safe(void);
+extern void test_menu_label_known_items(void);
+extern void test_menu_label_unknown(void);
+extern void test_menu_right_moves_cursor(void);
+extern void test_menu_right_wraps_around(void);
+extern void test_menu_left_returns_home(void);
+extern void test_menu_center_new_recording(void);
+extern void test_menu_center_face(void);
+extern void test_menu_center_send_all(void);
+extern void test_menu_center_stub_items(void);
+extern void test_menu_navigate_null_safety(void);
+extern void test_menu_item_count_is_nine(void);
+extern void test_face_submenu_init(void);
+extern void test_face_submenu_init_zero_count(void);
+extern void test_face_submenu_init_null(void);
+extern void test_face_submenu_right_moves_cursor(void);
+extern void test_face_submenu_right_wraps(void);
+extern void test_face_submenu_left_exits(void);
+extern void test_face_submenu_center_selects(void);
+extern void test_face_submenu_center_first(void);
+extern void test_face_submenu_navigate_null_safety(void);
+extern void test_menu_to_face_and_back(void);
 
 /* ── Config INI tests (Task 5) ──────────────────────────────────────── */
 /* Defined in test_config.c (compiled alongside this file) */
@@ -424,7 +450,7 @@ void app_main(void)
     /* Task 11: UI button routing state machine */
     RUN_TEST(test_home_center_starts_recording);
     RUN_TEST(test_home_left_noop);
-    RUN_TEST(test_home_right_noop);
+    RUN_TEST(test_home_right_opens_menu);
     RUN_TEST(test_recording_center_stops);
     RUN_TEST(test_recording_left_noop);
     RUN_TEST(test_recording_right_noop);
@@ -433,6 +459,31 @@ void app_main(void)
     RUN_TEST(test_full_record_cycle);
     RUN_TEST(test_screen_name_known);
     RUN_TEST(test_screen_name_unknown);
+
+    /* Task 12: menu navigation state machine */
+    RUN_TEST(test_menu_init_cursor);
+    RUN_TEST(test_menu_init_null_safe);
+    RUN_TEST(test_menu_label_known_items);
+    RUN_TEST(test_menu_label_unknown);
+    RUN_TEST(test_menu_right_moves_cursor);
+    RUN_TEST(test_menu_right_wraps_around);
+    RUN_TEST(test_menu_left_returns_home);
+    RUN_TEST(test_menu_center_new_recording);
+    RUN_TEST(test_menu_center_face);
+    RUN_TEST(test_menu_center_send_all);
+    RUN_TEST(test_menu_center_stub_items);
+    RUN_TEST(test_menu_navigate_null_safety);
+    RUN_TEST(test_menu_item_count_is_nine);
+    RUN_TEST(test_face_submenu_init);
+    RUN_TEST(test_face_submenu_init_zero_count);
+    RUN_TEST(test_face_submenu_init_null);
+    RUN_TEST(test_face_submenu_right_moves_cursor);
+    RUN_TEST(test_face_submenu_right_wraps);
+    RUN_TEST(test_face_submenu_left_exits);
+    RUN_TEST(test_face_submenu_center_selects);
+    RUN_TEST(test_face_submenu_center_first);
+    RUN_TEST(test_face_submenu_navigate_null_safety);
+    RUN_TEST(test_menu_to_face_and_back);
 
     /* Task 5: config INI parser */
     RUN_TEST(test_config_defaults);

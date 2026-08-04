@@ -33,6 +33,18 @@ int face_registry_register(FacePlugin *plugin);
 /** Return the number of registered plugins. */
 int face_registry_count(void);
 
+/** Return the plugin at @p index (0-based).  Returns NULL if out of range.
+ *  Useful for enumerating all themes in the Face submenu (Task 12). */
+FacePlugin *face_registry_get_by_index(int index);
+
+/** Return the id() string of the plugin at @p index.
+ *  C-callable wrapper — avoids C++ method calls from .c files. */
+const char *face_registry_get_id_by_index(int index);
+
+/** Return the displayName() string of the plugin at @p index.
+ *  C-callable wrapper. */
+const char *face_registry_get_display_name_by_index(int index);
+
 /* ── Theme resolution ────────────────────────────────────────────────── */
 
 /** Find a plugin by @p theme_id.  Returns NULL if no match.
@@ -51,6 +63,10 @@ void face_registry_begin(const char *theme_id);
 
 /** Return the currently active plugin, or NULL if none selected. */
 FacePlugin *face_registry_get_active(void);
+
+/** Return the id() of the active plugin, or NULL if none.
+ *  C-callable wrapper. */
+const char *face_registry_get_active_id(void);
 
 /** Register the four built-in themes (owl, minimal, robot, pixel)
  *  with default FaceConfig.  Call once at startup before any

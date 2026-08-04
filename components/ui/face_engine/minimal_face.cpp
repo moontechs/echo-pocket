@@ -7,6 +7,7 @@
  */
 
 #include "face_plugin.hpp"
+#include "face_themes.h"
 #include "display.h"
 #include <algorithm>
 #include <string.h>
