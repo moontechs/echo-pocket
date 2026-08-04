@@ -1,7 +1,10 @@
 idf_component_register(
     SRCS "test_main.c" "test_buttons.c" "test_sd_storage.c" "test_config.c"
          "../../components/audio/audio_ringbuf.c"
+         "../../components/audio/audio_mono_ringbuf.c"
+         "../../components/audio/voice_level.c"
          "../../components/audio/test/test_ring_buffer.c"
+         "../../components/audio/test/test_process_pipeline.c"
          "../../components/recorder/wav_writer.c"
          "../../components/recorder/rec_id.c"
          "../../components/recorder/recorder_logic.c"

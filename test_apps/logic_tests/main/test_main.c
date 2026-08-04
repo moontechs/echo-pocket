@@ -172,6 +172,32 @@ extern void test_rec_id_consecutive_are_unique(void);
 extern void test_rec_id_offline_consecutive_are_unique(void);
 extern void test_rec_id_error_strings_distinct(void);
 
+/* ── Voice level tests (Task 8) ─────────────────────────────────────── */
+/* Defined in test_process_pipeline.c (compiled alongside this file) */
+extern void test_voice_rms_silence(void);
+extern void test_voice_rms_full_scale_dc(void);
+extern void test_voice_rms_half_scale(void);
+extern void test_voice_rms_single_sample(void);
+extern void test_voice_rms_single_zero(void);
+extern void test_voice_rms_zero_count(void);
+extern void test_voice_rms_null_samples(void);
+extern void test_voice_rms_sine_wave(void);
+extern void test_voice_rms_large_chunk(void);
+extern void test_voice_smooth_alpha_one(void);
+extern void test_voice_smooth_alpha_zero(void);
+extern void test_voice_smooth_typical(void);
+extern void test_voice_smooth_convergence(void);
+extern void test_voice_smooth_rising(void);
+extern void test_voice_smooth_falling(void);
+extern void test_voice_db_full_scale(void);
+extern void test_voice_db_half_amplitude(void);
+extern void test_voice_db_silence(void);
+extern void test_voice_db_quiet(void);
+extern void test_voice_db_above_full_scale(void);
+extern void test_voice_db_negative(void);
+extern void test_voice_pipeline_speech_chunk(void);
+extern void test_voice_pipeline_silence_to_speech(void);
+
 /* ── Config INI tests (Task 5) ──────────────────────────────────────── */
 /* Defined in test_config.c (compiled alongside this file) */
 extern void test_config_defaults(void);
@@ -289,6 +315,31 @@ void app_main(void)
     RUN_TEST(test_rec_id_consecutive_are_unique);
     RUN_TEST(test_rec_id_offline_consecutive_are_unique);
     RUN_TEST(test_rec_id_error_strings_distinct);
+
+    /* Task 8: voice level computation and smoothing */
+    RUN_TEST(test_voice_rms_silence);
+    RUN_TEST(test_voice_rms_full_scale_dc);
+    RUN_TEST(test_voice_rms_half_scale);
+    RUN_TEST(test_voice_rms_single_sample);
+    RUN_TEST(test_voice_rms_single_zero);
+    RUN_TEST(test_voice_rms_zero_count);
+    RUN_TEST(test_voice_rms_null_samples);
+    RUN_TEST(test_voice_rms_sine_wave);
+    RUN_TEST(test_voice_rms_large_chunk);
+    RUN_TEST(test_voice_smooth_alpha_one);
+    RUN_TEST(test_voice_smooth_alpha_zero);
+    RUN_TEST(test_voice_smooth_typical);
+    RUN_TEST(test_voice_smooth_convergence);
+    RUN_TEST(test_voice_smooth_rising);
+    RUN_TEST(test_voice_smooth_falling);
+    RUN_TEST(test_voice_db_full_scale);
+    RUN_TEST(test_voice_db_half_amplitude);
+    RUN_TEST(test_voice_db_silence);
+    RUN_TEST(test_voice_db_quiet);
+    RUN_TEST(test_voice_db_above_full_scale);
+    RUN_TEST(test_voice_db_negative);
+    RUN_TEST(test_voice_pipeline_speech_chunk);
+    RUN_TEST(test_voice_pipeline_silence_to_speech);
 
     /* Task 5: config INI parser */
     RUN_TEST(test_config_defaults);

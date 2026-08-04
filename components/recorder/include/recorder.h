@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "audio_ringbuf.h"
+#include "audio_mono_ringbuf.h"
 #include "rec_id.h"
 #include "recorder_split.h"
 
@@ -84,10 +84,11 @@ typedef enum {
  * Creates the button event queue and the sd_writer_task.
  * Does NOT start recording — the task begins in IDLE state.
  *
- * @param ringbuf  The audio ring buffer from audio_capture_init().
- *                 The writer task reads from this as a consumer.
+ * @param ringbuf  The mono audio ring buffer from audio_process_init().
+ *                 The writer task reads mono PCM directly — no downmix
+ *                 needed (AFE or simple 2ch→mono is done upstream).
  */
-void recorder_init(audio_ringbuf_t *ringbuf);
+void recorder_init(audio_mono_ringbuf_t *ringbuf);
 
 /**
  * @brief De-initialise the recorder, stopping any active recording

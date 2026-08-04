@@ -10,7 +10,7 @@
 #include "recorder.h"
 #include "wav_writer.h"
 #include "rec_id.h"
-#include "audio_ringbuf.h"
+#include "audio_mono_ringbuf.h"
 
 #include <inttypes.h>
 #include "esp_log.h"
@@ -43,7 +43,7 @@ static const char *TAG = "recorder";
 
 /* ── Static state ────────────────────────────────────────────────────── */
 
-static audio_ringbuf_t  *s_ringbuf       = NULL;
+static audio_mono_ringbuf_t *s_ringbuf   = NULL;
 static QueueHandle_t     s_button_queue  = NULL;  /* TODO(task-11): remove */
 static TaskHandle_t      s_task          = NULL;
 static volatile bool     s_running       = false;
@@ -141,9 +141,10 @@ static void sd_writer_task(void *arg)
     char rec_id_buf[REC_ID_MAX_LEN];
     char path_buf[RECORDER_PATH_MAX];
 
-    /* Local PCM buffers — stack-allocated, sized to the read chunk       */
-    int16_t stereo_buf[RECORDER_READ_CHUNK_FRAMES * 2]; /* 2ch interleaved */
-    int16_t mono_buf[RECORDER_READ_CHUNK_FRAMES];       /* downmixed mono  */
+    /* Local PCM buffer — stack-allocated, sized to the read chunk.
+     * Receives mono PCM directly from the process task's output — no
+     * stereo buffer or downmix needed (AFE does that upstream).          */
+    int16_t mono_buf[RECORDER_READ_CHUNK_FRAMES];  /* mono PCM from AFE   */
 
     ESP_LOGI(TAG, "Writer task started (prio %d, stack %d)",
              (int)RECORDER_TASK_PRIORITY, (int)RECORDER_TASK_STACK_SIZE);
@@ -204,18 +205,17 @@ static void sd_writer_task(void *arg)
             }
         }
 
-        /* ── If recording, consume from ring buffer and write ───────── */
+        /* ── If recording, consume mono PCM from process output ────── */
         if (s_state == RECORDER_STATE_RECORDING && wav) {
-            size_t avail = audio_ringbuf_available(s_ringbuf);
+            size_t avail = audio_mono_ringbuf_available(s_ringbuf);
             if (avail > 0) {
                 size_t to_read = (avail < RECORDER_READ_CHUNK_FRAMES)
                                  ? avail : RECORDER_READ_CHUNK_FRAMES;
 
-                size_t read = audio_ringbuf_read(s_ringbuf, stereo_buf, to_read);
+                size_t read = audio_mono_ringbuf_read(s_ringbuf, mono_buf, to_read);
                 if (read > 0) {
-                    /* Downmix 2ch → mono (Task 6 helper; Task 8 replaces
-                     * this with AFE output — same write call site).      */
-                    audio_downmix_2ch_to_mono(stereo_buf, mono_buf, read);
+                    /* Mono PCM is already processed by the AFE (Task 8)
+                     * — write directly, no downmix needed.              */
                     wav_writer_write(wav, mono_buf, read);
 
                     /* ── Check auto-split ──────────────────────────── */
@@ -284,7 +284,7 @@ static void sd_writer_task(void *arg)
 
 /* ── Public API ──────────────────────────────────────────────────────── */
 
-void recorder_init(audio_ringbuf_t *ringbuf)
+void recorder_init(audio_mono_ringbuf_t *ringbuf)
 {
     if (!ringbuf) {
         ESP_LOGE(TAG, "recorder_init: ringbuf is NULL");

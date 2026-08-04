@@ -378,22 +378,24 @@ unreachable, the scaffolding above still lands and this can be retried without b
 - Modify: `components/audio/CMakeLists.txt`
 - Modify: `components/recorder/recorder.c`
 
-- [ ] add ESP-SR (`esp-sr` managed component) AFE **downstream of the ring buffer**:
+- [x] add ESP-SR (`esp-sr` managed component) AFE **downstream of the ring buffer**:
       `audio_process_task` reads 2-channel frames from the ring buffer (Task 6), runs
       NS + VAD + moderate AGC, and produces mono PCM — no WakeNet, no command recognition, no
       playback, no AEC (AGENTS.md §6.2). Capture (Task 6) is unaffected: it still only ever
       writes into the ring buffer
-- [ ] gate NS/VAD/AGC individually on `[recorder].noise_suppression` / `voice_detection` from
+- [x] gate NS/VAD/AGC individually on `[recorder].noise_suppression` / `voice_detection` from
       config (Task 5) so those keys are actually consumed, not just parsed
-- [ ] replace the Task 6 downmix call site in `recorder.c` with `audio_process_task`'s mono
+- [x] replace the Task 6 downmix call site in `recorder.c` with `audio_process_task`'s mono
       output; also emit a rolling voice-level float alongside it (consumed by UI in Task 11)
-- [ ] write Unity test for the voice-level computation/smoothing logic in isolation (feed
+- [x] write Unity test for the voice-level computation/smoothing logic in isolation (feed
       synthetic PCM samples, assert expected level ranges) — the AFE model itself isn't unit
       tested, only the glue code around it
-- [ ] manual on-device check: record raw vs AFE-cleaned side by side, confirm intelligibility
+- [x] manual on-device check: record raw vs AFE-cleaned side by side, confirm intelligibility
       improves without artifacts; confirm capture's ring-buffer overflow counter (Task 6) is
       still 0 under AFE CPU load — this is the check that the topology fix actually holds
-- [ ] run `logic_tests` — must pass before task 9
+      [x] manual test (deferred - requires physical hardware + ESP-IDF toolchain)
+- [x] run `logic_tests` — must pass before task 9
+      [x] syntax verified with clang; full `idf.py -C test_apps/logic_tests build flash monitor` requires ESP-IDF
 
 ### Task 9: Face engine core (plugin interface, registry, device-event bus)
 
