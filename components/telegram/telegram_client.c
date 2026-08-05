@@ -419,9 +419,9 @@ telegram_err_t telegram_client_send_document(const char *chat_id,
     }
 
     /* ── Finish request and read response ──────────────────────────── */
-    int content_length = esp_http_client_fetch_headers(client);
-    if (content_length < 0 && content_length != -ESP_ERR_HTTP_EAGAIN) {
-        ESP_LOGE(TAG, "sendDocument: fetch_headers failed: %d", content_length);
+    int response_length = esp_http_client_fetch_headers(client);
+    if (response_length < 0 && response_length != -ESP_ERR_HTTP_EAGAIN) {
+        ESP_LOGE(TAG, "sendDocument: fetch_headers failed: %d", response_length);
         esp_http_client_close(client);
         esp_http_client_cleanup(client);
         return TELEGRAM_ERR_HTTP;
@@ -431,9 +431,9 @@ telegram_err_t telegram_client_send_document(const char *chat_id,
 
     /* Read response body */
     char response[TG_RESPONSE_BUF_SIZE] = {0};
-    if (content_length > 0) {
-        int to_read = (content_length < (int)(sizeof(response) - 1))
-                        ? content_length : (int)(sizeof(response) - 1);
+    if (response_length > 0) {
+        int to_read = (response_length < (int)(sizeof(response) - 1))
+                        ? response_length : (int)(sizeof(response) - 1);
         int read = esp_http_client_read_response(client, response, to_read);
         if (read < 0) {
             ESP_LOGW(TAG, "sendDocument: read_response returned %d", read);

@@ -31,6 +31,7 @@
 #include "wifi_manager.h"
 #include "upload_task.h"
 #include "battery.h"
+#include "telegram_client.h"
 
 static const char *TAG = "app_main";
 
@@ -168,9 +169,9 @@ void app_main(void)
                 ESP_LOGW(TAG, "audio_process_start failed: %s",
                          esp_err_to_name(ap_err));
             } else {
-                ESP_LOGI(TAG, "Audio process task running" +
-                         (s_config.noise_suppression ? " (NS on)" : " (NS off)") +
-                         (s_config.voice_detection ? " (VAD on)" : " (VAD off)"));
+                const char *ns_str = s_config.noise_suppression ? " (NS on)" : " (NS off)";
+                const char *vad_str = s_config.voice_detection ? " (VAD on)" : " (VAD off)";
+                ESP_LOGI(TAG, "Audio process task running%s%s", ns_str, vad_str);
             }
         }
     }
@@ -227,6 +228,21 @@ void app_main(void)
      * applies [device].timezone, sets recorder_set_time_synced(). */
     wifi_manager_init(&s_config);
     ESP_LOGI(TAG, "Wi-Fi manager started (networks: %d)", s_config.wifi_count);
+
+    /* ── Step 12.5: Telegram client initialization ─────────────────────
+     * Must happen before upload_task_init() so the client is ready when
+     * the first upload is triggered. Skip if bot_token is empty. */
+    if (s_config.bot_token[0] != '\0') {
+        telegram_err_t tg_err = telegram_client_init(s_config.bot_token);
+        if (tg_err != TELEGRAM_OK) {
+            ESP_LOGE(TAG, "telegram_client_init failed: %s — uploads disabled",
+                     telegram_err_str(tg_err));
+        } else {
+            ESP_LOGI(TAG, "Telegram client initialized");
+        }
+    } else {
+        ESP_LOGI(TAG, "No bot_token configured — Telegram uploads disabled");
+    }
 
     /* ── Step 13: upload task (drains queue on Wi-Fi connect) ─────────
      * Ignores auto_upload=false except for explicit "Send All".
