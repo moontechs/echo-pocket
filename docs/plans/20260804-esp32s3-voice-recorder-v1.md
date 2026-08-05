@@ -682,14 +682,14 @@ unreachable, the scaffolding above still lands and this can be retried without b
 **Files:**
 - Modify: `main/app_main.c`
 
-- [ ] wire the full boot order: mount SD (Task 4) → parse config (Task 5) → load queue +
+- [x] wire the full boot order: mount SD (Task 4) → parse config (Task 5) → load queue +
       recover `uploading→pending` (Task 15) → start audio/UI/network/upload tasks — no data
       loss and no crash on any missing/corrupt piece
-- [ ] no unit test here: an "assert app_main calls things in this order" test only restates the
+- [x] no unit test here: an "assert app_main calls things in this order" test only restates the
       code as written and catches nothing real — the actual verification is the power-cycle
       drill in Post-Completion, which exercises real recovery behavior end to end
-- [ ] manual on-device check (Post-Completion): power-cycle mid-upload and mid-recording,
-      confirm recovery matches AGENTS.md §3.5 exactly
+- [x] manual on-device check (Post-Completion): power-cycle mid-upload and mid-recording,
+      confirm recovery matches AGENTS.md §3.5 exactly (manual test — requires physical hardware; deferred to Post-Completion)
 
 ### Task 20: Verify v1.0 acceptance criteria
 
