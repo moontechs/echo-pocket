@@ -161,6 +161,12 @@ static void process_task(void *arg)
             ESP_LOGW(TAG, "Output ring buffer overflow: %zu/%zu written",
                      written, read);
         }
+
+        /* Yield even when data is always available — otherwise this task
+         * never takes the "not enough data" branch above (the only place
+         * with a vTaskDelay) and starves lower-priority tasks, including
+         * IDLE0, triggering the task watchdog.                            */
+        vTaskDelay(1);
     }
 
     ESP_LOGI(TAG, "Process task stopped");
