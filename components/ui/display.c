@@ -9,6 +9,7 @@
 #include "esp_lcd_panel_ops.h"
 #include "esp_lcd_panel_vendor.h"
 #include "esp_lcd_types.h"
+#include "esp_heap_caps.h"
 #include "driver/spi_master.h"
 #include "driver/gpio.h"
 #include "freertos/FreeRTOS.h"
@@ -147,11 +148,57 @@ static void fb_put(int x, int y, uint16_t color)
     fb[y * BOARD_LCD_H_RES + x] = color;
 }
 
+/* fb lives in PSRAM; the SPI driver can't DMA from PSRAM directly, so
+ * esp_lcd_panel_draw_bitmap() would otherwise bounce-copy every ~4KB chunk
+ * through a fresh MALLOC_CAP_DMA allocation. Under sustained flushing (face
+ * animation) that alloc/free churn on the small internal-RAM DMA pool
+ * eventually fails with ESP_ERR_NO_MEM once Wi-Fi/audio buffers are also
+ * competing for it. Flush through one persistent internal DMA buffer
+ * instead, in a few large bands, so there's no per-chunk allocation.
+ *
+ * The whole frame (115200 B) doesn't fit as a single contiguous internal
+ * block even at boot (measured largest_dma ≈ 76 KB — the LCD/SPI driver's
+ * own setup already fragments internal RAM), so it has to be banded. 3
+ * bands keeps the CASET/RASET command overhead low (unlike very thin bands,
+ * which visibly tear during fast face animation) while comfortably fitting
+ * under that ceiling. */
+#define FLUSH_BANDS      3
+#define FLUSH_BAND_ROWS  (BOARD_LCD_V_RES / FLUSH_BANDS)
+/* esp_lcd_panel_draw_bitmap() only *queues* the color DMA transfers — it
+ * returns before they finish; they're only waited on at the start of the
+ * *next* draw_bitmap call (it issues a new RAMWR command, and the driver
+ * drains all prior in-flight transactions before sending any command). So
+ * reusing a bounce buffer for band N+1 while band N's DMA is still reading
+ * it corrupts the frame — this was visible on screen as garbage/duplicated
+ * content at band seams. Two buffers, alternated, are enough: by the time
+ * band N+2 wants buffer (N+2)%2 == N%2, band N+1's draw_bitmap call has
+ * already forced band N's transfer to finish (that's the drain above), so
+ * band N's buffer is safe to reuse. Using 2 instead of FLUSH_BANDS buffers
+ * also roughly halves the persistent internal RAM this costs — the naive
+ * one-buffer-per-band version didn't reliably fit. */
+#define FLUSH_BUFS 2
+static uint16_t *s_flush_buf[FLUSH_BUFS]; /* internal DMA-capable, BOARD_LCD_H_RES × FLUSH_BAND_ROWS each */
+
 /** Push the framebuffer to the display. */
 static void fb_flush(void)
 {
-    esp_lcd_panel_draw_bitmap(panel_handle, 0, 0,
-                              BOARD_LCD_H_RES, BOARD_LCD_V_RES, fb);
+    int band = 0;
+    for (int y0 = 0; y0 < BOARD_LCD_V_RES; y0 += FLUSH_BAND_ROWS, band++) {
+        int rows = FLUSH_BAND_ROWS;
+        if (y0 + rows > BOARD_LCD_V_RES) rows = BOARD_LCD_V_RES - y0;
+
+        uint16_t *buf = s_flush_buf[band % FLUSH_BUFS];
+        memcpy(buf, &fb[y0 * BOARD_LCD_H_RES],
+               (size_t)rows * BOARD_LCD_H_RES * sizeof(uint16_t));
+
+        esp_err_t r = esp_lcd_panel_draw_bitmap(panel_handle, 0, y0,
+                                                BOARD_LCD_H_RES, y0 + rows,
+                                                buf);
+        if (r != ESP_OK) {
+            ESP_LOGE(TAG, "draw_bitmap failed: %s", esp_err_to_name(r));
+            return;
+        }
+    }
 }
 
 /* ── Public API ──────────────────────────────────────────────────────── */
@@ -223,6 +270,14 @@ void display_init(void)
     fb = heap_caps_malloc(FB_BYTES, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
     assert(fb);
 
+    /* Persistent internal DMA-capable flush bounce buffers — see fb_flush(). */
+    for (int i = 0; i < FLUSH_BUFS; i++) {
+        s_flush_buf[i] = heap_caps_malloc(
+            (size_t)BOARD_LCD_H_RES * FLUSH_BAND_ROWS * sizeof(uint16_t),
+            MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
+        assert(s_flush_buf[i]);
+    }
+
     /* 7. Boot test pattern — colored bars + text */
     const int bar_h = BOARD_LCD_V_RES / 6;
 
@@ -269,11 +324,16 @@ void display_init(void)
     ESP_LOGI(TAG, "LCD initialized OK");
 }
 
+/* In-memory only — every caller is at the top of a screen's draw()/
+ * _screen_draw() function, which ui_task always follows with its own
+ * display_flush() once the whole frame is composed. Flushing here too
+ * used to push a solid-color frame to the physical LCD before the real
+ * content was drawn, doubling the SPI writes (and the tearing exposure)
+ * per render and showing up as a flash / ghost content on screen. */
 void display_clear(uint16_t color)
 {
     if (!fb) return;
     fb_fill(color);
-    fb_flush();
 }
 
 void display_flush(void)

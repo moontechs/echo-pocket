@@ -24,7 +24,11 @@ static int         s_plugin_count = 0;
 
 static FacePlugin *s_active = NULL;
 
-static uint32_t s_frame_interval_ms = 50;  /* default 20 fps */
+/* Full-screen redraws tear visibly on this SPI LCD (no TE sync) if pushed
+ * continuously — 20 fps kept the bus mid-transfer more than half the time.
+ * 250ms matches the cadence known-good reference firmware for this board
+ * uses for its full-screen pushes (event-driven, not per-animation-tick). */
+static uint32_t s_frame_interval_ms = 250;  /* default ~4 fps */
 static uint32_t s_last_draw_ms = 0;
 
 /* ── Lifecycle ───────────────────────────────────────────────────────── */
@@ -33,7 +37,7 @@ void face_registry_init(void)
 {
     s_plugin_count = 0;
     s_active = NULL;
-    s_frame_interval_ms = 50;
+    s_frame_interval_ms = 250;
     s_last_draw_ms = 0;
 
     for (int i = 0; i < MAX_PLUGINS; i++) {
