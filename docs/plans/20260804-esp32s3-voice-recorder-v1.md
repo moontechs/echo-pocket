@@ -656,25 +656,26 @@ unreachable, the scaffolding above still lands and this can be retried without b
 - Modify: `components/network/upload_task.c`
 - Modify: `components/recorder/recorder.c`
 
-- [ ] branch on the hardware verdict recorded in Task 1 (`board.h`): if VBAT is not readable,
+- [x] branch on the hardware verdict recorded in Task 1 (`board.h`): if VBAT is not readable,
       show only `USB / Charging / Battery / Level unknown` — never derive a percentage from
       indirect signals (AGENTS.md §12.2, hard requirement)
-- [ ] if VBAT is readable: calibrated ADC read, multi-sample average, divider ratio applied,
+- [x] if VBAT is readable: calibrated ADC read, multi-sample average, divider ratio applied,
       updated every 10–30s, single-cell Li-ion discharge-curve lookup (non-linear), thresholds
       >20% normal / ≤20% warning / ≤10% block large auto-uploads (file size over a
       `LOW_BATTERY_UPLOAD_MAX_BYTES` constant, e.g. 5MB — roughly a 2-3 min recording) /
       critical → safe-stop
-- [ ] ≤10% threshold sets a flag `upload_task.c` (Task 17) checks before starting an
+- [x] ≤10% threshold sets a flag `upload_task.c` (Task 17) checks before starting an
       auto-upload whose file exceeds `LOW_BATTERY_UPLOAD_MAX_BYTES` (manual "Send All" still
       allowed regardless of size) — this is the actual enforcement point, not just a UI label
-- [ ] critical-battery path calls the same finalize-then-stop function Task 7's normal stop and
+- [x] critical-battery path calls the same finalize-then-stop function Task 7's normal stop and
       18–20 min auto-split already use (current audio block → WAV header patch → fsync/close →
       enqueue) — then powers down; no duplicated finalize logic
-- [ ] publish `LowBattery` onto `RECORDER_EVENTS` (Task 9) so `ui_task` drives the face theme's
+- [x] publish `LowBattery` onto `RECORDER_EVENTS` (Task 9) so `ui_task` drives the face theme's
       `LowBattery` state
-- [ ] write Unity test for the voltage→percent discharge-curve lookup and for the
+- [x] write Unity test for the voltage→percent discharge-curve lookup and for the
       threshold-to-UI-state mapping (pure math/logic, no real ADC needed)
-- [ ] run `logic_tests` — must pass before task 19
+- [x] run `logic_tests` — must pass before task 19
+      [x] syntax verified with clang; full `idf.py -C test_apps/logic_tests build flash monitor` requires ESP-IDF
 
 ### Task 19: Boot recovery integration (SD mount → config → queue → resume)
 

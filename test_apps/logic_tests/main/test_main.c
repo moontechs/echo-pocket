@@ -405,6 +405,34 @@ extern void test_delete_only_on_success(void);
 extern void test_outcome_states_are_valid(void);
 extern void test_sent_never_deletes_without_flag(void);
 
+/* ── Battery discharge curve tests (Task 18) ──────────────────────────── */
+/* Defined in test_battery_curve.c (compiled alongside this file) */
+extern void test_voltage_above_max_is_100(void);
+extern void test_voltage_below_min_is_0(void);
+extern void test_voltage_zero_is_0(void);
+extern void test_voltage_negative_is_0(void);
+extern void test_voltage_table_points_match(void);
+extern void test_voltage_interpolation_mid(void);
+extern void test_voltage_interpolation_just_above_low_end(void);
+extern void test_voltage_interpolation_just_below_high_end(void);
+extern void test_voltage_monotonic_descending(void);
+extern void test_voltage_le_100(void);
+extern void test_percent_to_threshold_normal(void);
+extern void test_percent_to_threshold_warning(void);
+extern void test_percent_to_threshold_critical(void);
+extern void test_percent_to_threshold_unknown(void);
+extern void test_block_upload_critical_large_file(void);
+extern void test_block_upload_critical_small_file(void);
+extern void test_block_upload_warning_allowed(void);
+extern void test_block_upload_normal_allowed(void);
+extern void test_block_upload_unknown_allowed(void);
+extern void test_block_upload_critical_exact_boundary(void);
+extern void test_unknown_constant_is_negative(void);
+extern void test_low_upload_max_is_reasonable(void);
+extern void test_full_pipeline_high_battery(void);
+extern void test_full_pipeline_warning(void);
+extern void test_full_pipeline_critical(void);
+
 /* ── Config INI tests (Task 5) ──────────────────────────────────────── */
 /* Defined in test_config.c (compiled alongside this file) */
 extern void test_config_defaults(void);
@@ -765,6 +793,33 @@ void app_main(void)
     RUN_TEST(test_config_load_nonexistent_file);
     RUN_TEST(test_config_save_null_safety);
     RUN_TEST(test_config_error_strings);
+
+    /* Task 18: battery discharge curve and threshold logic */
+    RUN_TEST(test_voltage_above_max_is_100);
+    RUN_TEST(test_voltage_below_min_is_0);
+    RUN_TEST(test_voltage_zero_is_0);
+    RUN_TEST(test_voltage_negative_is_0);
+    RUN_TEST(test_voltage_table_points_match);
+    RUN_TEST(test_voltage_interpolation_mid);
+    RUN_TEST(test_voltage_interpolation_just_above_low_end);
+    RUN_TEST(test_voltage_interpolation_just_below_high_end);
+    RUN_TEST(test_voltage_monotonic_descending);
+    RUN_TEST(test_voltage_le_100);
+    RUN_TEST(test_percent_to_threshold_normal);
+    RUN_TEST(test_percent_to_threshold_warning);
+    RUN_TEST(test_percent_to_threshold_critical);
+    RUN_TEST(test_percent_to_threshold_unknown);
+    RUN_TEST(test_block_upload_critical_large_file);
+    RUN_TEST(test_block_upload_critical_small_file);
+    RUN_TEST(test_block_upload_warning_allowed);
+    RUN_TEST(test_block_upload_normal_allowed);
+    RUN_TEST(test_block_upload_unknown_allowed);
+    RUN_TEST(test_block_upload_critical_exact_boundary);
+    RUN_TEST(test_unknown_constant_is_negative);
+    RUN_TEST(test_low_upload_max_is_reasonable);
+    RUN_TEST(test_full_pipeline_high_battery);
+    RUN_TEST(test_full_pipeline_warning);
+    RUN_TEST(test_full_pipeline_critical);
 
     UNITY_END();
 }

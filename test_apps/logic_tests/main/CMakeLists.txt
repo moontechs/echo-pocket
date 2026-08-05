@@ -30,6 +30,7 @@ idf_component_register(
          "../../../components/telegram/telegram_caption.c"
          "../../../components/telegram/test/test_caption.c"
          "../../../components/network/test/test_upload_flow.c"
+         "../../../components/board/test/test_battery_curve.c"
     INCLUDE_DIRS "."
                 "../../../components/audio/include"
                 "../../../components/recorder/include"
@@ -39,5 +40,6 @@ idf_component_register(
                 "../../../components/ui/face_engine/include"
                 "../../../components/network/include"
                 "../../../components/telegram/include"
+                "../../../components/board/include"
     REQUIRES unity board storage log
 )

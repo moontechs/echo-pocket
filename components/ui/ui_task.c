@@ -25,6 +25,7 @@
 #include "recorder.h"
 #include "audio_process.h"
 #include "config.h"
+#include "battery.h"
 
 #include <string.h>
 #include <stdio.h>
@@ -73,9 +74,6 @@ static uint32_t       s_saved_enter_ms = 0;
 static bool           s_wifi_connected = false;
 static bool           s_sd_mounted     = false;
 static int            s_pending_uploads = 0;
-static bool           s_battery_present = false;
-static int            s_battery_percent = -1;
-static bool           s_charging        = false;
 
 /* Menu / Face submenu state (Task 12) */
 static menu_state_t         s_menu_state;
@@ -138,9 +136,9 @@ static void build_status(ui_status_t *status)
     status->wifi_connected  = s_wifi_connected;
     status->sd_mounted      = s_sd_mounted;
     status->pending_uploads = s_pending_uploads;
-    status->battery_present = s_battery_present;
-    status->battery_percent = s_battery_percent;
-    status->charging        = s_charging;
+    status->battery_present = battery_is_present();
+    status->battery_percent = battery_percent();
+    status->charging        = battery_is_charging();
     status->show_saved      = (s_screen == UI_SCREEN_SAVED);
 
     if (s_screen == UI_SCREEN_RECORDING || s_screen == UI_SCREEN_SAVED) {

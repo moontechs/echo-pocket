@@ -21,6 +21,7 @@
 #include "telegram_client.h"
 #include "recorder.h"
 #include "device_events.h"
+#include "battery.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -208,6 +209,21 @@ static int upload_drain_loop(void)
         telegram_format_caption(entry->id, entry->duration_ms,
                                 s_state.cfg->device_name,
                                 caption, sizeof(caption));
+
+        /* ── Check battery before auto-upload ──────────────────── */
+        if (battery_should_block_upload(battery_percent(), entry->size)) {
+            ESP_LOGW(TAG, "Skipping %s — battery too low for %" PRIu32 " bytes",
+                     entry->id, entry->size);
+            /* Revert to pending so it's retried when power returns. */
+            queue_store_err_t qerr = queue_store_revert_to_pending(
+                s_state.queue, entry, entry->attempts);
+            if (qerr != QUEUE_STORE_OK) {
+                ESP_LOGE(TAG, "Failed to revert %s: %s",
+                         entry->id, queue_store_err_str(qerr));
+            }
+            /* Stay in the drain loop — next entry might be smaller. */
+            continue;
+        }
 
         /* ── Send ────────────────────────────────────────────────── */
         int message_id = 0;

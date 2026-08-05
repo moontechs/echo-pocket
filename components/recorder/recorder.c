@@ -13,6 +13,7 @@
 #include "audio_mono_ringbuf.h"
 #include "device_events.h"
 #include "queue_store.h"
+#include "battery.h"
 
 #include <inttypes.h>
 #include "esp_log.h"
@@ -250,6 +251,22 @@ static void sd_writer_task(void *arg)
                     ESP_LOGI(TAG, "Recording stopped");
                 }
             }
+        }
+
+        /* ── Critical battery safe-stop check ────────────────────
+         * Runs once per iteration; reuses the same finalize path as
+         * normal stop and auto-split.  No duplicated logic. */
+        if (s_state == RECORDER_STATE_RECORDING && battery_is_critical()) {
+            ESP_LOGW(TAG, "Critical battery — safe-stopping recording");
+            esp_event_post(RECORDER_EVENTS, RECORDER_EVENT_STOPPED,
+                           NULL, 0, 0);
+            if (wav) {
+                finalize_recording(wav);
+                wav = NULL;
+            }
+            s_state = RECORDER_STATE_IDLE;
+            /* Power down — if the hardware supports it */
+            /* TODO: call board_power_off() once that API is added */
         }
 
         /* ── If recording, consume mono PCM from process output ────── */
