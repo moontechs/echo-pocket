@@ -34,3 +34,9 @@ CONFIG_I2C_MASTER_ISR_IRAM_SAFE=n
 
 # Partition table (custom for 16MB flash)
 CONFIG_PARTITION_TABLE_CUSTOM=y
+
+# app_main() runs the entire init sequence (SD/FAT mount, display, audio,
+# Wi-Fi, TLS client setup) directly on the main task before spawning any
+# worker tasks — the 3584-byte IDF default overflows partway through SD
+# mount. Bump it to cover that sequence with headroom.
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192

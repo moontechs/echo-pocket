@@ -121,11 +121,6 @@ static esp_err_t i2s_rx_init(void)
         i2s_channel_init_std_mode(s_rx_chan, &std_cfg),
         TAG, "i2s_channel_init_std_mode failed");
 
-    /* ── Allocate DMA buffers ─────────────────────────────────────── */
-    ESP_RETURN_ON_ERROR(
-        i2s_channel_register_event_callback(s_rx_chan, NULL, NULL),
-        TAG, "i2s_channel_register_event_callback failed");
-
     ESP_RETURN_ON_ERROR(
         i2s_channel_enable(s_rx_chan),
         TAG, "i2s_channel_enable failed");
