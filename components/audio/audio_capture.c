@@ -137,12 +137,9 @@ static esp_err_t i2s_rx_init(void)
 
 static esp_err_t codec_init(void)
 {
-    /* ES7210 I2C address — 0x40 is the fixed address for this codec.        */
-    const uint8_t ES7210_I2C_ADDR = 0x40;
-
     audio_codec_i2c_cfg_t i2c_cfg = {
         .port       = BOARD_I2C_PORT,
-        .addr       = ES7210_I2C_ADDR,
+        .addr       = ES7210_CODEC_DEFAULT_ADDR,
         .bus_handle = s_i2c_bus,
     };
     const audio_codec_ctrl_if_t *ctrl_if = audio_codec_new_i2c_ctrl(&i2c_cfg);
