@@ -86,6 +86,9 @@ static bool connect_to_network(int index)
     if (net->password[0] != '\0') {
         strncpy((char *)wifi_cfg.sta.password, net->password,
                 sizeof(wifi_cfg.sta.password) - 1);
+        /* Threshold is a floor, not an exact match — WPA2_PSK admits both
+         * plain-WPA2 and WPA2/WPA3-mixed APs, letting the driver negotiate
+         * SAE vs PSK per what the AP offers. */
         wifi_cfg.sta.threshold.authmode = WIFI_AUTH_WPA2_PSK;
     } else {
         wifi_cfg.sta.threshold.authmode = WIFI_AUTH_OPEN;
