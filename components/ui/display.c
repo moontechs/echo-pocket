@@ -167,7 +167,11 @@ void display_init(void)
         .miso_io_num     = BOARD_LCD_PIN_MISO,
         .quadwp_io_num   = -1,
         .quadhd_io_num   = -1,
-        .max_transfer_sz = FB_BYTES + 16,
+        /* fb lives in PSRAM; the SPI driver can't DMA from PSRAM directly, so
+         * every chunk gets bounce-copied through a MALLOC_CAP_DMA allocation
+         * sized to this value. Keep it small so that allocation reliably
+         * succeeds even under internal-RAM pressure early in boot. */
+        .max_transfer_sz = 4096,
     };
     ESP_ERROR_CHECK(spi_bus_initialize(BOARD_LCD_SPI_HOST, &bus_cfg, SPI_DMA_CH_AUTO));
 
