@@ -72,6 +72,18 @@ void wifi_manager_deinit(void);
  */
 bool wifi_manager_is_connected(void);
 
+/**
+ * @brief Get the SSID currently being used and the assigned IP address
+ *        (for display on the Wi-Fi status screen).
+ *
+ * @param ssid_buf  Buffer to receive the SSID (empty string if none tried yet).
+ * @param ssid_len  Size of ssid_buf.
+ * @param ip_buf    Buffer to receive the IP address string (empty if not connected).
+ * @param ip_len    Size of ip_buf.
+ */
+void wifi_manager_get_status(char *ssid_buf, size_t ssid_len,
+                             char *ip_buf, size_t ip_len);
+
 #ifdef __cplusplus
 }
 #endif

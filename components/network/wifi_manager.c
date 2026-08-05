@@ -11,6 +11,7 @@
 #include "config.h"
 #include "device_events.h"
 
+#include <stdio.h>
 #include <string.h>
 #include <time.h>
 #include "esp_log.h"
@@ -35,6 +36,8 @@ static volatile bool          s_running    = false;
 static volatile bool          s_connected  = false;
 static bool                   s_time_synced = false;
 static int                    s_try_index  = -1;
+static char                   s_ssid[33]   = {0};
+static char                   s_ip[16]     = {0};
 
 /* Event group for connection status */
 static EventGroupHandle_t     s_wifi_event_group = NULL;
@@ -97,6 +100,10 @@ static bool connect_to_network(int index)
     ESP_LOGI(TAG, "Connecting to %s (network %d/%d)...",
              net->ssid, index + 1, s_cfg->wifi_count);
 
+    strncpy(s_ssid, net->ssid, sizeof(s_ssid) - 1);
+    s_ssid[sizeof(s_ssid) - 1] = '\0';
+    s_ip[0] = '\0';
+
     esp_err_t err = esp_wifi_set_config(WIFI_IF_STA, &wifi_cfg);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "esp_wifi_set_config failed: %s", esp_err_to_name(err));
@@ -149,6 +156,7 @@ static void wifi_event_handler(void *arg, esp_event_base_t event_base,
 
             bool was_connected = s_connected;
             s_connected = false;
+            s_ip[0] = '\0';
 
             if (s_wifi_event_group) {
                 xEventGroupClearBits(s_wifi_event_group, WIFI_CONNECTED_BIT);
@@ -169,6 +177,7 @@ static void wifi_event_handler(void *arg, esp_event_base_t event_base,
         ip_event_got_ip_t *ev = (ip_event_got_ip_t *)event_data;
         ESP_LOGI(TAG, "Got IP: " IPSTR, IP2STR(&ev->ip_info.ip));
 
+        snprintf(s_ip, sizeof(s_ip), IPSTR, IP2STR(&ev->ip_info.ip));
         s_connected = true;
 
         if (s_wifi_event_group) {
@@ -411,4 +420,17 @@ void wifi_manager_deinit(void)
 bool wifi_manager_is_connected(void)
 {
     return s_connected;
+}
+
+void wifi_manager_get_status(char *ssid_buf, size_t ssid_len,
+                             char *ip_buf, size_t ip_len)
+{
+    if (ssid_buf && ssid_len > 0) {
+        strncpy(ssid_buf, s_ssid, ssid_len - 1);
+        ssid_buf[ssid_len - 1] = '\0';
+    }
+    if (ip_buf && ip_len > 0) {
+        strncpy(ip_buf, s_connected ? s_ip : "", ip_len - 1);
+        ip_buf[ip_len - 1] = '\0';
+    }
 }

@@ -8,6 +8,7 @@ idf_component_register(
          "screens/list_pagination.c"
          "screens/recordings_list.c"
          "screens/unsent_list.c"
+         "screens/wifi_status.c"
          "face_engine/face_registry.cpp"
          "face_engine/owl_face.cpp"
          "face_engine/minimal_face.cpp"
@@ -16,5 +17,5 @@ idf_component_register(
     INCLUDE_DIRS "include"
                  "face_engine"
                  "face_engine/include"
-    REQUIRES esp_driver_spi esp_lcd board log esp_event recorder audio esp_timer storage
+    REQUIRES esp_driver_spi esp_lcd board log esp_event recorder audio esp_timer storage network
 )
