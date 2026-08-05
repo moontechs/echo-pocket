@@ -193,7 +193,15 @@ static void apply_key(RecorderConfig *cfg, section_kind_t kind,
         /* channel_N_id / channel_N_name */
         else if (strncmp(key, "channel_", 8) == 0) {
             const char *p = key + 8; /* skip "channel_" */
-            int idx = parse_int(p, -1);
+            /* Extract numeric index before "_id" or "_name" suffix */
+            char idx_str[16];
+            int ci_pos = 0;
+            while (p[ci_pos] && p[ci_pos] != '_' && ci_pos < (int)(sizeof(idx_str) - 1)) {
+                idx_str[ci_pos] = p[ci_pos];
+                ci_pos++;
+            }
+            idx_str[ci_pos] = '\0';
+            int idx = parse_int(idx_str, -1);
             if (idx >= 1 && idx <= CONFIG_MAX_CHANNELS) {
                 int ci = idx - 1;
                 if (ci >= cfg->channel_count) {
