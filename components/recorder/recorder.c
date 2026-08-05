@@ -118,21 +118,32 @@ static bool finalize_recording(wav_writer_t *wav)
 {
     if (!wav) return false;
 
+    /* Save path and size BEFORE close — close() frees the wav struct. */
+    char path_buf[RECORDER_PATH_MAX];
+    const char *raw_path = wav_writer_path(wav);
+    if (raw_path) {
+        strncpy(path_buf, raw_path, sizeof(path_buf) - 1);
+        path_buf[sizeof(path_buf) - 1] = '\0';
+    } else {
+        path_buf[0] = '\0';
+    }
+    uint32_t saved_size = wav_writer_bytes_written(wav);
+
     bool ok = wav_writer_finalize(wav);
     wav_writer_close(wav);
 
     if (ok) {
-        ESP_LOGI(TAG, "Recording finalized: %s", wav_writer_path(wav));
+        ESP_LOGI(TAG, "Recording finalized: %s", path_buf);
         /* Notify UI that the recording has been saved */
         esp_event_post(RECORDER_EVENTS, RECORDER_EVENT_SAVED, NULL, 0, 0);
     } else {
-        ESP_LOGE(TAG, "Recording finalize failed: %s", wav_writer_path(wav));
+        ESP_LOGE(TAG, "Recording finalize failed: %s", path_buf);
     }
 
     /* ── Enqueue the completed WAV to the upload queue ───────────── */
     if (ok && s_queue) {
-        const char *path = wav_writer_path(wav);
-        uint32_t size = wav_writer_bytes_written(wav);
+        /* Use saved path and size (wav struct is now freed) */
+        uint32_t size = saved_size;
 
         /* Compute duration from byte count:
          *   mono 16 kHz s16 → 32000 bytes/sec → ms = bytes / 32 */
@@ -147,7 +158,7 @@ static bool finalize_recording(wav_writer_t *wav)
         size_t suffix_len = strlen(suffix);
         char rec_id[REC_ID_MAX_LEN];
 
-        const char *start = path + prefix_len;
+        const char *start = path_buf + prefix_len;
         const char *end = strstr(start, suffix);
         size_t id_len = (end && end > start) ? (size_t)(end - start)
                                               : strlen(start);
@@ -156,7 +167,7 @@ static bool finalize_recording(wav_writer_t *wav)
         rec_id[id_len] = '\0';
 
         queue_store_err_t q_err = queue_store_enqueue(
-            s_queue, rec_id, path, duration_ms, size);
+            s_queue, rec_id, path_buf, duration_ms, size);
 
         if (q_err == QUEUE_STORE_OK) {
             ESP_LOGI(TAG, "Enqueued %s for upload", rec_id);
