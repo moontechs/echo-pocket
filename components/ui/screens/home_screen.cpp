@@ -13,7 +13,8 @@
 #include "ui_task.h"
 #include "face_registry.h"
 
-#include <stdio.h>
+#include <cstdio>
+#include <cstring>
 #include "face_plugin.hpp"
 
 /* ── Colour palette ──────────────────────────────────────────────────── */

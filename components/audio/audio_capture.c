@@ -145,11 +145,42 @@ static esp_err_t codec_init(void)
     /* ES7210 I2C address — 0x40 is the fixed address for this codec.        */
     const uint8_t ES7210_I2C_ADDR = 0x40;
 
+    audio_codec_i2c_cfg_t i2c_cfg = {
+        .port       = BOARD_I2C_PORT,
+        .addr       = ES7210_I2C_ADDR,
+        .bus_handle = s_i2c_bus,
+    };
+    const audio_codec_ctrl_if_t *ctrl_if = audio_codec_new_i2c_ctrl(&i2c_cfg);
+    if (!ctrl_if) {
+        ESP_LOGE(TAG, "audio_codec_new_i2c_ctrl failed");
+        return ESP_FAIL;
+    }
+
+    es7210_codec_cfg_t es7210_cfg = {
+        .ctrl_if      = ctrl_if,
+        .master_mode  = true,
+        .mic_selected = ES7210_SEL_MIC1 | ES7210_SEL_MIC2,
+    };
+    const audio_codec_if_t *codec_if = es7210_codec_new(&es7210_cfg);
+    if (!codec_if) {
+        ESP_LOGE(TAG, "es7210_codec_new failed");
+        return ESP_FAIL;
+    }
+
+    audio_codec_i2s_cfg_t i2s_cfg = {
+        .port      = BOARD_I2S_PORT,
+        .rx_handle = s_rx_chan,
+    };
+    const audio_codec_data_if_t *data_if = audio_codec_new_i2s_data(&i2s_cfg);
+    if (!data_if) {
+        ESP_LOGE(TAG, "audio_codec_new_i2s_data failed");
+        return ESP_FAIL;
+    }
+
     esp_codec_dev_cfg_t dev_cfg = {
-        .dev_type  = ESP_CODEC_DEV_TYPE_IN,
-        .codec_type = ESP_CODEC_TYPE_ES7210,
-        .i2c_handle = s_i2c_bus,
-        .i2c_addr   = ES7210_I2C_ADDR,
+        .dev_type = ESP_CODEC_DEV_TYPE_IN,
+        .codec_if = codec_if,
+        .data_if  = data_if,
     };
 
     s_codec = esp_codec_dev_new(&dev_cfg);
@@ -168,18 +199,6 @@ static esp_err_t codec_init(void)
     ESP_RETURN_ON_ERROR(
         esp_codec_dev_open(s_codec, &fs_cfg),
         TAG, "esp_codec_dev_open failed");
-
-    /* Set ADC input to 2-mic mode via codec-specific config */
-    audio_hal_codec_config_t hal_cfg = {
-        .codec_mode = AUDIO_HAL_CODEC_MODE_ENCODE,
-        .adc_input   = AUDIO_HAL_ADC_INPUT_LINE2,  /* 2-channel mic input  */
-        .i2s_iface   = {
-            .mode       = AUDIO_HAL_I2S_MODE_STD,
-            .sample_rate = AUDIO_CAPTURE_SAMPLE_RATE,
-            .bits       = AUDIO_HAL_BIT_LENGTH_16BITS,
-            .channel    = AUDIO_HAL_I2S_CHANNELS_STEREO,
-        },
-    };
 
     ESP_RETURN_ON_ERROR(
         esp_codec_dev_set_in_gain(s_codec, 0.0f),  /* 0 dB = line level   */

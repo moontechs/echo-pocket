@@ -1,5 +1,5 @@
 /** @file recordings_list.c
- * @brief Recordings list screen — paged list of /echo-pocket/rec/*.wav.
+ * @brief Recordings list screen — paged list of /echo-pocket/rec/ WAV files.
  *
  * Scans the SD card's recording directory on entry and displays
  * filenames with cursor-based scrolling.  Browse only — no playback
@@ -33,7 +33,7 @@
 #define MAX_RECORDING_FILES     200
 
 /** Maximum WAV filename length (including path). */
-#define REC_PATH_MAX            256
+#define REC_PATH_MAX            320  /* SD_REC_DIR + '/' + d_name[256] */
 
 /* Screen layout (mirrors menu.c so the look is consistent). */
 #define TITLE_BAR_H             24

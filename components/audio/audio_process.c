@@ -12,6 +12,7 @@
  */
 
 #include "audio_process.h"
+#include "audio_capture.h"
 #include "voice_level.h"
 #include "audio_ringbuf.h"
 #include "audio_mono_ringbuf.h"

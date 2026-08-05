@@ -16,8 +16,10 @@
 #include "battery.h"
 
 #include <inttypes.h>
+#include <string.h>
 #include "esp_log.h"
 #include "esp_err.h"
+#include "esp_event.h"
 #include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"

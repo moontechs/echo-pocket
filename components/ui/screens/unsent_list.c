@@ -94,7 +94,7 @@ static void draw_row(int y, const unsent_item_t *item, bool selected)
     display_fill_rect(0, y, 240, LIST_ITEM_H, bg_color);
 
     /* Build display string: "REC_ID  [state]  xN attempts" */
-    char label[64];
+    char label[100];
     if (item->attempts > 0) {
         snprintf(label, sizeof(label), "%s  [%s]  x%d",
                  item->rec_id, item->state_str, item->attempts);
