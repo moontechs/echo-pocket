@@ -158,6 +158,17 @@ queue_store_err_t queue_store_mark_failed(queue_index_t *queue,
                                           queue_entry_t *entry);
 
 /**
+ * @brief Revert an entry back to PENDING state with an updated attempts count,
+ *        and persist.  Used by the upload task after a retryable send failure.
+ *
+ * Unlike reset_for_send_all (which resets attempts to 0), this preserves
+ * and increments the attempts counter so the retry cap is enforced.
+ */
+queue_store_err_t queue_store_revert_to_pending(queue_index_t *queue,
+                                                queue_entry_t *entry,
+                                                int new_attempts);
+
+/**
  * @brief Reset a FAILED entry back to PENDING (manual "Send All").
  */
 queue_store_err_t queue_store_reset_for_send_all(queue_index_t *queue,

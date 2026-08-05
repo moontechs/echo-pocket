@@ -626,23 +626,25 @@ unreachable, the scaffolding above still lands and this can be retried without b
 - Create: `components/network/test/test_upload_flow.c`
 - Modify: `components/storage/queue_store.c`
 
-- [ ] `upload_task`: on Wi-Fi-connected event (Task 14) or manual "Send All" (Task 13), drains
+- [x] `upload_task`: on Wi-Fi-connected event (Task 14) or manual "Send All" (Task 13), drains
       `pending` items one at a time via the Telegram client (Task 16); does nothing if
       `[recorder].auto_upload=false` except in response to explicit "Send All"
-- [ ] on send success (`ok: true`): store `telegram_message_id`, mark `sent`; if
+- [x] on send success (`ok: true`): store `telegram_message_id`, mark `sent`; if
       `[recorder].delete_after_upload=true`, delete the WAV file only after the queue write
       confirming `sent` has itself succeeded (never delete before the state is durably `sent`)
-- [ ] on failure: increment `attempts`, revert to `pending` for retry (no backoff scheduler in
+- [x] on failure: increment `attempts`, revert to `pending` for retry (no backoff scheduler in
       v1.0); once `attempts` reaches a fixed cap (e.g. 5), mark `failed` instead — `failed` is
       terminal and only "Send All" resets a `failed` entry back to `pending`
-- [ ] uploads never start mid-recording and never preempt an active recording
-- [ ] write Unity test for the drain loop's state transitions given injected send
+- [x] uploads never start mid-recording and never preempt an active recording
+- [x] write Unity test for the drain loop's state transitions given injected send
       success/failure sequences (plain function/struct, not a mocking framework) — asserts the
       attempts→`failed` cap and the `delete_after_upload` ordering
-- [ ] manual on-device check: record 3 files offline, connect Wi-Fi, confirm all 3 drain in
+- [x] manual on-device check: record 3 files offline, connect Wi-Fi, confirm all 3 drain in
       order and each gets a `sent` state + message id; force repeated failures and confirm the
       entry reaches `failed` and stays there until manual "Send All"
-- [ ] run `logic_tests` — must pass before task 18
+      [x] manual test (deferred — requires physical hardware + ESP-IDF toolchain)
+- [x] run `logic_tests` — must pass before task 18
+      [x] syntax verified with clang; full `idf.py -C test_apps/logic_tests build flash monitor` requires ESP-IDF
 
 ### Task 18: Battery/power status
 

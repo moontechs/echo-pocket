@@ -378,6 +378,33 @@ extern void test_caption_exact_expected_format(void);
 extern void test_caption_error_strings(void);
 extern void test_caption_default_device_name(void);
 
+/* ── Upload drain flow tests (Task 17) ──────────────────────────────── */
+/* Defined in test_upload_flow.c (compiled alongside this file) */
+extern void test_ok_without_delete(void);
+extern void test_ok_with_delete(void);
+extern void test_ok_at_cap(void);
+extern void test_fail_retryable_first_attempt(void);
+extern void test_fail_retryable_mid_attempts(void);
+extern void test_fail_retryable_delete_ignored(void);
+extern void test_fail_retryable_at_cap(void);
+extern void test_fail_retryable_above_cap(void);
+extern void test_fail_retryable_exactly_one_before_cap(void);
+extern void test_fail_fatal_first_attempt(void);
+extern void test_fail_fatal_with_attempts(void);
+extern void test_fail_fatal_at_cap(void);
+extern void test_fail_fatal_delete_ignored(void);
+extern void test_cap_one(void);
+extern void test_cap_one_success(void);
+extern void test_cap_large(void);
+extern void test_cap_large_at_boundary(void);
+extern void test_cap_zero(void);
+extern void test_cap_zero_success(void);
+extern void test_production_cap_is_five(void);
+extern void test_walkthrough_three_entries(void);
+extern void test_delete_only_on_success(void);
+extern void test_outcome_states_are_valid(void);
+extern void test_sent_never_deletes_without_flag(void);
+
 /* ── Config INI tests (Task 5) ──────────────────────────────────────── */
 /* Defined in test_config.c (compiled alongside this file) */
 extern void test_config_defaults(void);
@@ -692,6 +719,32 @@ void app_main(void)
     RUN_TEST(test_caption_exact_expected_format);
     RUN_TEST(test_caption_error_strings);
     RUN_TEST(test_caption_default_device_name);
+
+    /* Task 17: upload drain flow state machine */
+    RUN_TEST(test_ok_without_delete);
+    RUN_TEST(test_ok_with_delete);
+    RUN_TEST(test_ok_at_cap);
+    RUN_TEST(test_fail_retryable_first_attempt);
+    RUN_TEST(test_fail_retryable_mid_attempts);
+    RUN_TEST(test_fail_retryable_delete_ignored);
+    RUN_TEST(test_fail_retryable_at_cap);
+    RUN_TEST(test_fail_retryable_above_cap);
+    RUN_TEST(test_fail_retryable_exactly_one_before_cap);
+    RUN_TEST(test_fail_fatal_first_attempt);
+    RUN_TEST(test_fail_fatal_with_attempts);
+    RUN_TEST(test_fail_fatal_at_cap);
+    RUN_TEST(test_fail_fatal_delete_ignored);
+    RUN_TEST(test_cap_one);
+    RUN_TEST(test_cap_one_success);
+    RUN_TEST(test_cap_large);
+    RUN_TEST(test_cap_large_at_boundary);
+    RUN_TEST(test_cap_zero);
+    RUN_TEST(test_cap_zero_success);
+    RUN_TEST(test_production_cap_is_five);
+    RUN_TEST(test_walkthrough_three_entries);
+    RUN_TEST(test_delete_only_on_success);
+    RUN_TEST(test_outcome_states_are_valid);
+    RUN_TEST(test_sent_never_deletes_without_flag);
 
     /* Task 5: config INI parser */
     RUN_TEST(test_config_defaults);

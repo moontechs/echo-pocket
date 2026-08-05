@@ -338,6 +338,20 @@ queue_store_err_t queue_store_mark_failed(queue_index_t *queue,
     return queue_store_flush(queue);
 }
 
+queue_store_err_t queue_store_revert_to_pending(queue_index_t *queue,
+                                                queue_entry_t *entry,
+                                                int new_attempts)
+{
+    if (!queue) return QUEUE_STORE_ERR_NOT_INITIALIZED;
+    if (find_entry_index(queue, entry) < 0) return QUEUE_STORE_ERR_NOT_FOUND;
+
+    entry->state = QUEUE_STATE_PENDING;
+    entry->attempts = new_attempts;
+    ESP_LOGI(TAG, "Reverted %s to pending (attempt %d)",
+             entry->id, new_attempts);
+    return queue_store_flush(queue);
+}
+
 queue_store_err_t queue_store_reset_for_send_all(queue_index_t *queue,
                                                  queue_entry_t *entry)
 {

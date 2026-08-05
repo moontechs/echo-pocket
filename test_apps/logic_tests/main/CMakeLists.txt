@@ -29,6 +29,7 @@ idf_component_register(
          "../../../components/storage/test/test_queue_store.c"
          "../../../components/telegram/telegram_caption.c"
          "../../../components/telegram/test/test_caption.c"
+         "../../../components/network/test/test_upload_flow.c"
     INCLUDE_DIRS "."
                 "../../../components/audio/include"
                 "../../../components/recorder/include"
