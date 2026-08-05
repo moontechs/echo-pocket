@@ -16,6 +16,7 @@
 #include "freertos/queue.h"
 #include "esp_log.h"
 #include "esp_event.h"
+#include "nvs_flash.h"
 #include "board.h"
 #include "device_events.h"
 #include "display.h"
@@ -49,13 +50,31 @@ static queue_index_t *s_queue = NULL;
 /** Button event queue — created here, fed by buttons_init, consumed by ui_task. */
 static QueueHandle_t s_button_queue = NULL;
 
-/* ── Helper: display a status line (avoids duplicating the coordinates) ─ */
+/* ── Boot checklist — each check gets its own line, failures get a
+ * one-line "what to do" hint underneath. Left on screen so a failure is
+ * still readable after boot finishes, not just flashed and overwritten. */
 
-static void status_line(const char *msg, uint16_t color)
+#define BOOT_CHECK_COLOR_OK    0x07E0 /* green */
+#define BOOT_CHECK_COLOR_FAIL  0xF800 /* red */
+#define BOOT_CHECK_COLOR_HINT  0xFFE0 /* yellow */
+
+static int  s_boot_y = 0;
+static bool s_boot_had_failure = false;
+
+static void boot_check(const char *label, bool ok, const char *fail_hint)
 {
-    /* Clear previous status area (y=190..210, full width) */
-    display_fill_rect(0, 190, 240, 30, 0x0000);
-    display_draw_text(8, 195, msg, color);
+    display_draw_text(4, s_boot_y, ok ? "[OK]" : "[FAIL]",
+                       ok ? BOOT_CHECK_COLOR_OK : BOOT_CHECK_COLOR_FAIL);
+    display_draw_text(56, s_boot_y, label, 0xFFFF);
+    s_boot_y += 16;
+
+    if (!ok) {
+        s_boot_had_failure = true;
+        if (fail_hint) {
+            display_draw_text(12, s_boot_y, fail_hint, BOOT_CHECK_COLOR_HINT);
+            s_boot_y += 16;
+        }
+    }
 }
 
 /* ── Boot sequence ──────────────────────────────────────────────────── */
@@ -63,6 +82,16 @@ static void status_line(const char *msg, uint16_t color)
 void app_main(void)
 {
     ESP_LOGI(TAG, "echo-pocket v1.0 starting...");
+
+    /* ── Step -1: NVS flash — required before esp_wifi_init(). Without
+     * this, wifi_manager's task aborts on ESP_ERR_NVS_NOT_INITIALIZED
+     * and reboots the device. */
+    esp_err_t nvs_err = nvs_flash_init();
+    if (nvs_err == ESP_ERR_NVS_NO_FREE_PAGES || nvs_err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+        ESP_ERROR_CHECK(nvs_flash_erase());
+        nvs_err = nvs_flash_init();
+    }
+    ESP_ERROR_CHECK(nvs_err);
 
     /* ── Step 0: create the default esp_event loop ────────────────────
      * Must exist before any component registers handlers or posts events.
@@ -82,7 +111,8 @@ void app_main(void)
     /* ── Step 2: display — must be up early so we can show errors ──── */
     display_init();
     display_clear(0x0000);
-    status_line("echo-pocket booting...", 0xFFFF);
+    display_draw_text(4, s_boot_y, "echo-pocket v1.0 boot checks", 0xFFFF);
+    s_boot_y += 20;
     ESP_LOGI(TAG, "display initialized");
 
     /* ── Step 3: mount SD, bootstrap directories ───────────────────── */
@@ -91,10 +121,10 @@ void app_main(void)
     if (!s_sd) {
         ESP_LOGW(TAG, "SD init failed: %s — continuing without storage",
                  sd_storage_err_str(sd_err));
-        status_line("SD: not mounted", 0xF800); /* red */
+        boot_check("SD card", false, "No card, or not FAT32 - check/format");
     } else {
         ESP_LOGI(TAG, "SD storage mounted at %s", SD_MOUNT_POINT);
-        status_line("SD: OK", 0x07E0); /* green */
+        boot_check("SD card", true, NULL);
     }
 
     /* ── Step 4: load config (safe defaults if file missing/malformed) ── */
@@ -111,9 +141,11 @@ void app_main(void)
         ESP_LOGI(TAG, "Config loaded: device='%s', wifi_count=%d, bot_token=%s",
                  s_config.device_name, s_config.wifi_count,
                  s_config.bot_token[0] ? "[set]" : "[not set]");
+        boot_check("Config", true, NULL);
     } else {
         ESP_LOGW(TAG, "Config load issue (%s) — using defaults",
                  config_err_str(cfg_err));
+        boot_check("Config", false, "Using defaults - check recorder.ini");
     }
 
     /* ── Step 5: load upload queue + recover uploading→pending ────────
@@ -141,15 +173,17 @@ void app_main(void)
     if (ac_err != ESP_OK) {
         ESP_LOGE(TAG, "audio_capture_init failed: %s — audio unavailable",
                  esp_err_to_name(ac_err));
-        status_line("Audio: init failed", 0xF800);
+        boot_check("Audio codec", false, "Check ES7210 mic wiring/power");
     } else {
         ESP_LOGI(TAG, "Audio capture initialized (ringbuf %p)", (void *)capture_rb);
         ac_err = audio_capture_start();
         if (ac_err != ESP_OK) {
             ESP_LOGE(TAG, "audio_capture_start failed: %s",
                      esp_err_to_name(ac_err));
+            boot_check("Audio codec", false, "Capture task failed to start");
         } else {
             ESP_LOGI(TAG, "Audio capture task running");
+            boot_check("Audio codec", true, NULL);
         }
     }
 
@@ -210,26 +244,13 @@ void app_main(void)
         ESP_LOGI(TAG, "Battery monitoring unavailable — showing 'unknown'");
     }
 
-    /* ── Step 11: buttons + UI task ───────────────────────────────────
-     * ui_task is the sole ButtonEvent consumer and sole RECORDER_EVENTS
-     * subscriber (maps device-state to FaceEvent).  It calls
-     * recorder_start() / recorder_stop() directly. */
-    s_button_queue = xQueueCreate(4, sizeof(ButtonEvent));
-    if (s_button_queue) {
-        buttons_init(s_button_queue);
-        ui_task_init(s_button_queue);
-        ESP_LOGI(TAG, "Buttons + UI initialized");
-    } else {
-        ESP_LOGE(TAG, "Failed to create button queue — UI unavailable");
-    }
-
-    /* ── Step 12: Wi-Fi manager (non-blocking task) ───────────────────
+    /* ── Step 11: Wi-Fi manager (non-blocking task) ───────────────────
      * Starts its own FreeRTOS task, connects per [wifi_N], runs SNTP,
      * applies [device].timezone, sets recorder_set_time_synced(). */
     wifi_manager_init(&s_config);
     ESP_LOGI(TAG, "Wi-Fi manager started (networks: %d)", s_config.wifi_count);
 
-    /* ── Step 12.5: Telegram client initialization ─────────────────────
+    /* ── Step 12: Telegram client initialization ─────────────────────
      * Must happen before upload_task_init() so the client is ready when
      * the first upload is triggered. Skip if bot_token is empty. */
     if (s_config.bot_token[0] != '\0') {
@@ -237,8 +258,10 @@ void app_main(void)
         if (tg_err != TELEGRAM_OK) {
             ESP_LOGE(TAG, "telegram_client_init failed: %s — uploads disabled",
                      telegram_err_str(tg_err));
+            boot_check("Telegram", false, "Check bot_token in recorder.ini");
         } else {
             ESP_LOGI(TAG, "Telegram client initialized");
+            boot_check("Telegram", true, NULL);
         }
     } else {
         ESP_LOGI(TAG, "No bot_token configured — Telegram uploads disabled");
@@ -251,9 +274,30 @@ void app_main(void)
     ESP_LOGI(TAG, "Upload task started (auto_upload=%s)",
              s_config.auto_upload ? "true" : "false");
 
-    /* ── Boot complete ──────────────────────────────────────────────── */
-    status_line("Ready", 0x07E0);
-    ESP_LOGI(TAG, "echo-pocket v1.0 boot complete — all systems nominal");
+    /* ── Boot checks complete — leave the checklist up so a failure is
+     * actually readable before the UI task starts overwriting the screen
+     * with the normal home screen. */
+    display_draw_text(4, s_boot_y, s_boot_had_failure ? "Boot: issues above" : "Boot: all checks OK",
+                       s_boot_had_failure ? BOOT_CHECK_COLOR_FAIL : BOOT_CHECK_COLOR_OK);
+    ESP_LOGI(TAG, "echo-pocket v1.0 boot complete%s",
+             s_boot_had_failure ? " — with issues, see above" : " — all systems nominal");
+    if (s_boot_had_failure) {
+        vTaskDelay(pdMS_TO_TICKS(4000));
+    }
+
+    /* ── Step 14: buttons + UI task ────────────────────────────────────
+     * ui_task is the sole ButtonEvent consumer and sole RECORDER_EVENTS
+     * subscriber (maps device-state to FaceEvent).  It calls
+     * recorder_start() / recorder_stop() directly.  Started last so it
+     * doesn't overwrite the boot checklist above before it can be read. */
+    s_button_queue = xQueueCreate(4, sizeof(ButtonEvent));
+    if (s_button_queue) {
+        buttons_init(s_button_queue);
+        ui_task_init(s_button_queue);
+        ESP_LOGI(TAG, "Buttons + UI initialized");
+    } else {
+        ESP_LOGE(TAG, "Failed to create button queue — UI unavailable");
+    }
 
     /* ── Idle loop — all work happens in FreeRTOS tasks ────────────────
      * The main task sleeps forever while capture/AFE/writer/UI/Wi-Fi/upload

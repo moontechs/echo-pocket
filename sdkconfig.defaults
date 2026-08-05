@@ -24,7 +24,12 @@ CONFIG_SPIRAM_SPEED_80M=y
 CONFIG_SPIRAM_BOOT_INIT=y
 CONFIG_SPIRAM_USE_MALLOC=y
 CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL=16384
-CONFIG_SPIRAM_MALLOC_RESERVE_INTERNAL=32768
+# Wi-Fi driver needs internal (non-PSRAM) RAM for its RX/TX DMA buffer
+# pools at esp_wifi_init() time — 32KB reserve was too tight and left
+# esp_wifi_init() failing with ESP_ERR_NO_MEM ("wifi: malloc buffer
+# fail"), which aborts the Wi-Fi task and reboots the device. Bumped to
+# match the ~80KB Wi-Fi/BLE budget documented above.
+CONFIG_SPIRAM_MALLOC_RESERVE_INTERNAL=81920
 CONFIG_SPIRAM_ALLOW_STACK_EXTERNAL_MEMORY=y
 CONFIG_DEFAULT_PSRAM_CLK_IO=30
 CONFIG_DEFAULT_PSRAM_CS_IO=26
@@ -40,3 +45,15 @@ CONFIG_PARTITION_TABLE_CUSTOM=y
 # worker tasks — the 3584-byte IDF default overflows partway through SD
 # mount. Bump it to cover that sequence with headroom.
 CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192
+
+# By the time esp_wifi_init() runs, display/SD/I2S/ES7210 init has already
+# claimed most of the ~173KB internal-RAM budget, leaving well under the
+# IDF-default WiFi buffer pools' requirement — esp_wifi_init() aborted with
+# ESP_ERR_NO_MEM ("wifi: malloc buffer fail"), rebooting the device. This
+# is a single-STA recorder, not a high-throughput AP, so trim the buffer
+# counts to fit comfortably in what's actually available.
+CONFIG_ESP_WIFI_STATIC_RX_BUFFER_NUM=2
+CONFIG_ESP_WIFI_RX_BA_WIN=4
+CONFIG_ESP_WIFI_DYNAMIC_RX_BUFFER_NUM=16
+CONFIG_ESP_WIFI_STATIC_TX_BUFFER_NUM=4
+CONFIG_ESP_WIFI_CACHE_TX_BUFFER_NUM=16
