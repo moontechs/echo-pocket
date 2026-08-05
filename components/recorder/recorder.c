@@ -12,6 +12,7 @@
 #include "rec_id.h"
 #include "audio_mono_ringbuf.h"
 #include "device_events.h"
+#include "queue_store.h"
 
 #include <inttypes.h>
 #include "esp_log.h"
@@ -46,6 +47,9 @@ static audio_mono_ringbuf_t *s_ringbuf   = NULL;
 static QueueHandle_t     s_cmd_queue     = NULL;
 static TaskHandle_t      s_task          = NULL;
 static volatile bool     s_running       = false;
+
+/* Upload queue handle — set by recorder_set_queue_store() before use.    */
+static queue_index_t *s_queue = NULL;
 
 /* These are updated by the task loop, read by recorder_is_recording().    */
 static volatile recorder_state_t s_state = RECORDER_STATE_IDLE;
@@ -124,11 +128,44 @@ static bool finalize_recording(wav_writer_t *wav)
         ESP_LOGE(TAG, "Recording finalize failed: %s", wav_writer_path(wav));
     }
 
-    /* TODO(task-15): enqueue the completed WAV to the upload queue.
-     * After queue_store is implemented, add:
-     *   queue_store_enqueue(wav_writer_path(wav), wav_writer_bytes_written(wav));
-     * Then post RECORDER_EVENT_ENQUEUED.
-     */
+    /* ── Enqueue the completed WAV to the upload queue ───────────── */
+    if (ok && s_queue) {
+        const char *path = wav_writer_path(wav);
+        uint32_t size = wav_writer_bytes_written(wav);
+
+        /* Compute duration from byte count:
+         *   mono 16 kHz s16 → 32000 bytes/sec → ms = bytes / 32 */
+        uint32_t duration_ms = size / 32;
+
+        /* Extract the recording ID from the path (e.g.
+         * "/sdcard/echo-pocket/rec/REC_20260804_215700_001.wav"
+         *  → "REC_20260804_215700_001") */
+        const char *prefix = RECORDER_FILE_PREFIX;
+        const char *suffix = RECORDER_FILE_SUFFIX;
+        size_t prefix_len = strlen(prefix);
+        size_t suffix_len = strlen(suffix);
+        char rec_id[REC_ID_MAX_LEN];
+
+        const char *start = path + prefix_len;
+        const char *end = strstr(start, suffix);
+        size_t id_len = (end && end > start) ? (size_t)(end - start)
+                                              : strlen(start);
+        if (id_len >= sizeof(rec_id)) id_len = sizeof(rec_id) - 1;
+        memcpy(rec_id, start, id_len);
+        rec_id[id_len] = '\0';
+
+        queue_store_err_t q_err = queue_store_enqueue(
+            s_queue, rec_id, path, duration_ms, size);
+
+        if (q_err == QUEUE_STORE_OK) {
+            ESP_LOGI(TAG, "Enqueued %s for upload", rec_id);
+            esp_event_post(RECORDER_EVENTS, RECORDER_EVENT_ENQUEUED,
+                           NULL, 0, 0);
+        } else {
+            ESP_LOGE(TAG, "Failed to enqueue %s: %s",
+                     rec_id, queue_store_err_str(q_err));
+        }
+    }
 
     return ok;
 }
@@ -385,6 +422,11 @@ bool recorder_is_recording(void)
 }
 
 /* ── Time sync setters (for Task 14 / boot timer) ───────────────────── */
+
+void recorder_set_queue_store(queue_index_t *queue)
+{
+    s_queue = queue;
+}
 
 void recorder_set_time_synced(bool synced)
 {

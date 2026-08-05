@@ -577,18 +577,19 @@ unreachable, the scaffolding above still lands and this can be retried without b
 - Modify: `components/storage/CMakeLists.txt`
 - Modify: `components/recorder/recorder.c`
 
-- [ ] `/echo-pocket/queue/index.json` read/write with the schema from AGENTS.md §Upload queue
+- [x] `/echo-pocket/queue/index.json` read/write with the schema from AGENTS.md §Upload queue
       (`id/file/state/duration_ms/size/attempts/telegram_message_id`)
-- [ ] states: `recording → pending → uploading → sent | failed`; on boot, any `uploading`
+- [x] states: `recording → pending → uploading → sent | failed`; on boot, any `uploading`
       record is rewritten to `pending`
-- [ ] never delete unsent files; queue file writes are atomic (write temp + rename, same
+- [x] never delete unsent files; queue file writes are atomic (write temp + rename, same
       pattern as Task 5's `config_save`) so a power loss mid-write can't corrupt the index
-- [ ] `recorder.c` enqueues a `pending` entry right after the fsync+close in Task 7's finalize
+- [x] `recorder.c` enqueues a `pending` entry right after the fsync+close in Task 7's finalize
       path (this is what the Recording screen's "Saved" state waits on, per Task 11)
-- [ ] write Unity tests: round-trip serialize/deserialize; boot-time `uploading→pending`
+- [x] write Unity tests: round-trip serialize/deserialize; boot-time `uploading→pending`
       recovery; atomic write survives a simulated interrupted write (temp file present, real
       file untouched)
-- [ ] run `logic_tests` — must pass before task 16
+- [x] run `logic_tests` — must pass before task 16
+      [x] syntax verified with clang; full `idf.py -C test_apps/logic_tests build flash monitor` requires ESP-IDF
 
 ### Task 16: Telegram client (sendDocument, streamed from SD)
 

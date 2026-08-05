@@ -323,6 +323,35 @@ extern void test_pagination_cursor_up_null(void);
 extern void test_pagination_full_traverse_down_and_back(void);
 extern void test_pagination_scroll_two_pages_exact(void);
 
+/* ── Queue store tests (Task 15) ──────────────────────────────────── */
+/* Defined in test_queue_store.c (compiled alongside this file) */
+extern void test_queue_state_strings_all(void);
+extern void test_queue_state_strings_invalid(void);
+extern void test_queue_state_from_str_all(void);
+extern void test_queue_state_from_str_unknown(void);
+extern void test_serialize_empty_queue(void);
+extern void test_serialize_null_params(void);
+extern void test_serialize_single_pending(void);
+extern void test_serialize_single_sent(void);
+extern void test_serialize_single_failed(void);
+extern void test_serialize_multiple_entries(void);
+extern void test_serialize_buffer_too_small(void);
+extern void test_deserialize_empty_array(void);
+extern void test_deserialize_null_params(void);
+extern void test_deserialize_bad_input(void);
+extern void test_deserialize_single(void);
+extern void test_deserialize_single_sent(void);
+extern void test_deserialize_multiple(void);
+extern void test_round_trip_serialize_deserialize(void);
+extern void test_recover_no_uploading(void);
+extern void test_recover_one_uploading(void);
+extern void test_recover_multiple_uploading(void);
+extern void test_recover_null_safety(void);
+extern void test_deserialize_exceeds_capacity(void);
+extern void test_queue_store_error_strings_distinct(void);
+extern void test_recover_preserves_non_uploading_fields(void);
+extern void test_serialize_escape_quotes(void);
+
 /* ── Config INI tests (Task 5) ──────────────────────────────────────── */
 /* Defined in test_config.c (compiled alongside this file) */
 extern void test_config_defaults(void);
@@ -584,6 +613,34 @@ void app_main(void)
     RUN_TEST(test_ns_disconnect_then_retry_same_network);
     RUN_TEST(test_ns_large_network_count);
     RUN_TEST(test_ns_large_network_count_all_fail);
+
+    /* Task 15: upload queue persistence and crash recovery */
+    RUN_TEST(test_queue_state_strings_all);
+    RUN_TEST(test_queue_state_strings_invalid);
+    RUN_TEST(test_queue_state_from_str_all);
+    RUN_TEST(test_queue_state_from_str_unknown);
+    RUN_TEST(test_serialize_empty_queue);
+    RUN_TEST(test_serialize_null_params);
+    RUN_TEST(test_serialize_single_pending);
+    RUN_TEST(test_serialize_single_sent);
+    RUN_TEST(test_serialize_single_failed);
+    RUN_TEST(test_serialize_multiple_entries);
+    RUN_TEST(test_serialize_buffer_too_small);
+    RUN_TEST(test_deserialize_empty_array);
+    RUN_TEST(test_deserialize_null_params);
+    RUN_TEST(test_deserialize_bad_input);
+    RUN_TEST(test_deserialize_single);
+    RUN_TEST(test_deserialize_single_sent);
+    RUN_TEST(test_deserialize_multiple);
+    RUN_TEST(test_round_trip_serialize_deserialize);
+    RUN_TEST(test_recover_no_uploading);
+    RUN_TEST(test_recover_one_uploading);
+    RUN_TEST(test_recover_multiple_uploading);
+    RUN_TEST(test_recover_null_safety);
+    RUN_TEST(test_deserialize_exceeds_capacity);
+    RUN_TEST(test_queue_store_error_strings_distinct);
+    RUN_TEST(test_recover_preserves_non_uploading_fields);
+    RUN_TEST(test_serialize_escape_quotes);
 
     /* Task 5: config INI parser */
     RUN_TEST(test_config_defaults);

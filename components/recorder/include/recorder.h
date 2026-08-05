@@ -32,6 +32,9 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
 
+/* Forward declaration — full header is queue_store.h (storage component). */
+typedef struct queue_index_s queue_index_t;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -114,6 +117,15 @@ void recorder_stop(void);
  * @return true if recording, false if idle.
  */
 bool recorder_is_recording(void);
+
+/**
+ * @brief Set the upload queue store for enqueueing completed recordings.
+ *
+ * Called once at boot (Task 19 / app_main) after queue_store_init().
+ * When set, finalize_recording() enqueues a QUEUE_STATE_PENDING entry
+ * after the WAV is fsync'd and closed.
+ */
+void recorder_set_queue_store(queue_index_t *queue);
 
 /**
  * @brief Notify the recorder that SNTP has synced the system clock.
