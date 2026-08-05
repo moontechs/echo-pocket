@@ -793,12 +793,12 @@ unreachable, the scaffolding above still lands and this can be retried without b
 
 ### Task 21: [Final] Update documentation
 
-- [ ] update `AGENTS.md`/`CLAUDE.md` with any real pin numbers, component names, or
+- [x] update `AGENTS.md`/`CLAUDE.md` with any real pin numbers, component names, or
       architectural deviations discovered during implementation
-- [ ] add a short `README.md` with build/flash instructions for both the main project and
+- [x] add a short `README.md` with build/flash instructions for both the main project and
       `test_apps/logic_tests` (`idf.py build`, `idf.py flash`, target chip, required
       `sdkconfig.defaults`)
-- [ ] move this plan to `docs/plans/completed/`
+- [x] move this plan to `docs/plans/completed/`
 
 ## Post-Completion
 *Requires the physical board — cannot be scripted or unit tested*

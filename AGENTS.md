@@ -10,46 +10,96 @@ terminology below in sync with it if the spec changes.
 
 ## Hardware
 
-- ESP32-S3, PSRAM + built-in flash
-- 1.54" LCD, 240×240, no touch
-- 2× microphones → ES7210 audio codec → I²S
-- microSD / TF card
+- ESP32-S3R8 (octal PSRAM, 8MB, 80MHz) + 16MB built-in flash
+- 1.54" LCD, 240×240, ST7789 over SPI, no touch
+- 2× microphones → ES7210 audio codec (I²C addr 0x40) → I²S
+- microSD / TF card — SDMMC 4-bit (not SPI; no bus sharing with LCD)
 - Wi-Fi 2.4GHz, BLE 5
-- 3 physical buttons (left / center / right)
-- Single-cell 3.7V Li-ion/LiPo, onboard charge circuit (VBAT-to-ADC exposure not confirmed —
-  verify against board schematic/example before building the battery gauge, see §Battery)
+- 3 physical buttons (left / center / right), active-low
+- Single-cell 3.7V Li-ion/LiPo, onboard charge circuit
+  - VBAT **is** readable via resistor divider on GPIO 1 (ADC1_CH0) — confirmed from vendor
+    example `bsp_power_manager.c`
+  - Charger status readable on GPIO 3 (low = charging)
+  - GPIO 2 can cut battery power (low = off) for critical-battery shutdown
+
+### Pin map (confirmed from vendor ESP-IDF example `waveshareteam/ESP32-S3-Touch-LCD-1.54`)
+
+| Function      | GPIO | Notes                          |
+|---------------|------|--------------------------------|
+| LCD MOSI      | 39   | SPI2_HOST                      |
+| LCD SCLK      | 38   |                                |
+| LCD CS        | 21   |                                |
+| LCD DC        | 45   |                                |
+| LCD RST       | 40   |                                |
+| LCD BL        | 46   | Backlight                      |
+| BTN Left      | 0    | Active-low (strapping pin)     |
+| BTN Center    | 5    | Active-low                     |
+| BTN Right     | 4    | Active-low                     |
+| SD CLK        | 16   | SDMMC 4-bit                    |
+| SD CMD        | 15   |                                |
+| SD D0         | 17   |                                |
+| SD D1         | 18   |                                |
+| SD D2         | 13   |                                |
+| SD D3         | 14   |                                |
+| I2C SDA       | 42   | ES7210 codec                   |
+| I2C SCL       | 41   |                                |
+| I2S MCK       | 8    |                                |
+| I2S BCK       | 9    |                                |
+| I2S WS        | 10   |                                |
+| I2S DIN       | 11   | Mic data in                    |
+| I2S DOUT      | 12   |                                |
+| PA CTRL       | 7    | Power amplifier control        |
+| BAT ADC       | 1    | ADC1_CH0, VBAT via divider     |
+| BAT CHG       | 3    | Low = charging                 |
+| BAT PWR       | 2    | Output, high = on              |
 
 ## Toolchain
 
-- **ESP-IDF** (preferred over Arduino framework)
+- **ESP-IDF** (v5.x), not Arduino
 - Component layout under `components/`, app entry in `main/`
+- Unit tests in `test_apps/logic_tests/` (separate ESP-IDF project via `EXTRA_COMPONENT_DIRS`)
+- Build command: `idf.py build`; flash: `idf.py flash monitor`
+- Test command: `idf.py -C test_apps/logic_tests build flash monitor`
 
 ```
 main/
+  app_main.c               # Boot sequence wiring all components
 components/
-  board/          # pin defs, board bring-up
-  audio/          # I2S capture, ES7210, ESP-SR pipeline
-  recorder/       # WAV writer, recording state machine
+  board/                   # Pin defs, board_init, buttons, battery, device_events.h
+  audio/                   # I2S capture, PSRAM ring buffer, ESP-SR AFE, voice level
+  recorder/                # WAV writer, recording state machine, rec_id, split logic
   ui/
-    face_engine/  # FacePlugin interface + registry + built-in themes
-  storage/        # SD mount, config parsing, queue persistence
-  network/        # wifi manager
-  telegram/       # bot API client (sendDocument)
+    face_engine/           # FacePlugin interface + registry + 4 built-in themes
+    screens/               # Home, recording, menu, list screens
+  storage/                 # SD mount, config parser + write-back, queue persistence
+  network/                 # Wi-Fi manager, net_selection, upload task
+  telegram/                # Bot API client (sendDocument), caption formatting
+test_apps/
+  logic_tests/             # Unity-based unit tests (pure logic, no hardware)
 ```
 
-FreeRTOS tasks: `audio_capture_task`, `audio_process_task`, `sd_writer_task`, `ui_task`,
-`wifi_task`, `upload_task`. Audio capture must never block on SD, display, or network — use a
-PSRAM ring buffer between audio capture and the writer.
+FreeRTOS tasks (in priority order, highest first — see `audio_capture.h`):
+`audio_capture_task` > `audio_process_task` / `sd_writer_task` > `ui_task` >
+`wifi_task` / `upload_task`.
+Audio capture must never block on SD, display, or network — it writes into a PSRAM ring
+buffer and nothing else.
 
 ## Audio pipeline
 
 ```
-2× mic → ES7210 → I2S → ESP-SR AFE (noise suppression, VAD, AGC) → mono PCM → WAV on SD
+2× mic → ES7210 → I2S (2ch, s16, 16kHz) → PSRAM ring buffer (Task 6)
+    → audio_process_task: ESP-SR AFE (NS + VAD + AGC) → mono PCM (Task 8)
+    → sd_writer_task: mono PCM → WAV on SD (Task 7)
 ```
+
+The ring buffer sits between capture and the AFE, not after it. Capture writes 2-channel
+frames into the ring buffer and never blocks; the AFE and SD writer are both downstream
+consumers. Overflow is counted and surfaced — never silently dropped.
 
 - Format: WAV, PCM s16, mono, 16kHz (~1.92 MB/min)
 - Use Espressif **ESP-SR** for noise suppression in v1.0 (built-in, not neural-from-scratch)
-- Enable: noise suppression, VAD, moderate AGC
+- Enable: noise suppression, VAD, moderate AGC (individually gated on config keys
+  `[recorder].noise_suppression` / `[recorder].voice_detection`)
 - Do NOT enable in v1.0: WakeNet, command recognition, playback during recording, AEC
 - Does not promise removal of: other speakers, music, TV, sharp impact noise, wind, mic clipping
 - Split files at ~18–20 min; auto-continue into a new WAV on limit
@@ -207,15 +257,30 @@ If VBAT is readable via ADC:
 Thresholds: >20% normal, ≤20% warning, ≤10% block auto-upload of large files, critical → safely
 finish current recording (see lifecycle above) then power down if supported.
 
-## Dev stages (build in this order)
+## Implementation status
 
-1. Board bring-up: LCD, 3 buttons, SD, mics, I²S test
-2. Raw dictaphone: WAV record, start/stop, correct header, 10-min no-dropout test
-3. Noise suppression: ESP-SR + VAD + AGC, raw vs clean comparison
-4. Minimal UI: face engine + registry + 4 themes, theme switch via menu, voice-reactive eyes,
-   blink, timer, Wi-Fi/SD/battery/queue status
-5. Telegram: Wi-Fi connect, `getMe` test, small WAV send, streamed large WAV send
-6. Robust queue: pending/uploading/sent states, restart recovery, manual "Send All"
+v1.0 firmware is complete per the implementation plan at
+`docs/plans/completed/20260804-esp32s3-voice-recorder-v1.md`. All 20 tasks are done;
+on-device hardware verification is pending physical board availability (see
+Post-Completion section in the plan).
+
+### Architectural deviations from initial spec
+
+1. **SD card uses SDMMC, not SPI**: The Waveshare board exposes SD over SDMMC 4-bit,
+   so there is no SPI bus sharing with the LCD. The plan's "arbitration" concern is moot.
+2. **Extra ring buffer stage**: The audio pipeline has a PSRAM ring buffer *between*
+   capture and the AFE (not after it), plus a separate mono ring buffer between the AFE
+   and the writer. This was the plan-revision fix for the original topology error.
+3. **`device_events.h` lives in `components/board/`**: Moved out of `components/ui/` to
+   break a `ui ↔ recorder` circular component dependency (board is the neutral home).
+4. **Face engine is a `ui` subdirectory**: The plan initially described it as a separate
+   component; it lives under `components/ui/face_engine/` to avoid an unregistered
+   nested-component directory in ESP-IDF's build system.
+5. **PSRAM is octal (ESP32-S3R8)**: Not quad — confirmed from vendor example
+   `sdkconfig.defaults`. Getting this wrong would be a boot hang, not a compile error.
+6. **VBAT is readable**: Confirmed via vendor `bsp_power_manager.c` — GPIO 1
+   (ADC1_CH0) with resistor divider. `[recorder].sample_rate` is parsed but inert
+   (hard-coded to 16000) — documented in the plan's Task 20 config audit.
 
 ## v1.0 done-criteria (checklist)
 
