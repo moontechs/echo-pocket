@@ -122,7 +122,7 @@ void app_main(void)
     if (!s_sd) {
         ESP_LOGW(TAG, "SD init failed: %s — continuing without storage",
                  sd_storage_err_str(sd_err));
-        boot_check("SD card", false, "No card, or not FAT32 - check/format");
+        boot_check("SD card", false, "No/bad card - format FAT32");
     } else {
         ESP_LOGI(TAG, "SD storage mounted at %s", SD_MOUNT_POINT);
         boot_check("SD card", true, NULL);
@@ -146,7 +146,7 @@ void app_main(void)
     } else {
         ESP_LOGW(TAG, "Config load issue (%s) — using defaults",
                  config_err_str(cfg_err));
-        boot_check("Config", false, "Using defaults - check recorder.ini");
+        boot_check("Config", false, "Check recorder.ini on SD");
     }
 
     /* ── Step 5: load upload queue + recover uploading→pending ────────
@@ -174,14 +174,14 @@ void app_main(void)
     if (ac_err != ESP_OK) {
         ESP_LOGE(TAG, "audio_capture_init failed: %s — audio unavailable",
                  esp_err_to_name(ac_err));
-        boot_check("Audio codec", false, "Check ES7210 mic wiring/power");
+        boot_check("Audio codec", false, "Check mic wiring/power");
     } else {
         ESP_LOGI(TAG, "Audio capture initialized (ringbuf %p)", (void *)capture_rb);
         ac_err = audio_capture_start();
         if (ac_err != ESP_OK) {
             ESP_LOGE(TAG, "audio_capture_start failed: %s",
                      esp_err_to_name(ac_err));
-            boot_check("Audio codec", false, "Capture task failed to start");
+            boot_check("Audio codec", false, "Capture failed to start");
         } else {
             ESP_LOGI(TAG, "Audio capture task running");
             boot_check("Audio codec", true, NULL);
@@ -259,7 +259,7 @@ void app_main(void)
         if (tg_err != TELEGRAM_OK) {
             ESP_LOGE(TAG, "telegram_client_init failed: %s — uploads disabled",
                      telegram_err_str(tg_err));
-            boot_check("Telegram", false, "Check bot_token in recorder.ini");
+            boot_check("Telegram", false, "Check bot_token in ini");
         } else {
             ESP_LOGI(TAG, "Telegram client initialized");
             boot_check("Telegram", true, NULL);
