@@ -207,7 +207,15 @@ static void wifi_task(void *arg)
 
     /* ── Initialise Wi-Fi stack ──────────────────────────────────── */
     /* Note: esp_event_loop_create_default() is called in app_main.c (step 0) */
-    ESP_ERROR_CHECK(esp_netif_init());
+    /* Wi-Fi is optional — if the stack can't init (e.g. out of internal
+     * DMA-capable RAM under memory pressure from audio/display buffers),
+     * log it and run without networking rather than aborting the device. */
+    esp_err_t err = esp_netif_init();
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "esp_netif_init failed: %s — Wi-Fi unavailable", esp_err_to_name(err));
+        vTaskDelete(NULL);
+        return;
+    }
 
     esp_netif_t *sta_netif = esp_netif_create_default_wifi_sta();
     if (!sta_netif) {
@@ -217,16 +225,25 @@ static void wifi_task(void *arg)
     }
 
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
-    ESP_ERROR_CHECK(esp_wifi_init(&cfg));
+    err = esp_wifi_init(&cfg);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "esp_wifi_init failed: %s — Wi-Fi unavailable", esp_err_to_name(err));
+        vTaskDelete(NULL);
+        return;
+    }
 
     /* Register event handlers */
-    ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, ESP_EVENT_ANY_ID,
-                                                &wifi_event_handler, NULL));
-    ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP,
-                                                &wifi_event_handler, NULL));
-
-    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
-    ESP_ERROR_CHECK(esp_wifi_start());
+    err = esp_event_handler_register(WIFI_EVENT, ESP_EVENT_ANY_ID,
+                                      &wifi_event_handler, NULL);
+    err |= esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP,
+                                       &wifi_event_handler, NULL);
+    err |= esp_wifi_set_mode(WIFI_MODE_STA);
+    err |= esp_wifi_start();
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Wi-Fi start sequence failed — Wi-Fi unavailable");
+        vTaskDelete(NULL);
+        return;
+    }
 
     /* ── Connection loop ──────────────────────────────────────────── */
     s_try_index = -1;
