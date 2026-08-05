@@ -41,6 +41,13 @@ CONFIG_DEFAULT_PSRAM_CS_IO=26
 # I2C for codec
 CONFIG_I2C_MASTER_ISR_IRAM_SAFE=n
 
+# Default 100Hz tick (10ms/tick) silently truncates any vTaskDelay(pdMS_TO_TICKS(n))
+# with n<10 to 0 ticks, turning intended short sleeps (buttons.c, audio_capture.c,
+# audio_process.c, recorder.c all use 1-5ms delays) into bare yields — those tasks
+# then spin at full priority and starve their core's idle task past the watchdog
+# timeout. 1000Hz gives 1ms/tick so sub-10ms delays round correctly.
+CONFIG_FREERTOS_HZ=1000
+
 # FatFs long filename support — default LFN_NONE only allows 8.3 short
 # names, so mkdir("/sdcard/echo-pocket") (11 chars) fails with EINVAL and
 # SD storage falls back to "continuing without storage".
