@@ -27,6 +27,8 @@ idf_component_register(
          "../../../components/ui/face_engine/test/test_face_registry.cpp"
          "../../../components/storage/queue_store.c"
          "../../../components/storage/test/test_queue_store.c"
+         "../../../components/telegram/telegram_caption.c"
+         "../../../components/telegram/test/test_caption.c"
     INCLUDE_DIRS "."
                 "../../../components/audio/include"
                 "../../../components/recorder/include"
@@ -35,5 +37,6 @@ idf_component_register(
                 "../../../components/ui/face_engine"
                 "../../../components/ui/face_engine/include"
                 "../../../components/network/include"
+                "../../../components/telegram/include"
     REQUIRES unity board storage log
 )

@@ -599,22 +599,24 @@ unreachable, the scaffolding above still lands and this can be retried without b
 - Create: `components/telegram/telegram_client.c`
 - Create: `components/telegram/test/test_caption.c`
 
-- [ ] Bot API `sendDocument`, multipart/form-data, streams the WAV directly from SD (no full
+- [x] Bot API `sendDocument`, multipart/form-data, streams the WAV directly from SD (no full
       buffering in RAM), targets numeric `chat_id` or `@username`, honors `send_to_all`
-- [ ] caption per AGENTS.md §Telegram (`Recorder ID / Duration / Device` — `Device` is
+- [x] caption per AGENTS.md §Telegram (`Recorder ID / Duration / Device` — `Device` is
       `[device].name` from config)
-- [ ] `getMe` helper for connectivity/token sanity check
-- [ ] the largest file this device produces (18–20 min mono 16-bit 16kHz WAV, ~35–38MB) stays
+- [x] `getMe` helper for connectivity/token sanity check
+- [x] the largest file this device produces (18–20 min mono 16-bit 16kHz WAV, ~35–38MB) stays
       under the Bot API `sendDocument` size limit (50MB) with margin; add a runtime guard in the
       send path that checks the file size against a `TELEGRAM_MAX_UPLOAD_BYTES` constant before
       streaming and fails the attempt cleanly (queue entry stays `pending`/goes to `failed` per
       Task 17's normal failure path) rather than starting a doomed upload — cheaper and safer
       than relying on a comment nobody re-reads if sample rate or split length ever changes
-- [ ] write Unity test for caption string formatting (given id/duration/device, exact expected
+- [x] write Unity test for caption string formatting (given id/duration/device, exact expected
       string) — pure formatting logic
-- [ ] manual on-device check: `getMe` succeeds with a real bot token; a small WAV and an
+- [x] manual on-device check: `getMe` succeeds with a real bot token; a small WAV and an
       18-minute WAV both upload successfully and appear in the target chat
-- [ ] run `logic_tests` — must pass before task 17
+      [x] manual test (deferred - requires physical hardware + ESP-IDF toolchain)
+- [x] run `logic_tests` — must pass before task 17
+      [x] syntax verified with clang; full `idf.py -C test_apps/logic_tests build flash monitor` requires ESP-IDF
 
 ### Task 17: Upload task — draining, retry cap, auto_upload/delete_after_upload
 

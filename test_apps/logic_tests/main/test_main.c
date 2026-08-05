@@ -352,6 +352,32 @@ extern void test_queue_store_error_strings_distinct(void);
 extern void test_recover_preserves_non_uploading_fields(void);
 extern void test_serialize_escape_quotes(void);
 
+/* ── Telegram caption tests (Task 16) ───────────────────────────────── */
+/* Defined in test_caption.c (compiled alongside this file) */
+extern void test_caption_basic(void);
+extern void test_caption_zero_duration(void);
+extern void test_caption_one_second(void);
+extern void test_caption_59_seconds(void);
+extern void test_caption_one_minute(void);
+extern void test_caption_one_hour(void);
+extern void test_caption_max_18_min(void);
+extern void test_caption_19_min_59_sec(void);
+extern void test_caption_null_rec_id(void);
+extern void test_caption_null_device_name(void);
+extern void test_caption_null_both(void);
+extern void test_caption_null_buffer(void);
+extern void test_caption_zero_buf_size(void);
+extern void test_caption_buffer_exact(void);
+extern void test_caption_buffer_one_byte_too_small(void);
+extern void test_caption_large_duration(void);
+extern void test_caption_empty_device_name(void);
+extern void test_caption_empty_rec_id(void);
+extern void test_caption_no_trailing_newline(void);
+extern void test_caption_subsecond_truncation(void);
+extern void test_caption_exact_expected_format(void);
+extern void test_caption_error_strings(void);
+extern void test_caption_default_device_name(void);
+
 /* ── Config INI tests (Task 5) ──────────────────────────────────────── */
 /* Defined in test_config.c (compiled alongside this file) */
 extern void test_config_defaults(void);
@@ -641,6 +667,31 @@ void app_main(void)
     RUN_TEST(test_queue_store_error_strings_distinct);
     RUN_TEST(test_recover_preserves_non_uploading_fields);
     RUN_TEST(test_serialize_escape_quotes);
+
+    /* Task 16: telegram caption formatting */
+    RUN_TEST(test_caption_basic);
+    RUN_TEST(test_caption_zero_duration);
+    RUN_TEST(test_caption_one_second);
+    RUN_TEST(test_caption_59_seconds);
+    RUN_TEST(test_caption_one_minute);
+    RUN_TEST(test_caption_one_hour);
+    RUN_TEST(test_caption_max_18_min);
+    RUN_TEST(test_caption_19_min_59_sec);
+    RUN_TEST(test_caption_null_rec_id);
+    RUN_TEST(test_caption_null_device_name);
+    RUN_TEST(test_caption_null_both);
+    RUN_TEST(test_caption_null_buffer);
+    RUN_TEST(test_caption_zero_buf_size);
+    RUN_TEST(test_caption_buffer_exact);
+    RUN_TEST(test_caption_buffer_one_byte_too_small);
+    RUN_TEST(test_caption_large_duration);
+    RUN_TEST(test_caption_empty_device_name);
+    RUN_TEST(test_caption_empty_rec_id);
+    RUN_TEST(test_caption_no_trailing_newline);
+    RUN_TEST(test_caption_subsecond_truncation);
+    RUN_TEST(test_caption_exact_expected_format);
+    RUN_TEST(test_caption_error_strings);
+    RUN_TEST(test_caption_default_device_name);
 
     /* Task 5: config INI parser */
     RUN_TEST(test_config_defaults);

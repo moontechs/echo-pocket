@@ -19,7 +19,7 @@ set(EXTRA_COMPONENT_DIRS
     # (the full audio component requires esp_codec_dev which isn't available here)
     # components/recorder: pure-logic files are compiled directly in main/CMakeLists.txt
     # TODO(task-14): add components/network after wifi_manager.c exists
-    # TODO(task-16): add components/telegram after telegram_client.c exists
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../components/telegram
 )
 
 project(logic_tests)
