@@ -179,7 +179,9 @@ void display_init(void)
     esp_lcd_panel_io_spi_config_t io_cfg = {
         .cs_gpio_num = BOARD_LCD_PIN_CS,
         .dc_gpio_num = BOARD_LCD_PIN_DC,
-        .spi_mode    = 0,
+        /* Waveshare's own ESP-IDF example for this exact board (ESP32-S3-LCD-1.54)
+         * uses SPI mode 3, not mode 0 — matching it here. */
+        .spi_mode    = 3,
         .pclk_hz     = BOARD_LCD_PIXEL_CLOCK_HZ,
         .trans_queue_depth = 10,
         .lcd_cmd_bits   = 8,
