@@ -52,8 +52,8 @@ extern "C" {
  */
 #define LOW_BATTERY_UPLOAD_MAX_BYTES (5 * 1024 * 1024)
 
-/** ADC attenuation for the VBAT divider (0 dB for ~0–1.1 V range). */
-#define BATTERY_ADC_ATTEN_DB         0
+/** ADC attenuation for the VBAT divider (11 dB for ~0–3.1 V range). */
+#define BATTERY_ADC_ATTEN_DB         ADC_ATTEN_DB_11
 
 /** Number of ADC samples averaged per reading. */
 #define BATTERY_ADC_SAMPLES          16

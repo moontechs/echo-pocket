@@ -434,9 +434,9 @@ telegram_err_t telegram_client_send_document(const char *chat_id,
     if (response_length > 0) {
         int to_read = (response_length < (int)(sizeof(response) - 1))
                         ? response_length : (int)(sizeof(response) - 1);
-        int read = esp_http_client_read_response(client, response, to_read);
-        if (read < 0) {
-            ESP_LOGW(TAG, "sendDocument: read_response returned %d", read);
+        int bytes_read = esp_http_client_read(client, response, to_read);
+        if (bytes_read < 0) {
+            ESP_LOGW(TAG, "sendDocument: read returned %d", bytes_read);
         }
     }
 

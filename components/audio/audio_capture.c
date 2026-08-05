@@ -213,11 +213,9 @@ static void capture_task(void *arg)
                                      * AUDIO_CAPTURE_CHANNELS
                                      * sizeof(int16_t));
 
-        if (ret <= 0) {
+        if (ret != ESP_CODEC_DEV_OK) {
             /* Transient I2S hiccup — skip this chunk rather than dying   */
-            if (ret < 0) {
-                ESP_LOGW(TAG, "esp_codec_dev_read returned %d, skipping", ret);
-            }
+            ESP_LOGW(TAG, "esp_codec_dev_read returned %d, skipping", ret);
             vTaskDelay(pdMS_TO_TICKS(1));
             continue;
         }
