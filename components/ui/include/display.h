@@ -23,6 +23,15 @@ void display_init(void);
 void display_clear(uint16_t color);
 
 /**
+ * @brief Push the current framebuffer contents to the physical panel.
+ *
+ * display_draw_text() / display_fill_rect() / etc. only update the
+ * in-memory framebuffer — call this once per frame after drawing to make
+ * it visible. display_clear() flushes on its own and does not need this.
+ */
+void display_flush(void);
+
+/**
  * @brief Draw a null-terminated ASCII string at pixel coordinates.
  *
  * Uses a built-in 8×16 monospace bitmap font. Characters outside the

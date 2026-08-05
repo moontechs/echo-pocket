@@ -274,6 +274,12 @@ void display_clear(uint16_t color)
     fb_flush();
 }
 
+void display_flush(void)
+{
+    if (!fb) return;
+    fb_flush();
+}
+
 void display_draw_text(int x, int y, const char *text, uint16_t color)
 {
     if (!fb || !text) return;

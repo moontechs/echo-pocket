@@ -424,6 +424,7 @@ static void ui_task_loop(void *arg)
                 break;
             }
 
+            display_flush();
             last_update_ms = now_ms;
         }
 

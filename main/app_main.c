@@ -75,6 +75,7 @@ static void boot_check(const char *label, bool ok, const char *fail_hint)
             s_boot_y += 16;
         }
     }
+    display_flush();
 }
 
 /* ── Boot sequence ──────────────────────────────────────────────────── */
@@ -279,6 +280,7 @@ void app_main(void)
      * with the normal home screen. */
     display_draw_text(4, s_boot_y, s_boot_had_failure ? "Boot: issues above" : "Boot: all checks OK",
                        s_boot_had_failure ? BOOT_CHECK_COLOR_FAIL : BOOT_CHECK_COLOR_OK);
+    display_flush();
     ESP_LOGI(TAG, "echo-pocket v1.0 boot complete%s",
              s_boot_had_failure ? " — with issues, see above" : " — all systems nominal");
     if (s_boot_had_failure) {
