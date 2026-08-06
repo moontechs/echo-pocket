@@ -2,6 +2,7 @@
 
 #include <string.h>
 #include <assert.h>
+#include <math.h>
 #include "esp_check.h"
 #include "esp_err.h"
 #include "esp_log.h"
@@ -242,7 +243,11 @@ void display_init(void)
     esp_lcd_panel_dev_config_t panel_cfg = {
         .reset_gpio_num = BOARD_LCD_PIN_RST,
         .rgb_ele_order  = LCD_RGB_ELEMENT_ORDER_RGB,
-        .data_endian    = LCD_RGB_DATA_ENDIAN_BIG,
+        /* fb[] is a plain uint16_t array in the CPU's native little-endian
+         * layout — tell the controller to read it that way instead of
+         * swapping bytes (which corrupted every asymmetric RGB565 color,
+         * e.g. cyan 0x07FF arriving as 0xFF07 / yellow). */
+        .data_endian    = LCD_RGB_DATA_ENDIAN_LITTLE,
         .bits_per_pixel = 16,
     };
     ESP_ERROR_CHECK(esp_lcd_new_panel_st7789(io_handle, &panel_cfg, &panel_handle));
@@ -429,6 +434,19 @@ void display_fill_circle(int cx, int cy, int r, uint16_t color)
         } else {
             dx--;
             err += 2 * (dy - dx) + 1;
+        }
+    }
+}
+
+void display_draw_smile_arc(int cx, int cy, int r, int thickness, uint16_t color)
+{
+    if (!fb || r <= 0) return;
+    if (thickness < 1) thickness = 1;
+
+    for (int dx = -r; dx <= r; dx++) {
+        int dy = (int)sqrtf((float)(r * r - dx * dx));
+        for (int t = 0; t < thickness; t++) {
+            fb_put(cx + dx, cy + dy - t, color);
         }
     }
 }

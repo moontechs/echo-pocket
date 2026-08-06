@@ -12,6 +12,7 @@
 #include "ui_task.h"
 #include "display.h"
 #include "wifi_manager.h"
+#include "ui_colors.h"
 
 #include <stdio.h>
 
@@ -21,30 +22,23 @@
 #define LIST_TOP_Y      TITLE_BAR_H
 #define LINE_H          20
 
-#define COLOR_BLACK     ((uint16_t)0x0000)
-#define COLOR_WHITE     ((uint16_t)0xFFFF)
-#define COLOR_DARK_BG   ((uint16_t)0x18E3)
-#define COLOR_GREY      ((uint16_t)0x8410)
-#define COLOR_GREEN     ((uint16_t)0x07E0)
-#define COLOR_YELLOW    ((uint16_t)0xFFE0)
-
 static void draw_title_bar(const char *title)
 {
-    display_fill_rect(0, 0, 240, TITLE_BAR_H, COLOR_DARK_BG);
-    display_draw_hline(0, TITLE_BAR_H - 1, 240, COLOR_GREY);
-    display_draw_text(4, 4, title, COLOR_WHITE);
+    display_fill_rect(0, 0, 240, TITLE_BAR_H, UI_COLOR_INK);
+    display_draw_hline(0, TITLE_BAR_H - 1, 240, UI_COLOR_TEXT_DIM);
+    display_draw_text(4, 4, title, UI_COLOR_TEXT);
 }
 
 static void draw_help_bar(void)
 {
-    display_fill_rect(0, HELP_BAR_Y, 240, HELP_BAR_H, COLOR_DARK_BG);
-    display_draw_hline(0, HELP_BAR_Y, 240, COLOR_GREY);
-    display_draw_text(4, HELP_BAR_Y + 5, "Back", COLOR_GREY);
+    display_fill_rect(0, HELP_BAR_Y, 240, HELP_BAR_H, UI_COLOR_INK);
+    display_draw_hline(0, HELP_BAR_Y, 240, UI_COLOR_TEXT_DIM);
+    display_draw_text(4, HELP_BAR_Y + 5, "Back", UI_COLOR_TEXT_DIM);
 }
 
 void wifi_status_screen_draw(void)
 {
-    display_clear(COLOR_BLACK);
+    display_clear(UI_COLOR_VOID);
     draw_title_bar("Wi-Fi");
     draw_help_bar();
 
@@ -55,14 +49,14 @@ void wifi_status_screen_draw(void)
 
     int y = LIST_TOP_Y + 8;
     display_draw_text(8, y, connected ? "Status: Connected" : "Status: Disconnected",
-                      connected ? COLOR_GREEN : COLOR_YELLOW);
+                      connected ? UI_COLOR_ACCENT_MINT : UI_COLOR_ACCENT_AMBER);
     y += LINE_H;
 
     char line[48];
     snprintf(line, sizeof(line), "SSID: %s", ssid[0] ? ssid : "-");
-    display_draw_text(8, y, line, COLOR_WHITE);
+    display_draw_text(8, y, line, UI_COLOR_TEXT);
     y += LINE_H;
 
     snprintf(line, sizeof(line), "IP: %s", ip[0] ? ip : "-");
-    display_draw_text(8, y, line, COLOR_WHITE);
+    display_draw_text(8, y, line, UI_COLOR_TEXT);
 }

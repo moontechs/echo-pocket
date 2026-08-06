@@ -98,6 +98,16 @@ void ui_task_set_recording_start(uint32_t start_ms);
  */
 void ui_task_set_pending_uploads(int count);
 
+/**
+ * @brief Report whether the SD card is mounted, for the home screen's
+ *        status bar. Wi-Fi state updates itself via RECORDER_EVENTS
+ *        (RECORDER_EVENT_WIFI_CONNECTED/DISCONNECTED); SD mount state
+ *        has no such event, so app_main calls this once after mounting.
+ *
+ * @param mounted  true if the SD card is mounted and usable.
+ */
+void ui_task_set_sd_mounted(bool mounted);
+
 /* ── Pure screen state machine (unit-testable) ───────────────────────── */
 
 /**

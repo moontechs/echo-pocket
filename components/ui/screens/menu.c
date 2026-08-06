@@ -11,19 +11,10 @@
 #include "menu.h"
 #include "display.h"
 #include "face_registry.h"
+#include "ui_colors.h"
 
 #include <stdio.h>
 #include <string.h>
-
-/* ── Colour palette ──────────────────────────────────────────────────── */
-
-#define COLOR_BLACK       ((uint16_t)0x0000)
-#define COLOR_WHITE       ((uint16_t)0xFFFF)
-#define COLOR_DARK_BG     ((uint16_t)0x18E3)
-#define COLOR_GREEN       ((uint16_t)0x07E0)
-#define COLOR_BLUE        ((uint16_t)0x001F)
-#define COLOR_GREY        ((uint16_t)0x8410)
-#define COLOR_YELLOW      ((uint16_t)0xFFE0)
 
 #define TITLE_BAR_H        24
 #define HELP_BAR_H         24
@@ -153,42 +144,42 @@ void face_submenu_navigate(face_submenu_state_t *state, ButtonId button,
 /** Draw the title bar at the top of the screen. */
 static void draw_title_bar(const char *title)
 {
-    display_fill_rect(0, 0, 240, TITLE_BAR_H, COLOR_DARK_BG);
-    display_draw_hline(0, TITLE_BAR_H - 1, 240, COLOR_GREY);
-    display_draw_text(4, 4, title, COLOR_WHITE);
+    display_fill_rect(0, 0, 240, TITLE_BAR_H, UI_COLOR_INK);
+    display_draw_hline(0, TITLE_BAR_H - 1, 240, UI_COLOR_TEXT_DIM);
+    display_draw_text(4, 4, title, UI_COLOR_TEXT);
 }
 
 /** Draw the help bar at the bottom. */
 static void draw_help_bar(const char *left_label, const char *center_label,
                           const char *right_label)
 {
-    display_fill_rect(0, HELP_BAR_Y, 240, HELP_BAR_H, COLOR_DARK_BG);
-    display_draw_hline(0, HELP_BAR_Y, 240, COLOR_GREY);
+    display_fill_rect(0, HELP_BAR_Y, 240, HELP_BAR_H, UI_COLOR_INK);
+    display_draw_hline(0, HELP_BAR_Y, 240, UI_COLOR_TEXT_DIM);
 
     if (left_label) {
-        display_draw_text(4, HELP_BAR_Y + 5, left_label, COLOR_GREY);
+        display_draw_text(4, HELP_BAR_Y + 5, left_label, UI_COLOR_TEXT_DIM);
     }
     if (right_label) {
         int rw = (int)strlen(right_label) * 8;
-        display_draw_text(240 - rw - 4, HELP_BAR_Y + 5, right_label, COLOR_GREY);
+        display_draw_text(240 - rw - 4, HELP_BAR_Y + 5, right_label, UI_COLOR_TEXT_DIM);
     }
     if (center_label) {
         int cw = (int)strlen(center_label) * 8;
-        display_draw_text((240 - cw) / 2, HELP_BAR_Y + 5, center_label, COLOR_WHITE);
+        display_draw_text((240 - cw) / 2, HELP_BAR_Y + 5, center_label, UI_COLOR_TEXT);
     }
 }
 
 /** Draw a single menu row at the given pixel y position. */
 static void draw_menu_row(int y, const char *label, bool selected)
 {
-    uint16_t bg_color = selected ? COLOR_BLUE : COLOR_BLACK;
-    uint16_t fg_color = selected ? COLOR_WHITE : COLOR_GREY;
+    uint16_t bg_color = selected ? UI_COLOR_SELECT_BG : UI_COLOR_VOID;
+    uint16_t fg_color = selected ? UI_COLOR_TEXT : UI_COLOR_TEXT_DIM;
 
     display_fill_rect(0, y, 240, LIST_ITEM_H, bg_color);
 
     if (selected) {
         /* Draw cursor indicator arrow */
-        display_draw_text(4, y + 2, ">", COLOR_YELLOW);
+        display_draw_text(4, y + 2, ">", UI_COLOR_ACCENT_AMBER);
         display_draw_text(16, y + 2, label, fg_color);
     } else {
         display_draw_text(8, y + 2, label, fg_color);
@@ -202,7 +193,7 @@ void menu_screen_draw(const menu_state_t *state)
     if (!state) return;
 
     /* Clear background */
-    display_clear(COLOR_BLACK);
+    display_clear(UI_COLOR_VOID);
 
     draw_title_bar("Menu");
     draw_help_bar("Back", "Select", "Next");
@@ -236,7 +227,7 @@ void face_submenu_screen_draw(const face_submenu_state_t *state)
 {
     if (!state) return;
 
-    display_clear(COLOR_BLACK);
+    display_clear(UI_COLOR_VOID);
 
     draw_title_bar("Face Theme");
     draw_help_bar("Back", "Select", "Next");

@@ -296,6 +296,7 @@ void app_main(void)
     if (s_button_queue) {
         buttons_init(s_button_queue);
         ui_task_init(s_button_queue);
+        ui_task_set_sd_mounted(s_sd != NULL);
         ESP_LOGI(TAG, "Buttons + UI initialized");
     } else {
         ESP_LOGE(TAG, "Failed to create button queue — UI unavailable");

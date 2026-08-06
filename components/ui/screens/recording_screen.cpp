@@ -11,18 +11,10 @@
 #include "display.h"
 #include "ui_task.h"
 #include "face_registry.h"
+#include "ui_colors.h"
 
 #include <stdio.h>
 #include "face_plugin.hpp"
-
-/* ── Colour palette ──────────────────────────────────────────────────── */
-
-#define COLOR_BLACK       ((uint16_t)0x0000)
-#define COLOR_WHITE       ((uint16_t)0xFFFF)
-#define COLOR_DARK_BG     ((uint16_t)0x18E3)
-#define COLOR_RED          ((uint16_t)0xF800)
-#define COLOR_GREEN        ((uint16_t)0x07E0)
-#define COLOR_GREY         ((uint16_t)0x8410)
 
 #define BOTTOM_BAR_H       32
 #define BOTTOM_BAR_Y       (240 - BOTTOM_BAR_H)
@@ -58,26 +50,26 @@ void recording_screen_draw(const ui_status_t *status)
     if (face) {
         face->draw();
     } else {
-        display_clear(COLOR_BLACK);
+        display_clear(UI_COLOR_VOID);
     }
 
     /* 2. Overlay bottom bar on top of the face */
-    display_fill_rect(0, BOTTOM_BAR_Y, 240, BOTTOM_BAR_H, COLOR_DARK_BG);
-    display_draw_hline(0, BOTTOM_BAR_Y, 240, COLOR_GREY);
+    display_fill_rect(0, BOTTOM_BAR_Y, 240, BOTTOM_BAR_H, UI_COLOR_INK);
+    display_draw_hline(0, BOTTOM_BAR_Y, 240, UI_COLOR_HAIRLINE);
 
     if (status->show_saved) {
         /* "Saved" state — briefly shown after stop + fsync */
-        display_draw_text(8, BOTTOM_BAR_Y + 8, "Saved", COLOR_GREEN);
-        display_draw_text(120, BOTTOM_BAR_Y + 8, "OK", COLOR_GREEN);
+        display_draw_text(8, BOTTOM_BAR_Y + 8, "Saved", UI_COLOR_ACCENT_MINT);
+        display_draw_text(120, BOTTOM_BAR_Y + 8, "OK", UI_COLOR_ACCENT_MINT);
     } else {
         /* Normal recording state */
         /* REC indicator (blinking dot + text) */
-        display_fill_circle(12, BOTTOM_BAR_Y + 16, 4, COLOR_RED);
-        display_draw_text(22, BOTTOM_BAR_Y + 8, "REC", COLOR_RED);
+        display_fill_circle(12, BOTTOM_BAR_Y + 16, 4, UI_COLOR_ACCENT_CORAL);
+        display_draw_text(22, BOTTOM_BAR_Y + 8, "REC", UI_COLOR_ACCENT_CORAL);
 
         /* Elapsed timer */
         char timer_buf[16];
         format_elapsed(status->recording_elapsed_ms, timer_buf, sizeof(timer_buf));
-        display_draw_text(100, BOTTOM_BAR_Y + 8, timer_buf, COLOR_WHITE);
+        display_draw_text(100, BOTTOM_BAR_Y + 8, timer_buf, UI_COLOR_TEXT);
     }
 }

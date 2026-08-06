@@ -89,6 +89,15 @@ static void ui_event_handler(void *handler_arg, esp_event_base_t base,
 
     if (base != RECORDER_EVENTS) return;
 
+    if ((recorder_event_id_t)id == RECORDER_EVENT_WIFI_CONNECTED) {
+        s_wifi_connected = true;
+        return;
+    }
+    if ((recorder_event_id_t)id == RECORDER_EVENT_WIFI_DISCONNECTED) {
+        s_wifi_connected = false;
+        return;
+    }
+
     FacePlugin *face = face_registry_get_active();
     if (!face) return;
 
@@ -511,4 +520,9 @@ void ui_task_set_recording_start(uint32_t start_ms)
 void ui_task_set_pending_uploads(int count)
 {
     s_pending_uploads = (count < 0) ? 0 : count;
+}
+
+void ui_task_set_sd_mounted(bool mounted)
+{
+    s_sd_mounted = mounted;
 }

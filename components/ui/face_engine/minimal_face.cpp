@@ -22,8 +22,8 @@
 
 /* Colors */
 #define MIN_BG          0x0000  /* black background         */
-#define MIN_EYE_COLOR   0xFFFF  /* white                    */
-#define MIN_MOUTH_COLOR 0x8410  /* grey                     */
+#define MIN_EYE_COLOR   0x07FF  /* cyan                     */
+#define MIN_MOUTH_COLOR 0x07FF  /* cyan                     */
 #define MIN_REC_COLOR   0xF800  /* red (recording dot)      */
 #define MIN_WARN_COLOR  0xFFE0  /* yellow (warning)         */
 
@@ -100,8 +100,14 @@ public:
 
         /* ── Eyes ───────────────────────────────────────────────── */
         if (!blink_active_) {
-            display_fill_circle(MIN_LEFT_X,  MIN_EYE_Y, r, MIN_EYE_COLOR);
-            display_fill_circle(MIN_RIGHT_X, MIN_EYE_Y, r, MIN_EYE_COLOR);
+            if (event_ == FaceEvent::Idle) {
+                /* Happy closed-eye curves ⌣⌣, like the resting face */
+                display_draw_smile_arc(MIN_LEFT_X,  MIN_EYE_Y, r, 3, MIN_EYE_COLOR);
+                display_draw_smile_arc(MIN_RIGHT_X, MIN_EYE_Y, r, 3, MIN_EYE_COLOR);
+            } else {
+                display_fill_circle(MIN_LEFT_X,  MIN_EYE_Y, r, MIN_EYE_COLOR);
+                display_fill_circle(MIN_RIGHT_X, MIN_EYE_Y, r, MIN_EYE_COLOR);
+            }
         }
 
         /* ── Mouth (varies with event) ──────────────────────────── */
@@ -119,8 +125,8 @@ private:
     void mouthDraw() {
         switch (event_) {
             case FaceEvent::Idle:
-                /* Neutral line */
-                display_draw_hline(MIN_CENTER_X - 10, MIN_MOUTH_Y, 20, MIN_MOUTH_COLOR);
+                /* Happy smile curve ⌣ */
+                display_draw_smile_arc(MIN_CENTER_X, MIN_MOUTH_Y - 12, 18, 4, MIN_MOUTH_COLOR);
                 break;
             case FaceEvent::Recording:
             case FaceEvent::VoiceActive:

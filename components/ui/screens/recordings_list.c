@@ -21,6 +21,7 @@
 #include "list_screens.h"
 #include "display.h"
 #include "sd_storage.h"
+#include "ui_colors.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -43,16 +44,6 @@
 #define LIST_BOTTOM_Y           HELP_BAR_Y
 #define LIST_ITEM_H             20
 
-/* ── Colour palette ─────────────────────────────────────────────────── */
-
-#define COLOR_BLACK             ((uint16_t)0x0000)
-#define COLOR_WHITE             ((uint16_t)0xFFFF)
-#define COLOR_DARK_BG           ((uint16_t)0x18E3)
-#define COLOR_BLUE              ((uint16_t)0x001F)
-#define COLOR_GREY              ((uint16_t)0x8410)
-#define COLOR_YELLOW            ((uint16_t)0xFFE0)
-#define COLOR_GREEN             ((uint16_t)0x07E0)
-
 /* ── Item type ───────────────────────────────────────────────────────── */
 
 typedef struct {
@@ -73,39 +64,39 @@ static list_pagination_t s_pagination;
 /** Draw the title bar. */
 static void draw_title_bar(const char *title)
 {
-    display_fill_rect(0, 0, 240, TITLE_BAR_H, COLOR_DARK_BG);
-    display_draw_hline(0, TITLE_BAR_H - 1, 240, COLOR_GREY);
-    display_draw_text(4, 4, title, COLOR_WHITE);
+    display_fill_rect(0, 0, 240, TITLE_BAR_H, UI_COLOR_INK);
+    display_draw_hline(0, TITLE_BAR_H - 1, 240, UI_COLOR_TEXT_DIM);
+    display_draw_text(4, 4, title, UI_COLOR_TEXT);
 }
 
 /** Draw the help bar at the bottom. */
 static void draw_help_bar(void)
 {
-    display_fill_rect(0, HELP_BAR_Y, 240, HELP_BAR_H, COLOR_DARK_BG);
-    display_draw_hline(0, HELP_BAR_Y, 240, COLOR_GREY);
-    display_draw_text(4, HELP_BAR_Y + 5, "Back", COLOR_GREY);
+    display_fill_rect(0, HELP_BAR_Y, 240, HELP_BAR_H, UI_COLOR_INK);
+    display_draw_hline(0, HELP_BAR_Y, 240, UI_COLOR_TEXT_DIM);
+    display_draw_text(4, HELP_BAR_Y + 5, "Back", UI_COLOR_TEXT_DIM);
 
     /* Center: nothing (browse only) */
-    display_draw_text(240 - 8 * 4 - 4, HELP_BAR_Y + 5, "Next", COLOR_GREY);
+    display_draw_text(240 - 8 * 4 - 4, HELP_BAR_Y + 5, "Next", UI_COLOR_TEXT_DIM);
 
     /* Show item count */
     char buf[32];
     snprintf(buf, sizeof(buf), "%d/%d",
              s_pagination.cursor + 1, s_pagination.total_items);
     int cw = (int)strlen(buf) * 8;
-    display_draw_text((240 - cw) / 2, HELP_BAR_Y + 5, buf, COLOR_WHITE);
+    display_draw_text((240 - cw) / 2, HELP_BAR_Y + 5, buf, UI_COLOR_TEXT);
 }
 
 /** Draw a single list row. */
 static void draw_row(int y, const char *label, bool selected)
 {
-    uint16_t bg_color = selected ? COLOR_BLUE : COLOR_BLACK;
-    uint16_t fg_color = selected ? COLOR_WHITE : COLOR_GREY;
+    uint16_t bg_color = selected ? UI_COLOR_SELECT_BG : UI_COLOR_VOID;
+    uint16_t fg_color = selected ? UI_COLOR_TEXT : UI_COLOR_TEXT_DIM;
 
     display_fill_rect(0, y, 240, LIST_ITEM_H, bg_color);
 
     if (selected) {
-        display_draw_text(4, y + 2, ">", COLOR_YELLOW);
+        display_draw_text(4, y + 2, ">", UI_COLOR_ACCENT_AMBER);
         display_draw_text(16, y + 2, label, fg_color);
     } else {
         display_draw_text(8, y + 2, label, fg_color);
@@ -194,7 +185,7 @@ void recordings_list_screen_draw(void)
 {
     /* Draw only — no re-scan.  recordings_list_enter() must be
      * called before the first draw when entering the screen. */
-    display_clear(COLOR_BLACK);
+    display_clear(UI_COLOR_VOID);
     draw_title_bar("Recordings");
     draw_help_bar();
 
@@ -212,7 +203,7 @@ void recordings_list_screen_draw(void)
 
     if (s_item_count == 0) {
         display_draw_text(8, LIST_TOP_Y + 20, "No recordings found",
-                          COLOR_GREY);
+                          UI_COLOR_TEXT_DIM);
     }
 }
 
