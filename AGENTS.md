@@ -224,7 +224,7 @@ public:
 };
 ```
 
-- v1.0 built-in themes: **Owl, Minimal, Robot, Pixel** (compiled in, no plugin loading from SD)
+- v1.0 built-in themes: **Owl, Minimal, Robot, Pixel, Vector** (compiled in, no plugin loading from SD)
 - Themes only receive device state + voice level — never touch recording/network/SD directly
 - A crashing/misbehaving theme must not corrupt the queue or recording
 - Theme switch is live, no reboot; active theme persisted in config; unknown theme → falls back

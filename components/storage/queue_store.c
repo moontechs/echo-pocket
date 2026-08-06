@@ -133,7 +133,10 @@ static queue_store_err_t queue_store_flush(queue_index_t *queue)
         return QUEUE_STORE_ERR_IO;
     }
 
-    /* Atomic rename */
+    /* Atomic rename. FatFs's rename() fails with FR_EXIST if the
+     * destination already exists (true for every flush after the
+     * first), so remove it first — same fix as config_save(). */
+    remove(queue->index_path);
     if (rename(tmp_path, queue->index_path) != 0) {
         ESP_LOGE(TAG, "Rename %s → %s failed", tmp_path, queue->index_path);
         remove(tmp_path);

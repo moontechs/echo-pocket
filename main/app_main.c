@@ -302,11 +302,13 @@ void app_main(void)
         ESP_LOGE(TAG, "Failed to create button queue — UI unavailable");
     }
 
-    /* ── Idle loop — all work happens in FreeRTOS tasks ────────────────
-     * The main task sleeps forever while capture/AFE/writer/UI/Wi-Fi/upload
-     * tasks do their work.  No cleanup path in v1.0 (battery-powered
-     * device is power-cycled, not cleanly shut down). */
-    while (1) {
-        vTaskDelay(pdMS_TO_TICKS(10000));
-    }
+    /* All work happens in the FreeRTOS tasks already started above
+     * (capture/AFE/writer/UI/Wi-Fi/upload) — nothing left for this task
+     * to do. Returning (instead of idling forever) lets ESP-IDF delete
+     * the main task and reclaim its CONFIG_ESP_MAIN_TASK_STACK_SIZE
+     * (8KB) stack back to the internal/DMA heap pool, which on-device
+     * [DEBUG-heap] captures showed running critically low (~3.7KB free
+     * of the 80KB CONFIG_SPIRAM_MALLOC_RESERVE_INTERNAL pool right after
+     * boot) — that starvation was intermittently failing SD card DMA
+     * reads/writes (recording start, config persist). */
 }

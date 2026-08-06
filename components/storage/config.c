@@ -553,7 +553,11 @@ config_err_t config_save(const RecorderConfig *cfg, const char *path)
         return CONFIG_ERR_WRITE_FAILED;
     }
 
-    /* Atomic rename */
+    /* Atomic rename. FatFs's rename() (unlike POSIX) fails with FR_EXIST
+     * if the destination already exists — true for every save after the
+     * first — so the old file must be removed first. remove() failing
+     * here just means path didn't exist yet (first-ever save); ignored. */
+    remove(path);
     if (rename(tmp_path, path) != 0) {
         ESP_LOGE(TAG, "Rename %s → %s failed", tmp_path, path);
         remove(tmp_path); /* best-effort cleanup */

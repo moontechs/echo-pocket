@@ -172,4 +172,5 @@ void face_registry_register_defaults(void)
     face_registry_register(create_minimal_face(defaults));
     face_registry_register(create_robot_face(defaults));
     face_registry_register(create_pixel_face(defaults));
+    face_registry_register(create_vector_face(defaults));
 }

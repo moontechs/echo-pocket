@@ -42,8 +42,20 @@ static const char *TAG = "ui_task";
 
 /* ── Task constants ──────────────────────────────────────────────────── */
 
-/** Task stack size in bytes. */
-#define UI_TASK_STACK_SIZE        4096
+/** Task stack size in bytes.
+ *
+ * apply_and_persist_theme() (Face submenu → theme select) is the
+ * deepest call chain on this task: a ~1.5KB RecorderConfig local, then
+ * config_load()'s fopen() -> esp_vfs -> FATFS f_open -> diskio ->
+ * SDMMC host driver chain nested on top. On-device testing ruled out
+ * heap exhaustion as the cause of the Face-menu hang (free DMA/internal
+ * heap was healthy — several KB, hundreds of KB largest block — right
+ * before every reproduction) yet it reproduced 100% of the time at
+ * exactly this call, every attempt, with a silent TG1WDT_SYS_RST and no
+ * error log — consistent with stack corruption that misses the canary
+ * rather than a clean allocation failure. Bumped from 4096 to give that
+ * deep chain headroom. */
+#define UI_TASK_STACK_SIZE        6144
 
 /** Task priority — NORMAL, below audio tasks. */
 #define UI_TASK_PRIORITY          (configMAX_PRIORITIES - 4)

@@ -30,7 +30,7 @@
 
 /* ── Success path ────────────────────────────────────────────────────── */
 
-static void test_ok_without_delete(void)
+void test_ok_without_delete(void)
 {
     upload_drain_outcome_t o = upload_drain_compute_outcome(
         UPLOAD_SEND_OK, 0, MAX_ATTEMPTS, false);
@@ -40,7 +40,7 @@ static void test_ok_without_delete(void)
     TEST_ASSERT_FALSE(o.should_delete_file);
 }
 
-static void test_ok_with_delete(void)
+void test_ok_with_delete(void)
 {
     upload_drain_outcome_t o = upload_drain_compute_outcome(
         UPLOAD_SEND_OK, 2, MAX_ATTEMPTS, true);
@@ -50,7 +50,7 @@ static void test_ok_with_delete(void)
     TEST_ASSERT_TRUE(o.should_delete_file);
 }
 
-static void test_ok_at_cap(void)
+void test_ok_at_cap(void)
 {
     /* Even if attempts == max, success is success */
     upload_drain_outcome_t o = upload_drain_compute_outcome(
@@ -63,7 +63,7 @@ static void test_ok_at_cap(void)
 
 /* ── Retryable failure — under cap ───────────────────────────────────── */
 
-static void test_fail_retryable_first_attempt(void)
+void test_fail_retryable_first_attempt(void)
 {
     upload_drain_outcome_t o = upload_drain_compute_outcome(
         UPLOAD_SEND_FAIL_RETRYABLE, 0, MAX_ATTEMPTS, false);
@@ -73,7 +73,7 @@ static void test_fail_retryable_first_attempt(void)
     TEST_ASSERT_FALSE(o.should_delete_file);
 }
 
-static void test_fail_retryable_mid_attempts(void)
+void test_fail_retryable_mid_attempts(void)
 {
     /* 3 attempts so far, fail → attempt 4, still under cap (5) */
     upload_drain_outcome_t o = upload_drain_compute_outcome(
@@ -84,7 +84,7 @@ static void test_fail_retryable_mid_attempts(void)
     TEST_ASSERT_FALSE(o.should_delete_file);
 }
 
-static void test_fail_retryable_delete_ignored(void)
+void test_fail_retryable_delete_ignored(void)
 {
     /* delete_after_upload=true should NOT trigger on failure */
     upload_drain_outcome_t o = upload_drain_compute_outcome(
@@ -96,7 +96,7 @@ static void test_fail_retryable_delete_ignored(void)
 
 /* ── Retryable failure — at cap / above cap ──────────────────────────── */
 
-static void test_fail_retryable_at_cap(void)
+void test_fail_retryable_at_cap(void)
 {
     /* 4 attempts so far → next is 5 (at cap), should fail */
     upload_drain_outcome_t o = upload_drain_compute_outcome(
@@ -107,7 +107,7 @@ static void test_fail_retryable_at_cap(void)
     TEST_ASSERT_FALSE(o.should_delete_file);
 }
 
-static void test_fail_retryable_above_cap(void)
+void test_fail_retryable_above_cap(void)
 {
     /* Shouldn't happen in practice, but if attempts is already >= cap,
      * still mark failed */
@@ -119,7 +119,7 @@ static void test_fail_retryable_above_cap(void)
     TEST_ASSERT_FALSE(o.should_delete_file);
 }
 
-static void test_fail_retryable_exactly_one_before_cap(void)
+void test_fail_retryable_exactly_one_before_cap(void)
 {
     /* 3 attempts, cap=4 → next=4, at cap, fail */
     upload_drain_outcome_t o = upload_drain_compute_outcome(
@@ -132,7 +132,7 @@ static void test_fail_retryable_exactly_one_before_cap(void)
 
 /* ── Fatal failure ───────────────────────────────────────────────────── */
 
-static void test_fail_fatal_first_attempt(void)
+void test_fail_fatal_first_attempt(void)
 {
     upload_drain_outcome_t o = upload_drain_compute_outcome(
         UPLOAD_SEND_FAIL_FATAL, 0, MAX_ATTEMPTS, false);
@@ -142,7 +142,7 @@ static void test_fail_fatal_first_attempt(void)
     TEST_ASSERT_FALSE(o.should_delete_file);
 }
 
-static void test_fail_fatal_with_attempts(void)
+void test_fail_fatal_with_attempts(void)
 {
     upload_drain_outcome_t o = upload_drain_compute_outcome(
         UPLOAD_SEND_FAIL_FATAL, 2, MAX_ATTEMPTS, false);
@@ -152,7 +152,7 @@ static void test_fail_fatal_with_attempts(void)
     TEST_ASSERT_FALSE(o.should_delete_file);
 }
 
-static void test_fail_fatal_at_cap(void)
+void test_fail_fatal_at_cap(void)
 {
     upload_drain_outcome_t o = upload_drain_compute_outcome(
         UPLOAD_SEND_FAIL_FATAL, MAX_ATTEMPTS - 1, MAX_ATTEMPTS, false);
@@ -162,7 +162,7 @@ static void test_fail_fatal_at_cap(void)
     TEST_ASSERT_FALSE(o.should_delete_file);
 }
 
-static void test_fail_fatal_delete_ignored(void)
+void test_fail_fatal_delete_ignored(void)
 {
     upload_drain_outcome_t o = upload_drain_compute_outcome(
         UPLOAD_SEND_FAIL_FATAL, 0, MAX_ATTEMPTS, true);
@@ -173,7 +173,7 @@ static void test_fail_fatal_delete_ignored(void)
 
 /* ── Edge cases ──────────────────────────────────────────────────────── */
 
-static void test_cap_one(void)
+void test_cap_one(void)
 {
     /* cap=1: first failure is fatal */
     upload_drain_outcome_t o = upload_drain_compute_outcome(
@@ -183,7 +183,7 @@ static void test_cap_one(void)
     TEST_ASSERT_EQUAL(1, o.new_attempts);
 }
 
-static void test_cap_one_success(void)
+void test_cap_one_success(void)
 {
     upload_drain_outcome_t o = upload_drain_compute_outcome(
         UPLOAD_SEND_OK, 0, 1, false);
@@ -191,7 +191,7 @@ static void test_cap_one_success(void)
     TEST_ASSERT_EQUAL(QUEUE_STATE_SENT, o.new_state);
 }
 
-static void test_cap_large(void)
+void test_cap_large(void)
 {
     /* cap=100: takes many attempts to fail */
     upload_drain_outcome_t o = upload_drain_compute_outcome(
@@ -201,7 +201,7 @@ static void test_cap_large(void)
     TEST_ASSERT_EQUAL(99, o.new_attempts);
 }
 
-static void test_cap_large_at_boundary(void)
+void test_cap_large_at_boundary(void)
 {
     upload_drain_outcome_t o = upload_drain_compute_outcome(
         UPLOAD_SEND_FAIL_RETRYABLE, 99, 100, false);
@@ -210,7 +210,7 @@ static void test_cap_large_at_boundary(void)
     TEST_ASSERT_EQUAL(100, o.new_attempts);
 }
 
-static void test_cap_zero(void)
+void test_cap_zero(void)
 {
     /* cap=0: immediate fail (degenerate but shouldn't crash) */
     upload_drain_outcome_t o = upload_drain_compute_outcome(
@@ -220,7 +220,7 @@ static void test_cap_zero(void)
     TEST_ASSERT_EQUAL(1, o.new_attempts);
 }
 
-static void test_cap_zero_success(void)
+void test_cap_zero_success(void)
 {
     /* cap=0 but success: still sent */
     upload_drain_outcome_t o = upload_drain_compute_outcome(
@@ -232,7 +232,7 @@ static void test_cap_zero_success(void)
 
 /* ── Production constant verification ────────────────────────────────── */
 
-static void test_production_cap_is_five(void)
+void test_production_cap_is_five(void)
 {
     /* Verify the production cap matches the plan's stated value.
      * If someone changes UPLOAD_MAX_ATTEMPTS, this test reminds
@@ -242,7 +242,7 @@ static void test_production_cap_is_five(void)
 
 /* ── Full walk-through: real-world drain sequences ───────────────────── */
 
-static void test_walkthrough_three_entries(void)
+void test_walkthrough_three_entries(void)
 {
     /* Simulate 3 entries being drained:
      *   Entry A: OK on first try
@@ -307,7 +307,7 @@ static void test_walkthrough_three_entries(void)
 
 /* ── Delete-after-upload ordering verification ───────────────────────── */
 
-static void test_delete_only_on_success(void)
+void test_delete_only_on_success(void)
 {
     /* Regardless of delete_after_upload flag, failure never deletes */
     upload_drain_outcome_t o;
@@ -327,7 +327,7 @@ static void test_delete_only_on_success(void)
 
 /* ── State consistency checks ────────────────────────────────────────── */
 
-static void test_outcome_states_are_valid(void)
+void test_outcome_states_are_valid(void)
 {
     /* Every possible input combination should produce a valid
      * queue_state_t (not QUEUE_STATE_RECORDING or QUEUE_STATE_UPLOADING,
@@ -357,7 +357,7 @@ static void test_outcome_states_are_valid(void)
     }
 }
 
-static void test_sent_never_deletes_without_flag(void)
+void test_sent_never_deletes_without_flag(void)
 {
     /* Sentinel: when delete_after_upload is false, sent entries
      * NEVER request file deletion. */

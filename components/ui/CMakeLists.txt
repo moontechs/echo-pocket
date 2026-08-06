@@ -14,6 +14,7 @@ idf_component_register(
          "face_engine/minimal_face.cpp"
          "face_engine/robot_face.cpp"
          "face_engine/pixel_face.cpp"
+         "face_engine/vector_face.cpp"
     INCLUDE_DIRS "include"
                  "face_engine"
                  "face_engine/include"

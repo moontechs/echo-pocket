@@ -145,14 +145,16 @@ void buttons_init(QueueHandle_t queue)
     gpio_config(&io_conf);
 
     /* Create the polling task.
-     * Stack: 2KB is generous for a simple GPIO poll + queue send.
+     * Stack: on-device capture showed "A stack overflow in task buttons
+     * has been detected" at 2048 bytes (during boot, gpio_config()/
+     * ESP_LOG call chains apparently exceed it) — bumped to 3072.
      * Priority: below audio capture but above UI/network (per Task 6 priority
      *           order — capture > AFE/writer > UI > network/upload).
      *           Actual priority: 5 (mid-range, below audio at 8-10). */
     BaseType_t ret = xTaskCreate(
         buttons_task,
         "buttons",
-        2048,
+        3072,
         NULL,
         5,
         NULL

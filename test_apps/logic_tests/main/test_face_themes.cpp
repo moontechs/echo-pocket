@@ -130,6 +130,14 @@ extern "C" void test_face_theme_pixel_all_events(void)
     exercise_theme(create_pixel_face(cfg));
 }
 
+/* ── Test: Vector ────────────────────────────────────────────────────── */
+
+extern "C" void test_face_theme_vector_all_events(void)
+{
+    FaceConfig cfg;
+    exercise_theme(create_vector_face(cfg));
+}
+
 /* ── Test: Config values are respected ───────────────────────────────── */
 
 extern "C" void test_face_theme_config_eye_range(void)
@@ -219,25 +227,28 @@ extern "C" void test_face_theme_begin_resets_state(void)
     delete theme;
 }
 
-/* ── Test: all 4 themes have unique ids ──────────────────────────────── */
+/* ── Test: all 5 themes have unique ids ──────────────────────────────── */
 
 extern "C" void test_face_theme_unique_ids(void)
 {
     FaceConfig cfg;
-    FacePlugin *owl   = create_owl_face(cfg);
-    FacePlugin *min   = create_minimal_face(cfg);
-    FacePlugin *robot = create_robot_face(cfg);
-    FacePlugin *pixel = create_pixel_face(cfg);
+    FacePlugin *owl    = create_owl_face(cfg);
+    FacePlugin *min    = create_minimal_face(cfg);
+    FacePlugin *robot  = create_robot_face(cfg);
+    FacePlugin *pixel  = create_pixel_face(cfg);
+    FacePlugin *vector = create_vector_face(cfg);
 
-    TEST_ASSERT_TRUE(strcmp(owl->id(),   min->id()) != 0);
-    TEST_ASSERT_TRUE(strcmp(owl->id(),   robot->id()) != 0);
-    TEST_ASSERT_TRUE(strcmp(owl->id(),   pixel->id()) != 0);
-    TEST_ASSERT_TRUE(strcmp(min->id(),   robot->id()) != 0);
-    TEST_ASSERT_TRUE(strcmp(min->id(),   pixel->id()) != 0);
-    TEST_ASSERT_TRUE(strcmp(robot->id(), pixel->id()) != 0);
+    FacePlugin *themes[] = { owl, min, robot, pixel, vector };
+    int count = sizeof(themes) / sizeof(themes[0]);
+    for (int i = 0; i < count; i++) {
+        for (int j = i + 1; j < count; j++) {
+            TEST_ASSERT_TRUE(strcmp(themes[i]->id(), themes[j]->id()) != 0);
+        }
+    }
 
     delete owl;
     delete min;
     delete robot;
     delete pixel;
+    delete vector;
 }

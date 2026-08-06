@@ -2,7 +2,7 @@
 
 Autonomous voice recorder firmware for the **Waveshare ESP32-S3-LCD-1.54** board (240×240 LCD,
 no touch, dual mic + ES7210, microSD, 3 buttons, Wi-Fi/BLE). Records to WAV on microSD with
-ESP-SR noise suppression, shows a voice-reactive animated face (4 swappable built-in themes),
+ESP-SR noise suppression, shows a voice-reactive animated face (5 swappable built-in themes),
 uploads recordings to Telegram via a crash-safe persistent queue, and is fully configured from a
 plain-text INI file on the SD card.
 
@@ -90,7 +90,7 @@ components/
   audio/                    # I2S capture, PSRAM ring buffer, ESP-SR AFE, voice level
   recorder/                 # WAV writer, recording state machine, rec_id, split logic
   ui/
-    face_engine/            # FacePlugin interface + registry + 4 built-in themes
+    face_engine/            # FacePlugin interface + registry + 5 built-in themes
     screens/                # Home, recording, menu, list screens
   storage/                  # SD mount, config parser + write-back, queue persistence
   network/                  # Wi-Fi manager, net_selection, upload task

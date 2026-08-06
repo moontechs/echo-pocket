@@ -280,7 +280,7 @@ void test_caption_error_strings(void)
         TEST_ASSERT_NOT_NULL(err_strs[i]);
         TEST_ASSERT_GREATER_THAN(0, strlen(err_strs[i]));
         for (int j = i + 1; j < (int)(sizeof(err_strs) / sizeof(err_strs[0])); j++) {
-            TEST_ASSERT_NOT_EQUAL_STRING(err_strs[i], err_strs[j]);
+            TEST_ASSERT_TRUE(strcmp(err_strs[i], err_strs[j]) != 0);
         }
     }
 }
