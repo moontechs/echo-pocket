@@ -1,6 +1,7 @@
 #include "board.h"
 #include "device_events.h"
 #include "esp_log.h"
+#include "driver/gpio.h"
 
 /* Define the esp_event base declared in device_events.h.
  * This lives here because board is the neutral home — no component
@@ -12,7 +13,22 @@ static const char *TAG = "board";
 
 void board_init(void)
 {
-    ESP_LOGI(TAG, "Board init (stub) — pins defined, peripherals not yet initialized");
+    /* Latch the battery power path on (high = on, per BOARD_BAT_POWER_PIN
+     * doc). Must happen first: on battery-only power the board briefly
+     * comes up through a momentary/self-latching path, and stays powered
+     * only once this pin is actively driven high. Without it the board
+     * only boots when USB supplies power directly. */
+    gpio_config_t bat_power_cfg = {
+        .pin_bit_mask = (1ULL << BOARD_BAT_POWER_PIN),
+        .mode         = GPIO_MODE_OUTPUT,
+        .pull_up_en   = GPIO_PULLUP_DISABLE,
+        .pull_down_en = GPIO_PULLDOWN_DISABLE,
+        .intr_type    = GPIO_INTR_DISABLE,
+    };
+    gpio_config(&bat_power_cfg);
+    gpio_set_level(BOARD_BAT_POWER_PIN, 1);
+
+    ESP_LOGI(TAG, "Board init — battery power latched on, other peripherals init separately");
     /* Peripherals will be initialized by their respective components:
      *   Task 2: LCD (display.c)
      *   Task 3: Buttons (buttons.c)
