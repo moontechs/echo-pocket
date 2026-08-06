@@ -201,8 +201,8 @@ Minimalist, low frame rate (must not compete with audio capture for CPU/time).
 
 - **Home screen**: face, ready status, Wi-Fi, SD, pending-upload count, battery (if available)
 - **Recording screen**: face, REC indicator, timer only — no waveform/level meter by default
-- **Main menu**: New Recording / Recordings / Unsent / Send All / Face / Wi-Fi / Telegram /
-  Settings / Info
+- **Main menu**: New Recording / Recordings / Unsent / Send All / Face / Telegram /
+  Settings / Info (Wi-Fi status/IP, SD status, and battery % now live in Info)
 
 ### Face engine (plugin interface, built into firmware — no code loaded from SD)
 

@@ -29,7 +29,6 @@ void test_menu_label_known_items(void)
     TEST_ASSERT_EQUAL_STRING("Unsent",        menu_item_label(MENU_ITEM_UNSENT));
     TEST_ASSERT_EQUAL_STRING("Send All",      menu_item_label(MENU_ITEM_SEND_ALL));
     TEST_ASSERT_EQUAL_STRING("Face",          menu_item_label(MENU_ITEM_FACE));
-    TEST_ASSERT_EQUAL_STRING("Wi-Fi",         menu_item_label(MENU_ITEM_WIFI));
     TEST_ASSERT_EQUAL_STRING("Telegram",      menu_item_label(MENU_ITEM_TELEGRAM));
     TEST_ASSERT_EQUAL_STRING("Settings",      menu_item_label(MENU_ITEM_SETTINGS));
     TEST_ASSERT_EQUAL_STRING("Info",          menu_item_label(MENU_ITEM_INFO));
@@ -139,7 +138,7 @@ void test_menu_center_stub_items(void)
     /* Test every stub item produces MENU_ACTION_SHOW_STUB */
     menu_item_t stubs[] = {
         MENU_ITEM_RECORDINGS, MENU_ITEM_UNSENT,
-        MENU_ITEM_WIFI, MENU_ITEM_TELEGRAM,
+        MENU_ITEM_TELEGRAM,
         MENU_ITEM_SETTINGS, MENU_ITEM_INFO
     };
 
@@ -174,10 +173,10 @@ void test_menu_navigate_null_safety(void)
     TEST_ASSERT_EQUAL(MENU_ACTION_NONE, action);
 }
 
-void test_menu_item_count_is_nine(void)
+void test_menu_item_count_is_eight(void)
 {
-    /* Regression check: the menu has exactly 9 items */
-    TEST_ASSERT_EQUAL(9, MENU_ITEM_COUNT);
+    /* Regression check: the menu has exactly 8 items */
+    TEST_ASSERT_EQUAL(8, MENU_ITEM_COUNT);
 }
 
 /* ── Face submenu state machine ──────────────────────────────────────── */

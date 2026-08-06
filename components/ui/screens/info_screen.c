@@ -1,8 +1,8 @@
-/** @file wifi_status.c
- * @brief Wi-Fi status screen — shows connection state, SSID, and IP.
+/** @file info_screen.c
+ * @brief Info screen — Wi-Fi status/IP, SD card status, and battery level.
  *
  * Layout (240×240):
- *   Row   0–23  Title bar ("Wi-Fi")
+ *   Row   0–23  Title bar ("Info")
  *   Row  24–215 Status lines
  *   Row 216–239 Help bar (button hints)
  *
@@ -36,10 +36,12 @@ static void draw_help_bar(void)
     display_draw_text(4, HELP_BAR_Y + 5, "Back", UI_COLOR_TEXT_DIM);
 }
 
-void wifi_status_screen_draw(void)
+void info_screen_draw(const ui_status_t *status)
 {
+    if (!status) return;
+
     display_clear(UI_COLOR_VOID);
-    draw_title_bar("Wi-Fi");
+    draw_title_bar("Info");
     draw_help_bar();
 
     bool connected = wifi_manager_is_connected();
@@ -48,15 +50,29 @@ void wifi_status_screen_draw(void)
     wifi_manager_get_status(ssid, sizeof(ssid), ip, sizeof(ip));
 
     int y = LIST_TOP_Y + 8;
-    display_draw_text(8, y, connected ? "Status: Connected" : "Status: Disconnected",
+    char line[48];
+
+    display_draw_text(8, y, connected ? "Wi-Fi: Connected" : "Wi-Fi: Disconnected",
                       connected ? UI_COLOR_ACCENT_MINT : UI_COLOR_ACCENT_AMBER);
     y += LINE_H;
 
-    char line[48];
     snprintf(line, sizeof(line), "SSID: %s", ssid[0] ? ssid : "-");
     display_draw_text(8, y, line, UI_COLOR_TEXT);
     y += LINE_H;
 
     snprintf(line, sizeof(line), "IP: %s", ip[0] ? ip : "-");
+    display_draw_text(8, y, line, UI_COLOR_TEXT);
+    y += LINE_H;
+
+    display_draw_text(8, y, status->sd_mounted ? "SD: Mounted" : "SD: Not mounted",
+                      status->sd_mounted ? UI_COLOR_ACCENT_MINT : UI_COLOR_ACCENT_CORAL);
+    y += LINE_H;
+
+    if (status->battery_present && status->battery_percent >= 0) {
+        snprintf(line, sizeof(line), "Battery: %d%%%s", status->battery_percent,
+                 status->charging ? " (charging)" : "");
+    } else {
+        snprintf(line, sizeof(line), "Battery: unknown");
+    }
     display_draw_text(8, y, line, UI_COLOR_TEXT);
 }

@@ -30,7 +30,7 @@ typedef enum {
     UI_SCREEN_FACE_SUBMENU,   /**< Face theme picker submenu             */
     UI_SCREEN_RECORDINGS_LIST,/**< Paged list of recorded WAV files      */
     UI_SCREEN_UNSENT_LIST,    /**< Paged list of unsent queue entries    */
-    UI_SCREEN_WIFI_STATUS,    /**< Wi-Fi connection status               */
+    UI_SCREEN_INFO,           /**< Wi-Fi/SD/battery info                 */
 } ui_screen_t;
 
 /* ── Actions the screen state machine can request ────────────────────── */
@@ -149,8 +149,8 @@ void unsent_list_screen_draw(void);
 /** Handle a button press on the Unsent list screen. */
 void unsent_list_navigate(ButtonId button, bool *should_exit);
 
-/** Draw the Wi-Fi status screen (connection state, SSID, IP). */
-void wifi_status_screen_draw(void);
+/** Draw the Info screen (Wi-Fi status/SSID/IP, SD status, battery %). */
+void info_screen_draw(const ui_status_t *status);
 
 #ifdef __cplusplus
 }

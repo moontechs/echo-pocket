@@ -25,7 +25,7 @@ const char *ui_screen_name(ui_screen_t screen)
     case UI_SCREEN_FACE_SUBMENU:  return "Face";
     case UI_SCREEN_RECORDINGS_LIST: return "RecordingsList";
     case UI_SCREEN_UNSENT_LIST:   return "UnsentList";
-    case UI_SCREEN_WIFI_STATUS:   return "WifiStatus";
+    case UI_SCREEN_INFO:          return "Info";
     default:                      return "Unknown";
     }
 }
@@ -96,7 +96,7 @@ ui_screen_t ui_screen_next(ui_screen_t current, ButtonId button,
         /* RIGHT and CENTER handled by ui_task via unsent_list_navigate() */
         break;
 
-    case UI_SCREEN_WIFI_STATUS:
+    case UI_SCREEN_INFO:
         if (button == BUTTON_LEFT) {
             /* Back to main menu */
             return UI_SCREEN_MENU;

@@ -8,7 +8,7 @@ idf_component_register(
          "screens/list_pagination.c"
          "screens/recordings_list.c"
          "screens/unsent_list.c"
-         "screens/wifi_status.c"
+         "screens/info_screen.c"
          "face_engine/face_registry.cpp"
          "face_engine/owl_face.cpp"
          "face_engine/minimal_face.cpp"

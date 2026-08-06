@@ -254,11 +254,11 @@ static void ui_task_loop(void *arg)
                         s_screen = UI_SCREEN_UNSENT_LIST;
                         unsent_list_enter();
                         screen_changed = true;
-                    } else if (s_menu_state.cursor == MENU_ITEM_WIFI) {
-                        s_screen = UI_SCREEN_WIFI_STATUS;
+                    } else if (s_menu_state.cursor == MENU_ITEM_INFO) {
+                        s_screen = UI_SCREEN_INFO;
                         screen_changed = true;
                     } else {
-                        /* Telegram, Settings, Info — stubs */
+                        /* Telegram, Settings — stubs */
                         ESP_LOGI(TAG, "Menu item '%s' selected (stub)",
                                  menu_item_label(s_menu_state.cursor));
                     }
@@ -435,8 +435,8 @@ static void ui_task_loop(void *arg)
                 unsent_list_screen_draw();
                 break;
 
-            case UI_SCREEN_WIFI_STATUS:
-                wifi_status_screen_draw();
+            case UI_SCREEN_INFO:
+                info_screen_draw(&status);
                 break;
             }
 
