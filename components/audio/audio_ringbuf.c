@@ -90,19 +90,26 @@ size_t audio_ringbuf_write(audio_ringbuf_t *rb, const int16_t *data, size_t fram
         rb->overflow_count += (uint32_t)drop;
     }
 
+    /* A single call writing more frames than the buffer holds would wrap
+     * more than once; only the trailing `cap` frames survive, so drop the
+     * rest up front rather than copying past the buffer end. */
+    size_t skip = (frames > cap) ? (frames - cap) : 0;
+    size_t frames_to_copy = frames - skip;
+
     /* Write data — may wrap around the buffer end so we handle two segments */
-    size_t w = rb->write_pos % cap;
-    size_t samples = frames * SAMPLES_PER_FRAME;
+    size_t w = ((rb->write_pos + skip) % cap) * SAMPLES_PER_FRAME;
+    size_t samples = frames_to_copy * SAMPLES_PER_FRAME;
+    const int16_t *copy_data = data + skip * SAMPLES_PER_FRAME;
 
     if (w + samples <= cap * SAMPLES_PER_FRAME) {
         /* Single contiguous write */
-        memcpy(&rb->buffer[w], data, samples * sizeof(int16_t));
+        memcpy(&rb->buffer[w], copy_data, samples * sizeof(int16_t));
     } else {
         /* Two-part write around the wrap point */
         size_t first_part_samples = (cap * SAMPLES_PER_FRAME) - w;
-        memcpy(&rb->buffer[w], data, first_part_samples * sizeof(int16_t));
+        memcpy(&rb->buffer[w], copy_data, first_part_samples * sizeof(int16_t));
         memcpy(rb->buffer,
-               data + first_part_samples,
+               copy_data + first_part_samples,
                (samples - first_part_samples) * sizeof(int16_t));
     }
 
@@ -125,7 +132,7 @@ size_t audio_ringbuf_read(audio_ringbuf_t *rb, int16_t *buf, size_t max_frames)
     }
 
     size_t cap  = rb->capacity_frames;
-    size_t r    = rb->read_pos % cap;
+    size_t r    = (rb->read_pos % cap) * SAMPLES_PER_FRAME;
     size_t samples = to_read * SAMPLES_PER_FRAME;
 
     if (r + samples <= cap * SAMPLES_PER_FRAME) {

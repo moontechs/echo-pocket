@@ -48,8 +48,12 @@ void test_rec_id_synced_basic(void)
     };
     time_t now = mktime(&tm);
 
-    /* Temporarily set TZ to UTC so localtime_r gives predictable output */
-    char *old_tz = getenv("TZ");
+    /* Temporarily set TZ to UTC so localtime_r gives predictable output.
+     * getenv()'s return value is only valid until the next setenv() call
+     * (setenv may free/realloc the underlying string), so it must be
+     * copied before TZ is overwritten rather than held across the call. */
+    const char *tz_ptr = getenv("TZ");
+    char *old_tz = tz_ptr ? strdup(tz_ptr) : NULL;
     setenv("TZ", "UTC", 1);
     tzset();
 
@@ -58,6 +62,7 @@ void test_rec_id_synced_basic(void)
 
     if (old_tz) {
         setenv("TZ", old_tz, 1);
+        free(old_tz);
     } else {
         unsetenv("TZ");
     }

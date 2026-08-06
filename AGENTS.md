@@ -72,8 +72,7 @@ terminology below in sync with it if the spec changes.
   `test_upload_flow.c`'s target (`upload_drain_compute_outcome`) only exists in
   `upload_task.c`, which was never added to the test app's `SRCS` — wiring it in pulls
   a large dependency chain (Wi-Fi/telegram/recorder) not yet worked through, so those
-  tests are currently excluded from the suite. `test_rec_id_synced_basic` crashes
-  on-device (`Guru Meditation Error: StoreProhibited`).
+  tests are currently excluded from the suite.
 
 ```
 main/
