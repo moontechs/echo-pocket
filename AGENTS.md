@@ -60,6 +60,20 @@ terminology below in sync with it if the spec changes.
 - Unit tests in `test_apps/logic_tests/` (separate ESP-IDF project via `EXTRA_COMPONENT_DIRS`)
 - Build command: `idf.py build`; flash: `idf.py flash monitor`
 - Test command: `idf.py -C test_apps/logic_tests build flash monitor`
+- ESP-IDF isn't always pre-installed in an agent sandbox — check for `idf.py` under a
+  scratch path (e.g. `/private/tmp`) before assuming it's missing, then
+  `source $IDF_PATH/export.sh`.
+- `idf.py monitor` requires an attached TTY and fails outright in non-interactive/agent
+  environments ("Monitor requires standard input to be attached to TTY"). To capture
+  serial output non-interactively instead: `stty -f <port> 115200 cs8 -cstopb -parenb
+  raw -echo && timeout <N> cat <port> > file`. Opening the port this way resets the
+  board (DTR/RTS toggle), so the capture window starts from a fresh boot.
+- Known gaps in `test_apps/logic_tests` (pre-existing, not yet root-caused):
+  `test_upload_flow.c`'s target (`upload_drain_compute_outcome`) only exists in
+  `upload_task.c`, which was never added to the test app's `SRCS` — wiring it in pulls
+  a large dependency chain (Wi-Fi/telegram/recorder) not yet worked through, so those
+  tests are currently excluded from the suite. `test_rec_id_synced_basic` crashes
+  on-device (`Guru Meditation Error: StoreProhibited`).
 
 ```
 main/
@@ -283,6 +297,27 @@ Post-Completion section in the plan).
    showed 2766mV/0% against a near-full battery with the wrong 2.0 ratio; fixed in
    `battery.h`). `[recorder].sample_rate` is parsed but inert (hard-coded to 16000) —
    documented in the plan's Task 20 config audit.
+7. **Internal/DMA-capable RAM is the binding memory constraint, not total PSRAM**:
+   this board's internal SRAM is only ~170KB total, and ESP-IDF's
+   `CONFIG_SPIRAM_MALLOC_RESERVE_INTERNAL` (80KB) reserves part of that
+   specifically for DMA/internal-only allocations. FreeRTOS task stacks are
+   *forced* into internal memory and draw from that same reserved pool (more/
+   bigger tasks directly shrink SD-card/DMA headroom, not just general heap).
+   On-device captures showed only single-digit KB free at boot — enough to
+   intermittently fail SD card reads/writes and even Wi-Fi's WPA2 handshake
+   crypto allocations. Knobs already tuned in `sdkconfig.defaults` to give this
+   headroom: `CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL` lowered to 1024 (so most
+   small allocations default to PSRAM instead of internal),
+   `CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC=y` (TLS buffers off internal RAM), and
+   `app_main()` returning instead of idling forever (reclaims its 8KB stack).
+   Any future feature adding tasks, TLS connections, or internal-RAM buffers
+   should budget against this ~170KB internal pool, not total PSRAM.
+8. **FatFs `rename()` does not overwrite an existing destination**, unlike
+   POSIX `rename()` (which atomically replaces it). Any atomic-write pattern
+   here — write to `<path>.tmp`, then `rename()` over the real file, used by
+   `config_save()` and `queue_store` — must `remove(path)` before the
+   `rename()` call, or every save after the very first one silently fails
+   with `FR_EXIST`.
 
 ## v1.0 done-criteria (checklist)
 
