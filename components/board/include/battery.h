@@ -58,8 +58,8 @@ extern "C" {
 /** Number of ADC samples averaged per reading. */
 #define BATTERY_ADC_SAMPLES          16
 
-/** Battery voltage divider ratio (Rtop / Rbottom). */
-#define BATTERY_DIVIDER_RATIO        2.0f
+/** Battery voltage divider ratio: (Rtop + Rbottom) / Rbottom, 200K/100K. */
+#define BATTERY_DIVIDER_RATIO        3.0f
 
 /** Battery update period (ms). */
 #define BATTERY_UPDATE_PERIOD_MS     15000

@@ -279,8 +279,10 @@ Post-Completion section in the plan).
 5. **PSRAM is octal (ESP32-S3R8)**: Not quad — confirmed from vendor example
    `sdkconfig.defaults`. Getting this wrong would be a boot hang, not a compile error.
 6. **VBAT is readable**: Confirmed via vendor `bsp_power_manager.c` — GPIO 1
-   (ADC1_CH0) with resistor divider. `[recorder].sample_rate` is parsed but inert
-   (hard-coded to 16000) — documented in the plan's Task 20 config audit.
+   (ADC1_CH0) with a 200K/100K resistor divider (ratio 3.0, not 1:1 — on-device log
+   showed 2766mV/0% against a near-full battery with the wrong 2.0 ratio; fixed in
+   `battery.h`). `[recorder].sample_rate` is parsed but inert (hard-coded to 16000) —
+   documented in the plan's Task 20 config audit.
 
 ## v1.0 done-criteria (checklist)
 
