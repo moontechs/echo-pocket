@@ -214,8 +214,18 @@ Minimalist, low frame rate (must not compete with audio capture for CPU/time).
 
 - **Home screen**: face, ready status, Wi-Fi, SD, pending-upload count, battery (if available)
 - **Recording screen**: face, REC indicator, timer only — no waveform/level meter by default
-- **Main menu**: New Recording / Recordings / Unsent / Send All / Face / Telegram /
-  Settings / Info (Wi-Fi status/IP, SD status, and battery % now live in Info)
+- **Main menu**: New Recording / Recordings / Unsent / Send All / Face / Delete Sent /
+  Delete All / Info (Wi-Fi status/IP, SD status, and battery % now live in Info). Telegram
+  and Settings were removed — Wi-Fi/Telegram config is edited on the SD card's INI file,
+  not on-device.
+  - "Delete Sent" removes the WAV files (and queue entries) for recordings already
+    delivered to Telegram, behind a confirm screen; unsent recordings are never touched.
+  - "Delete All" wipes every `.wav` under `/echo-pocket/rec/` regardless of queue state —
+    including untracked/orphaned files (a WAV whose `queue_store_enqueue()` call failed,
+    e.g. during a crash, is invisible to both "Unsent" and "Delete Sent" since it has no
+    queue entry at all) — and clears the entire queue index. Confirm screen explicitly
+    warns this includes unsent/untracked recordings; use only when reclaiming SD space and
+    accepting the loss of anything not yet confirmed delivered.
 
 ### Face engine (plugin interface, built into firmware — no code loaded from SD)
 

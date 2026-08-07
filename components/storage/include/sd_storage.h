@@ -60,6 +60,23 @@ void sd_storage_deinit(sd_storage_t *sd);
  */
 bool sd_storage_is_mounted(const sd_storage_t *sd);
 
+/**
+ * @brief Count .wav files under SD_REC_DIR (for the "Delete All" confirm
+ *        screen).
+ */
+int sd_storage_count_recordings(void);
+
+/**
+ * @brief Delete every .wav file under SD_REC_DIR, unconditionally.
+ *
+ * This does NOT touch the upload queue index — callers that also track
+ * an upload queue (queue_store) must clear it separately (see
+ * queue_store_delete_all()) since every entry's file is now gone.
+ *
+ * @return  Number of files deleted.
+ */
+int sd_storage_delete_all_recordings(void);
+
 #ifdef __cplusplus
 }
 #endif

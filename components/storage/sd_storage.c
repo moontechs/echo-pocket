@@ -2,6 +2,8 @@
 
 #include <string.h>
 #include <errno.h>
+#include <stdio.h>
+#include <dirent.h>
 #include <sys/stat.h>
 #include "esp_check.h"
 #include "esp_err.h"
@@ -147,4 +149,50 @@ void sd_storage_deinit(sd_storage_t *sd)
 bool sd_storage_is_mounted(const sd_storage_t *sd)
 {
     return sd && sd->mounted;
+}
+
+/** true if d_name ends in ".wav" (case-insensitive). */
+static bool is_wav_name(const char *d_name)
+{
+    size_t len = strlen(d_name);
+    return len >= 5 && strcasecmp(d_name + len - 4, ".wav") == 0;
+}
+
+int sd_storage_count_recordings(void)
+{
+    DIR *dir = opendir(SD_REC_DIR);
+    if (!dir) return 0;
+
+    int count = 0;
+    struct dirent *entry;
+    while ((entry = readdir(dir)) != NULL) {
+        if (is_wav_name(entry->d_name)) count++;
+    }
+    closedir(dir);
+    return count;
+}
+
+int sd_storage_delete_all_recordings(void)
+{
+    DIR *dir = opendir(SD_REC_DIR);
+    if (!dir) return 0;
+
+    int deleted = 0;
+    struct dirent *entry;
+    char path[320];
+
+    while ((entry = readdir(dir)) != NULL) {
+        if (!is_wav_name(entry->d_name)) continue;
+
+        snprintf(path, sizeof(path), "%s/%s", SD_REC_DIR, entry->d_name);
+        if (remove(path) == 0) {
+            deleted++;
+        } else {
+            ESP_LOGW(TAG, "Failed to delete %s: %s", path, strerror(errno));
+        }
+    }
+
+    closedir(dir);
+    ESP_LOGI(TAG, "Deleted %d recording(s) from %s", deleted, SD_REC_DIR);
+    return deleted;
 }

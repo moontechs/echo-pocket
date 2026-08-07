@@ -31,8 +31,8 @@ static const char *s_menu_labels[MENU_ITEM_COUNT] = {
     "Unsent",
     "Send All",
     "Face",
-    "Telegram",
-    "Settings",
+    "Delete Sent",
+    "Delete All",
     "Info",
 };
 
@@ -85,7 +85,8 @@ void menu_navigate(menu_state_t *state, ButtonId button,
             *out_action = MENU_ACTION_SEND_ALL;
             break;
         default:
-            /* Recordings, Unsent, Telegram, Settings, Info — stubs */
+            /* Recordings, Unsent, Delete Sent, Delete All, Info — routed
+             * via SHOW_STUB */
             *out_action = MENU_ACTION_SHOW_STUB;
             break;
         }

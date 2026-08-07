@@ -29,8 +29,8 @@ void test_menu_label_known_items(void)
     TEST_ASSERT_EQUAL_STRING("Unsent",        menu_item_label(MENU_ITEM_UNSENT));
     TEST_ASSERT_EQUAL_STRING("Send All",      menu_item_label(MENU_ITEM_SEND_ALL));
     TEST_ASSERT_EQUAL_STRING("Face",          menu_item_label(MENU_ITEM_FACE));
-    TEST_ASSERT_EQUAL_STRING("Telegram",      menu_item_label(MENU_ITEM_TELEGRAM));
-    TEST_ASSERT_EQUAL_STRING("Settings",      menu_item_label(MENU_ITEM_SETTINGS));
+    TEST_ASSERT_EQUAL_STRING("Delete Sent",   menu_item_label(MENU_ITEM_DELETE_SENT));
+    TEST_ASSERT_EQUAL_STRING("Delete All",    menu_item_label(MENU_ITEM_DELETE_ALL));
     TEST_ASSERT_EQUAL_STRING("Info",          menu_item_label(MENU_ITEM_INFO));
 }
 
@@ -138,8 +138,7 @@ void test_menu_center_stub_items(void)
     /* Test every stub item produces MENU_ACTION_SHOW_STUB */
     menu_item_t stubs[] = {
         MENU_ITEM_RECORDINGS, MENU_ITEM_UNSENT,
-        MENU_ITEM_TELEGRAM,
-        MENU_ITEM_SETTINGS, MENU_ITEM_INFO
+        MENU_ITEM_DELETE_SENT, MENU_ITEM_DELETE_ALL, MENU_ITEM_INFO
     };
 
     for (size_t s = 0; s < sizeof(stubs) / sizeof(stubs[0]); s++) {

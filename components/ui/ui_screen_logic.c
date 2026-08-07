@@ -26,6 +26,7 @@ const char *ui_screen_name(ui_screen_t screen)
     case UI_SCREEN_RECORDINGS_LIST: return "RecordingsList";
     case UI_SCREEN_UNSENT_LIST:   return "UnsentList";
     case UI_SCREEN_INFO:          return "Info";
+    case UI_SCREEN_DELETE_CONFIRM: return "DeleteConfirm";
     default:                      return "Unknown";
     }
 }
@@ -102,6 +103,12 @@ ui_screen_t ui_screen_next(ui_screen_t current, ButtonId button,
             return UI_SCREEN_MENU;
         }
         /* RIGHT/CENTER: no-op — status only, nothing to select */
+        break;
+
+    case UI_SCREEN_DELETE_CONFIRM:
+        /* All button handling (confirm/cancel/dismiss result) goes
+         * through ui_task via delete_confirm_navigate() — stay put,
+         * ui_task drives the screen transition once the entry exits. */
         break;
     }
 

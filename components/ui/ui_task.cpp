@@ -26,6 +26,8 @@
 #include "audio_process.h"
 #include "config.h"
 #include "battery.h"
+#include "queue_store.h"
+#include "sd_storage.h"
 
 #include <string.h>
 #include <stdio.h>
@@ -94,6 +96,9 @@ static uint32_t        s_face_flash_duration_ms = 0;
 static bool           s_wifi_connected = false;
 static bool           s_sd_mounted     = false;
 static int            s_pending_uploads = 0;
+
+static queue_index_t *s_queue = NULL;
+static delete_confirm_kind_t s_delete_confirm_kind = DELETE_CONFIRM_SENT;
 
 /* Menu / Face submenu state (Task 12) */
 static menu_state_t         s_menu_state;
@@ -287,8 +292,19 @@ static void ui_task_loop(void *arg)
                     } else if (s_menu_state.cursor == MENU_ITEM_INFO) {
                         s_screen = UI_SCREEN_INFO;
                         screen_changed = true;
+                    } else if (s_menu_state.cursor == MENU_ITEM_DELETE_SENT) {
+                        s_screen = UI_SCREEN_DELETE_CONFIRM;
+                        s_delete_confirm_kind = DELETE_CONFIRM_SENT;
+                        delete_confirm_enter(DELETE_CONFIRM_SENT,
+                                             queue_store_count_sent(s_queue));
+                        screen_changed = true;
+                    } else if (s_menu_state.cursor == MENU_ITEM_DELETE_ALL) {
+                        s_screen = UI_SCREEN_DELETE_CONFIRM;
+                        s_delete_confirm_kind = DELETE_CONFIRM_ALL;
+                        delete_confirm_enter(DELETE_CONFIRM_ALL,
+                                             sd_storage_count_recordings());
+                        screen_changed = true;
                     } else {
-                        /* Telegram, Settings — stubs */
                         ESP_LOGI(TAG, "Menu item '%s' selected (stub)",
                                  menu_item_label(s_menu_state.cursor));
                     }
@@ -359,6 +375,31 @@ static void ui_task_loop(void *arg)
                     /* Cursor moved — re-render */
                     screen_changed = true;
                 }
+                if (screen_changed) break;
+                continue;
+            }
+
+            /* ── Delete Sent / Delete All confirm screen ──────── */
+            if (s_screen == UI_SCREEN_DELETE_CONFIRM) {
+                bool confirmed = false;
+                bool should_exit = false;
+                delete_confirm_navigate(btn_evt.button, &confirmed,
+                                        &should_exit);
+                if (confirmed) {
+                    int deleted;
+                    if (s_delete_confirm_kind == DELETE_CONFIRM_ALL) {
+                        deleted = sd_storage_delete_all_recordings();
+                        queue_store_delete_all(s_queue);
+                        ESP_LOGI(TAG, "Deleted %d recording(s) (Delete All)", deleted);
+                    } else {
+                        deleted = queue_store_delete_sent(s_queue);
+                        ESP_LOGI(TAG, "Deleted %d sent recording(s)", deleted);
+                    }
+                    delete_confirm_show_result(deleted);
+                } else if (should_exit) {
+                    s_screen = UI_SCREEN_MENU;
+                }
+                screen_changed = true;
                 if (screen_changed) break;
                 continue;
             }
@@ -480,6 +521,10 @@ static void ui_task_loop(void *arg)
             case UI_SCREEN_INFO:
                 info_screen_draw(&status);
                 break;
+
+            case UI_SCREEN_DELETE_CONFIRM:
+                delete_confirm_screen_draw();
+                break;
             }
 
             display_flush();
@@ -567,4 +612,9 @@ void ui_task_set_pending_uploads(int count)
 void ui_task_set_sd_mounted(bool mounted)
 {
     s_sd_mounted = mounted;
+}
+
+void ui_task_set_queue_store(queue_index_t *queue)
+{
+    s_queue = queue;
 }

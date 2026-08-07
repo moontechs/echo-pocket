@@ -20,17 +20,20 @@
 extern "C" {
 #endif
 
+typedef struct queue_index_s queue_index_t;
+
 /* ── Screen states ───────────────────────────────────────────────────── */
 
 typedef enum {
     UI_SCREEN_HOME = 0,       /**< Home screen (face + status bar)       */
     UI_SCREEN_RECORDING,      /**< Recording screen (face + timer)       */
     UI_SCREEN_SAVED,          /**< Brief "Saved" display after stop      */
-    UI_SCREEN_MENU,           /**< Main menu (9 items)                   */
+    UI_SCREEN_MENU,           /**< Main menu (7 items)                   */
     UI_SCREEN_FACE_SUBMENU,   /**< Face theme picker submenu             */
     UI_SCREEN_RECORDINGS_LIST,/**< Paged list of recorded WAV files      */
     UI_SCREEN_UNSENT_LIST,    /**< Paged list of unsent queue entries    */
     UI_SCREEN_INFO,           /**< Wi-Fi/SD/battery info                 */
+    UI_SCREEN_DELETE_CONFIRM, /**< "Delete N recordings?" prompt         */
 } ui_screen_t;
 
 /* ── Actions the screen state machine can request ────────────────────── */
@@ -108,6 +111,14 @@ void ui_task_set_pending_uploads(int count);
  */
 void ui_task_set_sd_mounted(bool mounted);
 
+/**
+ * @brief Give the UI task a handle to the upload queue store, so the
+ *        "Delete Sent" menu item can count and delete SENT recordings.
+ *
+ * @param queue  Queue handle from queue_store_init() (owned by app_main).
+ */
+void ui_task_set_queue_store(queue_index_t *queue);
+
 /* ── Pure screen state machine (unit-testable) ───────────────────────── */
 
 /**
@@ -151,6 +162,40 @@ void unsent_list_navigate(ButtonId button, bool *should_exit);
 
 /** Draw the Info screen (Wi-Fi status/SSID/IP, SD status, battery %). */
 void info_screen_draw(const ui_status_t *status);
+
+/** Which bulk-delete action the confirm screen (below) is guarding. */
+typedef enum {
+    DELETE_CONFIRM_SENT = 0, /**< Delete Sent: only SENT queue entries    */
+    DELETE_CONFIRM_ALL,      /**< Delete All: every .wav on the SD card   */
+} delete_confirm_kind_t;
+
+/**
+ * @brief Called when entering the delete confirm screen.
+ *
+ * @param kind         Which menu item triggered this (changes title/copy).
+ * @param item_count   Number of recordings that would be deleted.
+ */
+void delete_confirm_enter(delete_confirm_kind_t kind, int item_count);
+
+/** Draw the delete confirm screen. */
+void delete_confirm_screen_draw(void);
+
+/**
+ * @brief Handle a button press on the delete confirm screen.
+ *
+ * RIGHT   -> *out_confirmed = true, caller should perform the delete then
+ *            call delete_confirm_show_result(). Deliberately NOT the same
+ *            button (CENTER) used to select this menu item, so a fast
+ *            double-press can't chain straight into a delete.
+ * LEFT    -> *should_exit = true (cancel, back to menu).
+ * CENTER  -> no-op while asking.
+ * Any button while the result is showing -> *should_exit = true.
+ */
+void delete_confirm_navigate(ButtonId button, bool *out_confirmed,
+                             bool *should_exit);
+
+/** Switch the confirm screen into its "Deleted N files" result state. */
+void delete_confirm_show_result(int deleted_count);
 
 #ifdef __cplusplus
 }

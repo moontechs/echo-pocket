@@ -6,7 +6,7 @@
  *
  * Menu structure (per AGENTS.md §4.5):
  *   New Recording / Recordings / Unsent / Send All / Face /
- *   Telegram / Settings / Info
+ *   Delete Sent / Delete All / Info
  *
  * Face submenu lists the 4 registered themes by display name.
  */
@@ -27,8 +27,8 @@ typedef enum {
     MENU_ITEM_UNSENT,
     MENU_ITEM_SEND_ALL,
     MENU_ITEM_FACE,
-    MENU_ITEM_TELEGRAM,
-    MENU_ITEM_SETTINGS,
+    MENU_ITEM_DELETE_SENT,
+    MENU_ITEM_DELETE_ALL,
     MENU_ITEM_INFO,
     MENU_ITEM_COUNT
 } menu_item_t;
@@ -44,7 +44,7 @@ typedef enum {
     MENU_ACTION_ENTER_FACE_SUBMENU, /**< User chose "Face"                */
     MENU_ACTION_SEND_ALL,           /**< User chose "Send All"            */
     MENU_ACTION_BACK_TO_HOME,       /**< User pressed back/left from menu */
-    MENU_ACTION_SHOW_STUB,          /**< Stub screen (Wi-Fi/Telegram/… )  */
+    MENU_ACTION_SHOW_STUB,          /**< Stub screen (Info/etc.)          */
 } menu_action_t;
 
 /* ── Menu state ──────────────────────────────────────────────────────── */

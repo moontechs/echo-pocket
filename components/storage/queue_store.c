@@ -17,6 +17,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <errno.h>
 #include <inttypes.h>
 #include "esp_err.h"
 #include "esp_log.h"
@@ -402,6 +403,53 @@ int queue_store_count_failed(const queue_index_t *queue)
     return count;
 }
 
+int queue_store_count_sent(const queue_index_t *queue)
+{
+    if (!queue) return 0;
+    int count = 0;
+    for (int i = 0; i < queue->count; i++) {
+        if (queue->entries[i].state == QUEUE_STATE_SENT) {
+            count++;
+        }
+    }
+    return count;
+}
+
+int queue_store_delete_sent(queue_index_t *queue)
+{
+    if (!queue) return 0;
+
+    for (int i = 0; i < queue->count; i++) {
+        if (queue->entries[i].state != QUEUE_STATE_SENT) continue;
+
+        if (remove(queue->entries[i].file) != 0) {
+            ESP_LOGW(TAG, "Failed to delete %s (errno %d)",
+                     queue->entries[i].file, errno);
+        }
+        ESP_LOGI(TAG, "Deleted sent recording %s", queue->entries[i].id);
+    }
+
+    int deleted = queue_remove_by_state(queue->entries, &queue->count,
+                                        QUEUE_STATE_SENT);
+    if (deleted > 0) {
+        queue_store_flush(queue);
+    }
+    return deleted;
+}
+
+int queue_store_delete_all(queue_index_t *queue)
+{
+    if (!queue) return 0;
+
+    int removed = queue->count;
+    queue->count = 0;
+    if (removed > 0) {
+        ESP_LOGI(TAG, "Cleared %d queue entries (Delete All Recordings)", removed);
+        queue_store_flush(queue);
+    }
+    return removed;
+}
+
 int queue_store_entry_count(const queue_index_t *queue)
 {
     if (!queue) return 0;
@@ -677,4 +725,26 @@ int queue_recover_uploading(queue_entry_t *entries, int count)
         }
     }
     return recovered;
+}
+
+/* ── queue_remove_by_state ────────────────────────────────────────────── */
+
+int queue_remove_by_state(queue_entry_t *entries, int *count,
+                          queue_state_t state)
+{
+    if (!entries || !count || *count < 0) return 0;
+
+    int removed = 0;
+    int i = 0;
+    while (i < *count) {
+        if (entries[i].state != state) {
+            i++;
+            continue;
+        }
+        /* Compact: overwrite with the last live entry, don't advance i */
+        entries[i] = entries[*count - 1];
+        (*count)--;
+        removed++;
+    }
+    return removed;
 }

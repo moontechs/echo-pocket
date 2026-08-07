@@ -435,6 +435,69 @@ void test_recover_null_safety(void)
     TEST_ASSERT_EQUAL(0, queue_recover_uploading(NULL, 5));
 }
 
+/* ── Test: queue_remove_by_state (backs "Delete Sent") ───────────────── */
+
+void test_remove_by_state_removes_only_matching(void)
+{
+    queue_entry_t entries[4];
+    fill_entry(&entries[0], "A", "a.wav", QUEUE_STATE_SENT, 100, 100, 0, 1);
+    fill_entry(&entries[1], "B", "b.wav", QUEUE_STATE_PENDING, 200, 200, 0, 0);
+    fill_entry(&entries[2], "C", "c.wav", QUEUE_STATE_SENT, 300, 300, 0, 2);
+    fill_entry(&entries[3], "D", "d.wav", QUEUE_STATE_FAILED, 400, 400, 5, 0);
+
+    int count = 4;
+    int removed = queue_remove_by_state(entries, &count, QUEUE_STATE_SENT);
+
+    TEST_ASSERT_EQUAL(2, removed);
+    TEST_ASSERT_EQUAL(2, count);
+
+    /* The two surviving entries must be the non-SENT ones, in any order. */
+    bool saw_pending = false, saw_failed = false;
+    for (int i = 0; i < count; i++) {
+        TEST_ASSERT_NOT_EQUAL(QUEUE_STATE_SENT, entries[i].state);
+        if (entries[i].state == QUEUE_STATE_PENDING) saw_pending = true;
+        if (entries[i].state == QUEUE_STATE_FAILED) saw_failed = true;
+    }
+    TEST_ASSERT_TRUE(saw_pending);
+    TEST_ASSERT_TRUE(saw_failed);
+}
+
+void test_remove_by_state_none_matching(void)
+{
+    queue_entry_t entries[2];
+    fill_entry(&entries[0], "A", "a.wav", QUEUE_STATE_PENDING, 100, 100, 0, 0);
+    fill_entry(&entries[1], "B", "b.wav", QUEUE_STATE_FAILED, 200, 200, 1, 0);
+
+    int count = 2;
+    int removed = queue_remove_by_state(entries, &count, QUEUE_STATE_SENT);
+
+    TEST_ASSERT_EQUAL(0, removed);
+    TEST_ASSERT_EQUAL(2, count);
+}
+
+void test_remove_by_state_all_matching(void)
+{
+    queue_entry_t entries[2];
+    fill_entry(&entries[0], "A", "a.wav", QUEUE_STATE_SENT, 100, 100, 0, 1);
+    fill_entry(&entries[1], "B", "b.wav", QUEUE_STATE_SENT, 200, 200, 0, 2);
+
+    int count = 2;
+    int removed = queue_remove_by_state(entries, &count, QUEUE_STATE_SENT);
+
+    TEST_ASSERT_EQUAL(2, removed);
+    TEST_ASSERT_EQUAL(0, count);
+}
+
+void test_remove_by_state_null_safety(void)
+{
+    int count = 3;
+    TEST_ASSERT_EQUAL(0, queue_remove_by_state(NULL, &count, QUEUE_STATE_SENT));
+
+    queue_entry_t entries[1];
+    fill_entry(&entries[0], "A", "a.wav", QUEUE_STATE_SENT, 100, 100, 0, 0);
+    TEST_ASSERT_EQUAL(0, queue_remove_by_state(entries, NULL, QUEUE_STATE_SENT));
+}
+
 /* ── Test: deserialize capacities ────────────────────────────────────── */
 
 void test_deserialize_exceeds_capacity(void)

@@ -190,6 +190,31 @@ int queue_store_count_pending(const queue_index_t *queue);
 int queue_store_count_failed(const queue_index_t *queue);
 
 /**
+ * @brief Count entries in SENT state (for the "Delete Sent" confirm screen).
+ */
+int queue_store_count_sent(const queue_index_t *queue);
+
+/**
+ * @brief Delete the WAV file and queue entry for every SENT recording.
+ *
+ * Unsent (pending/uploading/failed) entries are never touched, matching
+ * the "never deletes unsent files" guarantee of this store.
+ *
+ * @return  Number of recordings deleted.
+ */
+int queue_store_delete_sent(queue_index_t *queue);
+
+/**
+ * @brief Clear every entry from the queue, regardless of state, and persist.
+ *
+ * For use only alongside a full recordings wipe (sd_storage_delete_all_recordings()) —
+ * dropping entries whose files still exist would silently abandon them.
+ *
+ * @return  Number of entries removed.
+ */
+int queue_store_delete_all(queue_index_t *queue);
+
+/**
  * @brief Return the number of entries in the queue.
  */
 int queue_store_entry_count(const queue_index_t *queue);
@@ -246,6 +271,20 @@ int queue_deserialize(const char *content,
  * @return  Number of entries recovered.
  */
 int queue_recover_uploading(queue_entry_t *entries, int count);
+
+/**
+ * @brief Remove every entry in the given state from the array (pure —
+ *        no I/O, no global state).  Compacts remaining entries in place.
+ *        Caller is responsible for deleting each removed entry's file
+ *        beforehand (see queue_store_delete_sent()).
+ *
+ * @param entries  Array of entries (modified in place).
+ * @param count    In/out entry count.
+ * @param state    State to remove.
+ * @return  Number of entries removed.
+ */
+int queue_remove_by_state(queue_entry_t *entries, int *count,
+                          queue_state_t state);
 
 #ifdef __cplusplus
 }

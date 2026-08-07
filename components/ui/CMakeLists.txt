@@ -9,6 +9,7 @@ idf_component_register(
          "screens/recordings_list.c"
          "screens/unsent_list.c"
          "screens/info_screen.c"
+         "screens/delete_confirm.c"
          "face_engine/face_registry.cpp"
          "face_engine/face_plugin.cpp"
          "face_engine/owl_face.cpp"
