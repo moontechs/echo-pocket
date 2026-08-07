@@ -545,6 +545,14 @@ telegram_err_t telegram_client_send_to_channels(const RecorderConfig *cfg,
         *out_message_id = last_msg_id;
     }
 
+    /* An enabled fan-out with no usable destination is not a successful
+     * delivery.  In particular, the upload task must not mark the recording
+     * sent (and possibly delete it) without having sent a document. */
+    if (sent_count == 0 && last_err == TELEGRAM_OK) {
+        ESP_LOGE(TAG, "send_to_channels: no configured target channels");
+        return TELEGRAM_ERR_NULL_PARAM;
+    }
+
     ESP_LOGI(TAG, "send_to_channels: %d sent, result=%s",
              sent_count,
              (last_err == TELEGRAM_OK) ? "ok" : telegram_err_str(last_err));

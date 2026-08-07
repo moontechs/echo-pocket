@@ -60,11 +60,16 @@ static int battery_read_millivolts(void)
         if (s_cali_handle) {
             err = adc_cali_raw_to_voltage(s_cali_handle, raw, &voltage);
             if (err != ESP_OK) {
-                /* Calibration failed — use raw (uncalibrated) conversion as fallback */
-                voltage = raw; /* approximate; calibrated is better */
+                ESP_LOGW(TAG, "ADC calibration conversion failed: %s",
+                         esp_err_to_name(err));
+                continue;
             }
         } else {
-            voltage = raw; /* approximate; calibrated is better */
+            /* Raw ADC codes are not millivolts.  Reporting no reading is
+             * safer than converting a normal raw value into an impossible
+             * battery voltage and incorrectly treating the battery as full. */
+            ESP_LOGW(TAG, "ADC calibration unavailable");
+            continue;
         }
 
         sum += voltage;

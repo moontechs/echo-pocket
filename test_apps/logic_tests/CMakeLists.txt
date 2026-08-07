@@ -10,6 +10,18 @@ cmake_minimum_required(VERSION 3.16)
 # into the shared project root, making a Linux configure contaminate ESP32-S3.
 set(SDKCONFIG "${CMAKE_BINARY_DIR}/sdkconfig")
 
+# Target-specific defaults must be selected before ESP-IDF loads
+# project.cmake.  idf.py passes IDF_TARGET during configure; Linux has no
+# hardware-specific defaults file, while the on-device test image retains its
+# flash and CPU configuration.
+if(DEFINED IDF_TARGET)
+    set(LOGIC_TESTS_TARGET_DEFAULTS
+        "${CMAKE_CURRENT_LIST_DIR}/sdkconfig.defaults.${IDF_TARGET}")
+    if(EXISTS "${LOGIC_TESTS_TARGET_DEFAULTS}")
+        set(SDKCONFIG_DEFAULTS "${LOGIC_TESTS_TARGET_DEFAULTS}")
+    endif()
+endif()
+
 # This test project only needs its main component and the dependencies it
 # declares.  Do not build every IDF component for the host target.
 set(COMPONENTS main)
