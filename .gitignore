@@ -1,5 +1,7 @@
 # ESP-IDF build artifacts
 build/
+test_apps/logic_tests/build.esp32s3/
+test_apps/logic_tests/build.linux/
 sdkconfig
 sdkconfig.old
 dependencies.lock
