@@ -18,6 +18,7 @@ int g_stub_draw_rect_count = 0;
 int g_stub_fill_circle_count = 0;
 int g_stub_hline_count   = 0;
 int g_stub_smile_arc_count = 0;
+int g_stub_fill_rounded_rect_count = 0;
 
 /* ── Reset counters between tests ────────────────────────────────────── */
 
@@ -30,6 +31,7 @@ void stub_display_reset_counters(void)
     g_stub_fill_circle_count = 0;
     g_stub_hline_count   = 0;
     g_stub_smile_arc_count = 0;
+    g_stub_fill_rounded_rect_count = 0;
 }
 
 /* ── No-op implementations ───────────────────────────────────────────── */
@@ -74,4 +76,10 @@ void display_draw_smile_arc(int cx, int cy, int r, int thickness, uint16_t color
 {
     (void)cx; (void)cy; (void)r; (void)thickness; (void)color;
     g_stub_smile_arc_count++;
+}
+
+void display_fill_rounded_rect(int x, int y, int w, int h, int radius, uint16_t color)
+{
+    (void)x; (void)y; (void)w; (void)h; (void)radius; (void)color;
+    g_stub_fill_rounded_rect_count++;
 }

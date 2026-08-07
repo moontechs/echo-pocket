@@ -17,22 +17,6 @@
 #include <string.h>
 #include <time.h>
 
-/* ── Helpers ─────────────────────────────────────────────────────────── */
-
-/** Helper: generate a synced ID and verify it contains the expected
- *  timestamp substring. */
-static void assert_synced_id_contains(const char *id, int year, int month,
-                                      int day, int hour, int min, int sec,
-                                      int counter)
-{
-    char expected_substr[32];
-    snprintf(expected_substr, sizeof(expected_substr),
-             "REC_%04d%02d%02d_%02d%02d%02d_%03d",
-             year, month, day, hour, min, sec, counter);
-    TEST_ASSERT_NOT_NULL_MESSAGE(strstr(id, expected_substr),
-                                 "Generated ID does not contain expected timestamp");
-}
-
 /* ── Synced timestamp ────────────────────────────────────────────────── */
 
 void test_rec_id_synced_basic(void)

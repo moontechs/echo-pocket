@@ -502,7 +502,7 @@ static int pure_json_escape(char *dst, size_t dst_size, const char *src)
 size_t queue_serialize(const queue_entry_t *entries, int count,
                        char *buf, size_t buf_size)
 {
-    if (!entries || count < 0 || !buf || buf_size == 0) return 0;
+    if ((!entries && count > 0) || count < 0 || !buf || buf_size == 0) return 0;
 
     size_t pos = 0;
     int n;
