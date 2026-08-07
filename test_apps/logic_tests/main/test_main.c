@@ -303,17 +303,31 @@ extern void test_caption_exact_expected_format(void);
 extern void test_caption_error_strings(void);
 extern void test_caption_default_device_name(void);
 
-/* ── Upload drain flow tests (Task 17) — NOT currently built ──────────
- * test_upload_flow.c exercises upload_drain_compute_outcome(), which
- * only exists in upload_task.c — never added to this test app's SRCS
- * (unlike recorder_logic.c, which was split out from recorder.c
- * specifically for testability, upload_task.c has no equivalent pure-
- * logic split, so pulling it in means pulling in its full FreeRTOS/
- * Wi-Fi/telegram/recorder dependency chain). test_upload_flow.c's own
- * test functions were also `static` until now, so none of this has
- * ever actually linked or run. Left disabled rather than risk pulling
- * in a chain of new component REQUIRES unrelated to this session's fix
- * — pre-existing gap, flagged for a follow-up. */
+/* ── Upload drain flow tests (Task 17) ───────────────────────────────── */
+extern void test_ok_without_delete(void);
+extern void test_ok_with_delete(void);
+extern void test_ok_at_cap(void);
+extern void test_fail_retryable_first_attempt(void);
+extern void test_fail_retryable_mid_attempts(void);
+extern void test_fail_retryable_delete_ignored(void);
+extern void test_fail_retryable_at_cap(void);
+extern void test_fail_retryable_above_cap(void);
+extern void test_fail_retryable_exactly_one_before_cap(void);
+extern void test_fail_fatal_first_attempt(void);
+extern void test_fail_fatal_with_attempts(void);
+extern void test_fail_fatal_at_cap(void);
+extern void test_fail_fatal_delete_ignored(void);
+extern void test_cap_one(void);
+extern void test_cap_one_success(void);
+extern void test_cap_large(void);
+extern void test_cap_large_at_boundary(void);
+extern void test_cap_zero(void);
+extern void test_cap_zero_success(void);
+extern void test_production_cap_is_five(void);
+extern void test_walkthrough_three_entries(void);
+extern void test_delete_only_on_success(void);
+extern void test_outcome_states_are_valid(void);
+extern void test_sent_never_deletes_without_flag(void);
 
 /* ── Battery discharge curve tests (Task 18) ──────────────────────────── */
 /* Defined in test_battery_curve.c (compiled alongside this file) */
@@ -657,8 +671,31 @@ void app_main(void)
     RUN_TEST(test_caption_error_strings);
     RUN_TEST(test_caption_default_device_name);
 
-    /* Task 17: upload drain flow state machine — see the "NOT currently
-     * built" comment near the extern block above; disabled. */
+    /* Task 17: upload drain flow state machine */
+    RUN_TEST(test_ok_without_delete);
+    RUN_TEST(test_ok_with_delete);
+    RUN_TEST(test_ok_at_cap);
+    RUN_TEST(test_fail_retryable_first_attempt);
+    RUN_TEST(test_fail_retryable_mid_attempts);
+    RUN_TEST(test_fail_retryable_delete_ignored);
+    RUN_TEST(test_fail_retryable_at_cap);
+    RUN_TEST(test_fail_retryable_above_cap);
+    RUN_TEST(test_fail_retryable_exactly_one_before_cap);
+    RUN_TEST(test_fail_fatal_first_attempt);
+    RUN_TEST(test_fail_fatal_with_attempts);
+    RUN_TEST(test_fail_fatal_at_cap);
+    RUN_TEST(test_fail_fatal_delete_ignored);
+    RUN_TEST(test_cap_one);
+    RUN_TEST(test_cap_one_success);
+    RUN_TEST(test_cap_large);
+    RUN_TEST(test_cap_large_at_boundary);
+    RUN_TEST(test_cap_zero);
+    RUN_TEST(test_cap_zero_success);
+    RUN_TEST(test_production_cap_is_five);
+    RUN_TEST(test_walkthrough_three_entries);
+    RUN_TEST(test_delete_only_on_success);
+    RUN_TEST(test_outcome_states_are_valid);
+    RUN_TEST(test_sent_never_deletes_without_flag);
 
     /* Task 5: config INI parser */
     RUN_TEST(test_config_defaults);

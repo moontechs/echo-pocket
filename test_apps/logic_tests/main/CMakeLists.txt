@@ -4,6 +4,8 @@ idf_component_register(
          "test_list_pagination.c"
          "../../../components/network/test/test_net_selection.c"
          "../../../components/network/net_selection.c"
+         "../../../components/network/upload_logic.c"
+         "../../../components/network/test/test_upload_flow.c"
          "../../../components/audio/audio_ringbuf.c"
          "../../../components/audio/audio_mono_ringbuf.c"
          "../../../components/audio/voice_level.c"

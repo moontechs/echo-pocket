@@ -60,8 +60,8 @@ terminology below in sync with it if the spec changes.
 - Unit tests in `test_apps/logic_tests/` (separate ESP-IDF project via `EXTRA_COMPONENT_DIRS`)
 - Build command: `idf.py build`; flash: `idf.py flash monitor`
 - Test command: `idf.py -C test_apps/logic_tests build flash monitor`
-- Host-native test command: `idf.py -C test_apps/logic_tests -B build.linux --preview set-target linux build`,
-  followed by `build.linux/logic_tests.elf`
+- Host-native test command: `idf.py -C test_apps/logic_tests -B test_apps/logic_tests/build.linux --preview set-target linux build`,
+  followed by `test_apps/logic_tests/build.linux/logic_tests.elf`
 - ESP-IDF isn't always pre-installed in an agent sandbox — check for `idf.py` under a
   scratch path (e.g. `/private/tmp`) before assuming it's missing, then
   `source $IDF_PATH/export.sh`.

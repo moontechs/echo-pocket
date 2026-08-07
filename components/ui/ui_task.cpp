@@ -29,6 +29,7 @@
 #include "battery.h"
 #include "queue_store.h"
 #include "sd_storage.h"
+#include "upload_task.h"
 
 #include <string.h>
 #include <stdio.h>
@@ -279,8 +280,7 @@ static void ui_task_loop(void *arg)
                     break;
 
                 case MENU_ACTION_SEND_ALL:
-                    /* Task 17 will wire this — currently a stub */
-                    ESP_LOGI(TAG, "Send All (stub — Task 17)");
+                    upload_task_trigger_send_all();
                     break;
 
                 case MENU_ACTION_SHOW_STUB:
@@ -379,8 +379,8 @@ static void ui_task_loop(void *arg)
                     s_screen = UI_SCREEN_MENU;
                     screen_changed = true;
                 } else if (btn_evt.button == BUTTON_CENTER) {
-                    /* CENTER on Unsent = Send All (Task 17 wires this) */
-                    ESP_LOGI(TAG, "Send All from Unsent screen (stub — Task 17)");
+                    /* CENTER on Unsent = Send All. */
+                    upload_task_trigger_send_all();
                 } else {
                     /* Cursor moved — re-render */
                     screen_changed = true;

@@ -549,7 +549,7 @@ telegram_err_t telegram_client_send_to_channels(const RecorderConfig *cfg,
              sent_count,
              (last_err == TELEGRAM_OK) ? "ok" : telegram_err_str(last_err));
 
-    return (sent_count > 0) ? TELEGRAM_OK : last_err;
+    return (last_err == TELEGRAM_OK) ? TELEGRAM_OK : last_err;
 }
 
 /* ── Error strings ───────────────────────────────────────────────────── */

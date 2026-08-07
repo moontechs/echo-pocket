@@ -433,7 +433,7 @@ unreachable, the scaffolding above still lands and this can be retried without b
 - [x] run `logic_tests` — must pass before task 10
       [x] build verified; flash/monitor requires hardware
 
-### Task 10: Built-in face themes — Owl, Minimal, Robot, Pixel
+### Task 10: Built-in face themes — Owl, Minimal, Robot, Pixel, Vector
 
 **Files:**
 - Create: `components/ui/face_engine/owl_face.cpp`
@@ -705,7 +705,7 @@ unreachable, the scaffolding above still lands and this can be retried without b
     gated on config keys, feeds mono output to writer. VERIFIED.
   - Face eyes react to cleaned voice level: voice_level from audio_process (post-NS RMS)
     fed to FacePlugin::update(). VERIFIED.
-  - >=4 built-in themes: Owl, Minimal, Robot, Pixel registered via face_registry_register_defaults().
+  - >=5 built-in themes: Owl, Minimal, Robot, Pixel, Vector registered via face_registry_register_defaults().
     VERIFIED.
   - Live theme switch: apply_and_persist_theme() in ui_task.c calls face_registry_begin()
     + config_save(). VERIFIED.

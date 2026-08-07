@@ -104,7 +104,12 @@ wav_writer_t *wav_writer_open(const char *path,
         free(w);
         return NULL;
     }
-    fflush(w->file);
+    if (fflush(w->file) != 0) {
+        ESP_LOGE(TAG, "Initial flush failed for %s", w->path);
+        fclose(w->file);
+        free(w);
+        return NULL;
+    }
 
     ESP_LOGI(TAG, "WAV opened: %s (%d Hz, %d ch, %d bit)",
              w->path, (int)sample_rate, (int)num_channels, (int)bits_per_sample);
@@ -134,7 +139,10 @@ bool wav_writer_finalize(wav_writer_t *w)
     if (w->finalized) return true;  /* idempotent                          */
 
     /* Flush any buffered writes first */
-    fflush(w->file);
+    if (fflush(w->file) != 0) {
+        ESP_LOGE(TAG, "Final flush failed for %s", w->path);
+        return false;
+    }
 
     /* Seek to start and write the real header */
     int seek_ret = fseek(w->file, 0, SEEK_SET);
@@ -154,14 +162,15 @@ bool wav_writer_finalize(wav_writer_t *w)
     }
 
     /* Flush libc buffers, then fsync the underlying fd */
-    fflush(w->file);
+    if (fflush(w->file) != 0) {
+        ESP_LOGE(TAG, "Final header flush failed for %s", w->path);
+        return false;
+    }
 
     int fd = fileno(w->file);
-    if (fd >= 0) {
-        if (fsync(fd) != 0) {
-            ESP_LOGW(TAG, "fsync failed for %s (data may still be safe)", w->path);
-            /* Not a hard failure — data is likely on media already */
-        }
+    if (fd < 0 || fsync(fd) != 0) {
+        ESP_LOGE(TAG, "fsync failed for %s", w->path);
+        return false;
     }
 
     w->finalized = true;

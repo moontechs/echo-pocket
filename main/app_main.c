@@ -252,6 +252,7 @@ void app_main(void)
     /* ── Step 12: Telegram client initialization ─────────────────────
      * Must happen before upload_task_init() so the client is ready when
      * the first upload is triggered. Skip if bot_token is empty. */
+    bool telegram_ready = false;
     if (s_config.bot_token[0] != '\0') {
         telegram_err_t tg_err = telegram_client_init(s_config.bot_token);
         if (tg_err != TELEGRAM_OK) {
@@ -259,6 +260,7 @@ void app_main(void)
                      telegram_err_str(tg_err));
             boot_check("Telegram", false, "Check bot_token in ini");
         } else {
+            telegram_ready = true;
             ESP_LOGI(TAG, "Telegram client initialized");
             boot_check("Telegram", true, NULL);
         }
@@ -269,9 +271,11 @@ void app_main(void)
     /* ── Step 13: upload task (drains queue on Wi-Fi connect) ─────────
      * Ignores auto_upload=false except for explicit "Send All".
      * upload_task guards against starting mid-recording. */
-    upload_task_init(&s_config, s_queue);
-    ESP_LOGI(TAG, "Upload task started (auto_upload=%s)",
-             s_config.auto_upload ? "true" : "false");
+    if (telegram_ready) {
+        upload_task_init(&s_config, s_queue);
+        ESP_LOGI(TAG, "Upload task started (auto_upload=%s)",
+                 s_config.auto_upload ? "true" : "false");
+    }
 
     /* ── Boot checks complete — leave the checklist up so a failure is
      * actually readable before the UI task starts overwriting the screen

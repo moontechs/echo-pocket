@@ -67,6 +67,7 @@ static StackType_t *s_upload_task_stack = NULL;
 
 /* ── Pure logic ──────────────────────────────────────────────────────── */
 
+#if 0 /* Implemented in upload_logic.c so the state machine is host-testable. */
 upload_drain_outcome_t upload_drain_compute_outcome(
     upload_send_result_t result,
     int current_attempts,
@@ -121,6 +122,8 @@ upload_drain_outcome_t upload_drain_compute_outcome(
 /**
  * Classify a telegram_err_t into an upload_send_result_t.
  */
+#endif
+
 static upload_send_result_t classify_send_error(telegram_err_t err)
 {
     switch (err) {
@@ -230,8 +233,9 @@ static int upload_drain_loop(void)
                 ESP_LOGE(TAG, "Failed to revert %s: %s",
                          entry->id, queue_store_err_str(qerr));
             }
-            /* Stay in the drain loop — next entry might be smaller. */
-            continue;
+            /* The first pending entry remains selected, so continuing would
+             * spin on it and repeatedly write the queue. */
+            break;
         }
 
         /* ── Send ────────────────────────────────────────────────── */
