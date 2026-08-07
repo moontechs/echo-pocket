@@ -47,6 +47,11 @@ extern "C" {
  *  0.15 means the level adapts in ~100 ms (time constant ≈ 6 * 16 ms). */
 #define AUDIO_PROCESS_LEVEL_ALPHA       0.15f
 
+/** Digital makeup gain applied in the no-AFE downmix fallback path (the
+ *  AFE's AGC isn't available there). 6x ≈ +15.6 dB; hard-clipped to
+ *  int16 range. Tune if recordings clip too easily or are still quiet. */
+#define AUDIO_PROCESS_FALLBACK_GAIN     6
+
 /** Process task stack size (bytes).
  *  Measured on reference board: peak ~2400 bytes with ESP-SR.
  *  Allocate 4096 for headroom. */

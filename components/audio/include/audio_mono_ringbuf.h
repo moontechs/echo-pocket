@@ -79,6 +79,18 @@ size_t audio_mono_ringbuf_read(audio_mono_ringbuf_t *rb,
 size_t audio_mono_ringbuf_available(const audio_mono_ringbuf_t *rb);
 
 /**
+ * @brief Discard everything currently buffered (jump read_pos to write_pos).
+ *
+ * Capture/process run continuously in the background regardless of
+ * recording state, so stale audio can sit in the buffer for as long as
+ * nothing drains it. Call this right before a new recording starts
+ * consuming the buffer, so it begins with live audio instead of
+ * replaying whatever backlog (including the button-press click) had
+ * accumulated while idle.
+ */
+void audio_mono_ringbuf_discard_available(audio_mono_ringbuf_t *rb);
+
+/**
  * @brief Return and optionally reset the overflow counter.
  *
  * @param reset  If true, the counter is zeroed after reading.

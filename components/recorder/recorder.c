@@ -11,6 +11,8 @@
 #include "wav_writer.h"
 #include "rec_id.h"
 #include "audio_mono_ringbuf.h"
+#include "audio_capture.h"
+#include "audio_process.h"
 #include "device_events.h"
 #include "queue_store.h"
 #include "battery.h"
@@ -221,12 +223,30 @@ static void sd_writer_task(void *arg)
                xQueueReceive(s_cmd_queue, &cmd, 0) == pdTRUE) {
             if (cmd == RECORDER_CMD_START) {
                 if (s_state == RECORDER_STATE_IDLE) {
+                    /* ── Power up the mic — it's off while idle ──────
+                     * Only listening while a recording is in progress. */
+                    esp_err_t cap_err = audio_capture_start();
+                    if (cap_err != ESP_OK) {
+                        ESP_LOGE(TAG, "audio_capture_start failed: %s",
+                                 esp_err_to_name(cap_err));
+                        continue;
+                    }
+                    esp_err_t proc_err = audio_process_start();
+                    if (proc_err != ESP_OK) {
+                        ESP_LOGE(TAG, "audio_process_start failed: %s",
+                                 esp_err_to_name(proc_err));
+                        audio_capture_stop();
+                        continue;
+                    }
+
                     /* ── Start recording ──────────────────────────── */
                     rec_id_err_t id_err = generate_next_id(rec_id_buf,
                                                            sizeof(rec_id_buf));
                     if (id_err != REC_ID_OK) {
                         ESP_LOGE(TAG, "Failed to generate rec ID: %s",
                                  rec_id_err_str(id_err));
+                        audio_process_stop();
+                        audio_capture_stop();
                         continue;
                     }
 
@@ -237,8 +257,15 @@ static void sd_writer_task(void *arg)
                                           RECORDER_BITS_PER_SAMPLE);
                     if (!wav) {
                         ESP_LOGE(TAG, "Failed to open WAV: %s", path_buf);
+                        audio_process_stop();
+                        audio_capture_stop();
                         continue;
                     }
+
+                    /* Mic just powered on, so the ring buffer should
+                     * already be empty — discard defensively in case any
+                     * samples landed before this point. */
+                    audio_mono_ringbuf_discard_available(s_ringbuf);
 
                     s_state = RECORDER_STATE_RECORDING;
                     ESP_LOGI(TAG, "Recording started: %s", rec_id_buf);
@@ -261,6 +288,11 @@ static void sd_writer_task(void *arg)
                         wav = NULL;
                     }
                     s_state = RECORDER_STATE_IDLE;
+
+                    /* Power the mic back down — nothing should be
+                     * listening between recordings. */
+                    audio_process_stop();
+                    audio_capture_stop();
                     ESP_LOGI(TAG, "Recording stopped");
                 }
             }
@@ -278,6 +310,8 @@ static void sd_writer_task(void *arg)
                 wav = NULL;
             }
             s_state = RECORDER_STATE_IDLE;
+            audio_process_stop();
+            audio_capture_stop();
             /* Power down — if the hardware supports it */
             /* TODO: call board_power_off() once that API is added */
         }
@@ -308,6 +342,8 @@ static void sd_writer_task(void *arg)
                         if (!ok) {
                             ESP_LOGE(TAG, "Auto-split: finalize failed");
                             s_state = RECORDER_STATE_IDLE;
+                            audio_process_stop();
+                            audio_capture_stop();
                             continue;
                         }
 
@@ -317,6 +353,8 @@ static void sd_writer_task(void *arg)
                         if (id_err != REC_ID_OK) {
                             ESP_LOGE(TAG, "Auto-split: ID gen failed");
                             s_state = RECORDER_STATE_IDLE;
+                            audio_process_stop();
+                            audio_capture_stop();
                             continue;
                         }
 
@@ -329,6 +367,8 @@ static void sd_writer_task(void *arg)
                             ESP_LOGE(TAG, "Auto-split: open failed for %s",
                                      path_buf);
                             s_state = RECORDER_STATE_IDLE;
+                            audio_process_stop();
+                            audio_capture_stop();
                             continue;
                         }
 
@@ -354,6 +394,8 @@ static void sd_writer_task(void *arg)
         finalize_recording(wav);
         wav = NULL;
         s_state = RECORDER_STATE_IDLE;
+        audio_process_stop();
+        audio_capture_stop();
     }
 
     ESP_LOGI(TAG, "Writer task stopped");

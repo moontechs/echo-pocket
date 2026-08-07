@@ -150,7 +150,11 @@ static esp_err_t codec_init(void)
 
     es7210_codec_cfg_t es7210_cfg = {
         .ctrl_if      = ctrl_if,
-        .master_mode  = true,
+        /* ESP32-S3's I2S channel is the bus master (I2S_ROLE_MASTER above,
+         * drives MCK/BCK/WS) — the codec must be the slave, or both sides
+         * fight over the clock and the ESP32 samples an unsynchronized
+         * (effectively silent) line. */
+        .master_mode  = false,
         .mic_selected = ES7210_SEL_MIC1 | ES7210_SEL_MIC2,
     };
     const audio_codec_if_t *codec_if = es7210_codec_new(&es7210_cfg);
@@ -192,8 +196,15 @@ static esp_err_t codec_init(void)
         esp_codec_dev_open(s_codec, &fs_cfg),
         TAG, "esp_codec_dev_open failed");
 
+    /* esp_codec_dev_open() unconditionally resets input gain to its own
+     * internal default (0 dB) as part of _update_codec_setting(), clobbering
+     * the ES7210 driver's own 30 dB default set during es7210_open(). A
+     * mic-level electret signal needs real gain to reach line level, so we
+     * must explicitly re-apply it here, after open() — not before.
+     * 37.5 dB is the ES7210's maximum analog mic gain (see get_db() in the
+     * driver) — normal-distance speech was still too quiet at 30 dB. */
     ESP_RETURN_ON_ERROR(
-        esp_codec_dev_set_in_gain(s_codec, 0.0f),  /* 0 dB = line level   */
+        esp_codec_dev_set_in_gain(s_codec, 37.5f),
         TAG, "esp_codec_dev_set_in_gain failed");
 
     ESP_LOGI(TAG, "ES7210 codec initialised (2-mic, %d Hz)",
@@ -263,7 +274,9 @@ esp_err_t audio_capture_init(audio_ringbuf_t **out_rb)
         return ESP_ERR_INVALID_ARG;
     }
 
-    /* ── Allocate ring buffer ──────────────────────────────────────── */
+    /* Ring buffer only — the mic (I2C/I2S/codec) stays powered off until
+     * audio_capture_start() so nothing is "listening" until a recording
+     * actually begins. */
     s_ringbuf = audio_ringbuf_alloc(AUDIO_CAPTURE_RINGBUF_FRAMES);
     if (!s_ringbuf) {
         ESP_LOGE(TAG, "Ring buffer allocation failed (%zu frames)",
@@ -275,33 +288,8 @@ esp_err_t audio_capture_init(audio_ringbuf_t **out_rb)
              s_ringbuf->capacity_frames
              * AUDIO_CAPTURE_CHANNELS * sizeof(int16_t));
 
-    /* ── I2C → I2S → Codec ─────────────────────────────────────────── */
-    esp_err_t ret;
-
-    ret = i2c_bus_init();
-    if (ret != ESP_OK) goto fail_rb;
-
-    ret = i2s_rx_init();
-    if (ret != ESP_OK) goto fail_i2c;
-
-    ret = codec_init();
-    if (ret != ESP_OK) goto fail_i2s;
-
     *out_rb = s_ringbuf;
     return ESP_OK;
-
-    /* ── Teardown on partial failure ───────────────────────────────── */
-fail_i2s:
-    i2s_channel_disable(s_rx_chan);
-    i2s_del_channel(s_rx_chan);
-    s_rx_chan = NULL;
-fail_i2c:
-    i2c_del_master_bus(s_i2c_bus);
-    s_i2c_bus = NULL;
-fail_rb:
-    audio_ringbuf_free(s_ringbuf);
-    s_ringbuf = NULL;
-    return ret;
 }
 
 esp_err_t audio_capture_start(void)
@@ -309,6 +297,20 @@ esp_err_t audio_capture_start(void)
     if (!s_ringbuf) {
         return ESP_ERR_INVALID_STATE;
     }
+
+    /* ── Power up I2C → I2S → Codec ──────────────────────────────────
+     * Done here, not in audio_capture_init(), so the mic is only live
+     * while a recording is actually in progress. */
+    esp_err_t ret;
+
+    ret = i2c_bus_init();
+    if (ret != ESP_OK) return ret;
+
+    ret = i2s_rx_init();
+    if (ret != ESP_OK) goto fail_i2c;
+
+    ret = codec_init();
+    if (ret != ESP_OK) goto fail_i2s;
 
     s_running = true;
 
@@ -324,11 +326,26 @@ esp_err_t audio_capture_start(void)
     if (created != pdPASS) {
         s_running = false;
         ESP_LOGE(TAG, "xTaskCreate failed");
-        return ESP_ERR_NO_MEM;
+        ret = ESP_ERR_NO_MEM;
+        goto fail_codec;
     }
 
     ESP_LOGI(TAG, "Capture task created");
     return ESP_OK;
+
+    /* ── Teardown on partial failure ───────────────────────────────── */
+fail_codec:
+    esp_codec_dev_close(s_codec);
+    esp_codec_dev_delete(s_codec);
+    s_codec = NULL;
+fail_i2s:
+    i2s_channel_disable(s_rx_chan);
+    i2s_del_channel(s_rx_chan);
+    s_rx_chan = NULL;
+fail_i2c:
+    i2c_del_master_bus(s_i2c_bus);
+    s_i2c_bus = NULL;
+    return ret;
 }
 
 esp_err_t audio_capture_stop(void)

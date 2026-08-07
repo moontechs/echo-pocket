@@ -13,6 +13,7 @@
 
 #include "unity.h"
 #include "audio_ringbuf.h"
+#include "audio_mono_ringbuf.h"
 #include <string.h>
 #include <stdlib.h>
 
@@ -443,4 +444,48 @@ void test_downmix_large_values(void)
     int16_t mono[1];
     audio_downmix_2ch_to_mono(stereo, mono, 1);
     TEST_ASSERT_EQUAL_INT16(32767, mono[0]);
+}
+
+/* ── Mono ring buffer: discard_available ────────────────────────────── */
+
+void test_mono_rb_discard_drops_backlog(void)
+{
+    /* Simulates the always-on capture pipeline accumulating a backlog
+     * while idle: discard must make it unreadable without touching
+     * anything written afterward (the live audio the recording should
+     * actually start with). */
+    audio_mono_ringbuf_t *rb = audio_mono_ringbuf_alloc(16);
+    TEST_ASSERT_NOT_NULL(rb);
+
+    int16_t stale[4] = {1, 2, 3, 4};
+    audio_mono_ringbuf_write(rb, stale, 4);
+    TEST_ASSERT_EQUAL_size_t(4, audio_mono_ringbuf_available(rb));
+
+    audio_mono_ringbuf_discard_available(rb);
+    TEST_ASSERT_EQUAL_size_t(0, audio_mono_ringbuf_available(rb));
+
+    int16_t live[2] = {9, 10};
+    audio_mono_ringbuf_write(rb, live, 2);
+
+    int16_t out[2] = {0};
+    size_t got = audio_mono_ringbuf_read(rb, out, 2);
+    TEST_ASSERT_EQUAL_size_t(2, got);
+    TEST_ASSERT_EQUAL_INT16(9, out[0]);
+    TEST_ASSERT_EQUAL_INT16(10, out[1]);
+
+    audio_mono_ringbuf_free(rb);
+}
+
+void test_mono_rb_discard_null_safe(void)
+{
+    audio_mono_ringbuf_discard_available(NULL);  /* must not crash */
+}
+
+void test_mono_rb_discard_on_empty_is_noop(void)
+{
+    audio_mono_ringbuf_t *rb = audio_mono_ringbuf_alloc(8);
+    TEST_ASSERT_NOT_NULL(rb);
+    audio_mono_ringbuf_discard_available(rb);
+    TEST_ASSERT_EQUAL_size_t(0, audio_mono_ringbuf_available(rb));
+    audio_mono_ringbuf_free(rb);
 }

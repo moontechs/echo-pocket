@@ -139,6 +139,17 @@ static void process_task(void *arg)
             /* Fallback: simple 2ch→mono downmix (no AFE) */
             audio_downmix_2ch_to_mono(stereo_buf, mono_buf, read);
 
+            /* Digital makeup gain — no AGC in the fallback path (that's an
+             * AFE-only feature), and 37.5 dB analog gain (the ES7210's max)
+             * still left normal-distance speech too quiet to hear without
+             * being right next to the mic. Fixed multiply + hard clip. */
+            for (size_t i = 0; i < read; i++) {
+                int32_t boosted = (int32_t)mono_buf[i] * AUDIO_PROCESS_FALLBACK_GAIN;
+                if (boosted > INT16_MAX) boosted = INT16_MAX;
+                else if (boosted < INT16_MIN) boosted = INT16_MIN;
+                mono_buf[i] = (int16_t)boosted;
+            }
+
             /* Simple energy-threshold VAD when AFE VAD is disabled or
              * ESP-SR is not available.  Threshold empirically tuned for
              * electret mics in a quiet room. */
@@ -294,12 +305,10 @@ esp_err_t audio_process_stop(void)
         s_task = NULL;
     }
 
-#if HAS_ESP_SR
-    if (s_afe_iface) {
-        esp_afe_handle_destroy(s_afe_iface);
-        s_afe_iface = NULL;
-    }
-#endif
+    /* AFE stays alive across start/stop cycles — it's created once in
+     * audio_process_init() (not recreated in start()), and start/stop now
+     * run every recording rather than once per boot. Destroying it here
+     * would leave the second recording with no AFE. */
 
     return ESP_OK;
 }

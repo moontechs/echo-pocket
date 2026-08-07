@@ -137,6 +137,12 @@ size_t audio_mono_ringbuf_available(const audio_mono_ringbuf_t *rb)
     return samples_available(rb);
 }
 
+void audio_mono_ringbuf_discard_available(audio_mono_ringbuf_t *rb)
+{
+    if (!rb) return;
+    rb->read_pos = rb->write_pos;
+}
+
 uint32_t audio_mono_ringbuf_get_overflow(audio_mono_ringbuf_t *rb, bool reset)
 {
     if (!rb) return 0;

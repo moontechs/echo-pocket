@@ -168,7 +168,10 @@ void app_main(void)
     }
 
     /* ── Step 6: audio capture (I2S + ES7210 + PSRAM ring buffer) ─────
-     * Capture starts immediately — WAV writer picks up when told. */
+     * The mic only powers on/listens while a recording is active — the
+     * recorder calls audio_capture_start()/stop() around each recording.
+     * Here we only allocate the ring buffer, plus a quick start+stop
+     * self-test so boot diagnostics still catch wiring/power issues. */
     audio_ringbuf_t *capture_rb = NULL;
     esp_err_t ac_err = audio_capture_init(&capture_rb);
     if (ac_err != ESP_OK) {
@@ -176,14 +179,14 @@ void app_main(void)
                  esp_err_to_name(ac_err));
         boot_check("Audio codec", false, "Check mic wiring/power");
     } else {
-        ESP_LOGI(TAG, "Audio capture initialized (ringbuf %p)", (void *)capture_rb);
         ac_err = audio_capture_start();
         if (ac_err != ESP_OK) {
-            ESP_LOGE(TAG, "audio_capture_start failed: %s",
+            ESP_LOGE(TAG, "audio_capture_start self-test failed: %s",
                      esp_err_to_name(ac_err));
             boot_check("Audio codec", false, "Capture failed to start");
         } else {
-            ESP_LOGI(TAG, "Audio capture task running");
+            audio_capture_stop();
+            ESP_LOGI(TAG, "Audio capture self-test OK (ringbuf %p)", (void *)capture_rb);
             boot_check("Audio codec", true, NULL);
         }
     }
@@ -191,7 +194,8 @@ void app_main(void)
     /* ── Step 7: audio process (ESP-SR AFE — NS + VAD + AGC) ──────────
      * Gate NS/VAD individually on config flags.  If AFE init fails or
      * is disabled, fall through — the caller must check whether the
-     * mono ring buffer was created. */
+     * mono ring buffer was created. Like capture, the process task only
+     * runs while a recording is active (started/stopped by recorder.c). */
     audio_mono_ringbuf_t *mono_rb = NULL;
     if (capture_rb) {
         esp_err_t ap_err = audio_process_init(capture_rb, &s_config, &mono_rb);
@@ -199,15 +203,9 @@ void app_main(void)
             ESP_LOGW(TAG, "audio_process_init failed: %s — no AFE output",
                      esp_err_to_name(ap_err));
         } else {
-            ap_err = audio_process_start();
-            if (ap_err != ESP_OK) {
-                ESP_LOGW(TAG, "audio_process_start failed: %s",
-                         esp_err_to_name(ap_err));
-            } else {
-                const char *ns_str = s_config.noise_suppression ? " (NS on)" : " (NS off)";
-                const char *vad_str = s_config.voice_detection ? " (VAD on)" : " (VAD off)";
-                ESP_LOGI(TAG, "Audio process task running%s%s", ns_str, vad_str);
-            }
+            const char *ns_str = s_config.noise_suppression ? " (NS on)" : " (NS off)";
+            const char *vad_str = s_config.voice_detection ? " (VAD on)" : " (VAD off)";
+            ESP_LOGI(TAG, "Audio process ready%s%s", ns_str, vad_str);
         }
     }
 
