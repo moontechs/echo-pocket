@@ -16,6 +16,7 @@
  */
 
 #include "ui_task.h"
+#include <cmath>
 #include "menu.h"
 #include "list_screens.h"
 #include "display.h"
@@ -89,6 +90,7 @@ static ui_screen_t    s_screen        = UI_SCREEN_HOME;
 static uint32_t       s_rec_start_ms  = 0;
 static uint32_t       s_saved_enter_ms = 0;
 
+static bool            s_upload_in_progress     = false;
 static bool            s_face_flash_active      = false;
 static uint32_t        s_face_flash_started_ms  = 0;
 static uint32_t        s_face_flash_duration_ms = 0;
@@ -144,11 +146,13 @@ static void ui_event_handler(void *handler_arg, esp_event_base_t base,
         break;
 
     case RECORDER_EVENT_UPLOAD_STARTED:
+        s_upload_in_progress = true;
         s_face_flash_active = false;
         face->setEvent(FaceEvent::Uploading);
         break;
 
     case RECORDER_EVENT_UPLOAD_SUCCESS:
+        s_upload_in_progress = false;
         face->setEvent(FaceEvent::UploadSuccess);
         s_face_flash_active     = true;
         s_face_flash_started_ms = (uint32_t)(esp_timer_get_time() / 1000);
@@ -156,6 +160,7 @@ static void ui_event_handler(void *handler_arg, esp_event_base_t base,
         break;
 
     case RECORDER_EVENT_UPLOAD_ERROR:
+        s_upload_in_progress = false;
         face->setEvent(FaceEvent::UploadError);
         s_face_flash_active     = true;
         s_face_flash_started_ms = (uint32_t)(esp_timer_get_time() / 1000);
@@ -444,11 +449,16 @@ static void ui_task_loop(void *arg)
         if (s_screen == UI_SCREEN_SAVED) {
             uint32_t elapsed = now_ms - s_saved_enter_ms;
             if (elapsed >= SAVED_SCREEN_DURATION_MS) {
-                FacePlugin *face = face_registry_get_active();
-                if (face) {
-                    face->setEvent(FaceEvent::Idle);
+                /* Don't stomp the Uploading face if a big file is still
+                 * mid-send past this fixed timeout — UPLOAD_SUCCESS/ERROR
+                 * will set the final state and clear the flash itself. */
+                if (!s_upload_in_progress) {
+                    FacePlugin *face = face_registry_get_active();
+                    if (face) {
+                        face->setEvent(FaceEvent::Idle);
+                    }
+                    s_face_flash_active = false;
                 }
-                s_face_flash_active = false;
                 s_screen = UI_SCREEN_HOME;
                 screen_changed = true;
             }
@@ -483,7 +493,10 @@ static void ui_task_loop(void *arg)
                                      ? now_ms - last_update_ms : UI_UPDATE_PERIOD_MS;
                     if (delta > 500) delta = 500; /* clamp missed updates */
 
-                    float voice_level = audio_process_get_voice_level();
+                    /* Raw RMS/full-scale rarely nears 1.0 for normal speech
+                     * (typ. 0.1-0.25 linear) — sqrt boosts the low end so
+                     * faces' voice-reactive animations are actually visible. */
+                    float voice_level = sqrtf(audio_process_get_voice_level());
                     bool voice_active = audio_process_is_voice_active();
                     face->update(voice_level, voice_active, delta);
                 }

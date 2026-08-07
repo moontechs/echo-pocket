@@ -33,6 +33,11 @@
 #define VEC_BLINK_OPEN_MS   70
 #define VEC_BLINK_BAR_H       6
 
+/* Strained/tense face during Uploading — eyes narrow and pull in toward
+ * the virtual nose instead of sitting wide and relaxed. */
+#define VEC_STRAIN_EYE_H       24
+#define VEC_STRAIN_INSET_PX     5   /* < VEC_EYE_GAP/2 or eyes overlap  */
+
 /* Colors */
 #define VEC_BG          0x0000  /* black                        */
 #define VEC_EYE_NORMAL  0x07E6  /* mint green                   */
@@ -70,12 +75,14 @@ public:
 
     void update(float voiceLevel, bool /*voiceDetected*/,
                 uint32_t deltaMs) override {
-        /* ── Eye height follows voice level ─────────────────────── */
+        /* ── Eye height follows voice level (or strains during upload) ── */
         int target = VEC_EYE_H;
-        if (cfg_.react_to_voice && voiceLevel > 0.0f) {
+        if (event_ == FaceEvent::Uploading) {
+            target = VEC_STRAIN_EYE_H;
+        } else if (cfg_.react_to_voice && voiceLevel > 0.0f) {
             float t = voiceLevel;
             if (t > 1.0f) t = 1.0f;
-            target = VEC_EYE_H + (int)(14.0f * t);
+            target = VEC_EYE_H + (int)(55.0f * t);
         }
         int delta = target - eye_h_;
         if (delta != 0) {
@@ -122,8 +129,15 @@ public:
         /* Eyes are sharp rectangles except right after a successful send,
          * when they round off to match the smiling mouth. */
         int radius = (event_ == FaceEvent::UploadSuccess) ? VEC_EYE_RADIUS : 0;
-        display_fill_rounded_rect(VEC_LEFT_X,  y, VEC_EYE_W, h, radius, eye_color);
-        display_fill_rounded_rect(VEC_RIGHT_X, y, VEC_EYE_W, h, radius, eye_color);
+
+        /* Strained face while uploading — eyes pull in toward the virtual
+         * nose (narrower gap) instead of sitting at their relaxed width. */
+        int inset = (event_ == FaceEvent::Uploading) ? VEC_STRAIN_INSET_PX : 0;
+        int x_l = VEC_LEFT_X  + inset;
+        int x_r = VEC_RIGHT_X - inset;
+
+        display_fill_rounded_rect(x_l, y, VEC_EYE_W, h, radius, eye_color);
+        display_fill_rounded_rect(x_r, y, VEC_EYE_W, h, radius, eye_color);
 
         /* Brow lines track the eye's current top (y), not the resting
          * position — so they move down with the eye on blink/squash,
@@ -131,8 +145,8 @@ public:
          * UploadSuccess — the reference video's post-send face keeps
          * flat brows too, only the mouth changes to a smile. */
         int brow_y = y - VEC_BROW_OFFSET;
-        display_draw_hline(VEC_LEFT_X,  brow_y, VEC_EYE_W, VEC_BROW_COLOR);
-        display_draw_hline(VEC_RIGHT_X, brow_y, VEC_EYE_W, VEC_BROW_COLOR);
+        display_draw_hline(x_l, brow_y, VEC_EYE_W, VEC_BROW_COLOR);
+        display_draw_hline(x_r, brow_y, VEC_EYE_W, VEC_BROW_COLOR);
 
         mouthDraw();
 
