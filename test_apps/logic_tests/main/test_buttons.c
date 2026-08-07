@@ -131,10 +131,9 @@ void test_consecutive_presses(void)
 
     /* First press-release */
     feed_stable(&db, true, 0);
-    feed_stable(&db, false, 0);
-    /* Count events accumulated during the release phase */
+    /* Count the release event while feeding the stable samples. */
     for (int i = 0; i < 6; i++) {
-        if (button_debounce_feed(&db, false, 0)) events++;  /* already released, just feeding more */
+        if (button_debounce_feed(&db, false, 0)) events++;
     }
 
     /* Second press-release */

@@ -34,6 +34,7 @@ idf_component_register(
          "../../../components/storage/sd_storage_pure.c"
          "../../../components/storage/test/test_queue_store.c"
          "../../../components/telegram/telegram_caption.c"
+         "../../../components/telegram/telegram_error.c"
          "../../../components/telegram/test/test_caption.c"
          "../../../components/board/test/test_battery_curve.c"
          "../../../components/board/button_debounce.c"

@@ -25,7 +25,7 @@ int battery_voltage_to_percent(int voltage_mv)
 
 battery_level_t battery_percent_to_threshold(int percent)
 {
-    if (percent == BATTERY_PERCENT_UNKNOWN) return BATTERY_UNKNOWN;
+    if (percent < 0) return BATTERY_UNKNOWN;
     if (percent <= 10) return BATTERY_CRITICAL;
     if (percent <= 20) return BATTERY_WARNING;
     return BATTERY_NORMAL;
@@ -33,5 +33,5 @@ battery_level_t battery_percent_to_threshold(int percent)
 
 bool battery_should_block_upload(int percent, uint32_t file_bytes)
 {
-    return percent != BATTERY_PERCENT_UNKNOWN && percent <= 10 && file_bytes > LOW_BATTERY_UPLOAD_MAX_BYTES;
+    return percent >= 0 && percent <= 10 && file_bytes > LOW_BATTERY_UPLOAD_MAX_BYTES;
 }

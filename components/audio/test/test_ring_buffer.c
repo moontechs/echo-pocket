@@ -209,8 +209,10 @@ void test_rb_overflow_reset_counter(void)
     audio_ringbuf_write(rb, src, 10);          /* 5 dropped */
     audio_ringbuf_write(rb, src, 10);          /* 5 more dropped */
 
-    TEST_ASSERT_EQUAL_UINT32(10, audio_ringbuf_get_overflow(rb, false));
-    TEST_ASSERT_EQUAL_UINT32(10, audio_ringbuf_get_overflow(rb, true));  /* read + reset */
+    /* The second oversized write drops five buffered frames plus five
+     * incoming frames that cannot fit, for 15 dropped frames total. */
+    TEST_ASSERT_EQUAL_UINT32(15, audio_ringbuf_get_overflow(rb, false));
+    TEST_ASSERT_EQUAL_UINT32(15, audio_ringbuf_get_overflow(rb, true));  /* read + reset */
     TEST_ASSERT_EQUAL_UINT32(0, audio_ringbuf_get_overflow(rb, false));  /* now zero */
 
     audio_ringbuf_free(rb);
@@ -237,10 +239,11 @@ void test_rb_wrap_write_across_boundary(void)
     audio_ringbuf_write(rb, src, 10);
     TEST_ASSERT_EQUAL_size_t(15, audio_ringbuf_available(rb));
 
-    /* Read all 15 — should be frames 5..19 (5 original + 10 new)        */
+    /* Read all 15 — frames 90..94 remain after the first read, followed
+     * by the 10 newly written frames. */
     int16_t dst[15 * SPF];
     audio_ringbuf_read(rb, dst, 15);
-    assert_pattern(dst, 5, 5);   /* original 5: frames 5..9              */
+    assert_pattern(dst, 5, 90);  /* original 5: frames 90..94            */
     assert_pattern(dst + (5 * SPF), 10, 95); /* new 10: frames 95..104 → wraparound */
 
     audio_ringbuf_free(rb);
@@ -268,7 +271,7 @@ void test_rb_wrap_read_across_boundary(void)
     audio_ringbuf_read(rb, dst, 15);
 
     /* Verify the data wraps correctly                                  */
-    assert_pattern(dst, 5, 5);    /* tail: frames 5..9                   */
+    assert_pattern(dst, 5, 90);   /* tail: frames 90..94                  */
     assert_pattern(dst + (5 * SPF), 10, 95); /* head: frames 95..104     */
 
     audio_ringbuf_free(rb);

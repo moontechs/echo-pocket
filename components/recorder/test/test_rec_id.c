@@ -30,8 +30,6 @@ void test_rec_id_synced_basic(void)
         .tm_min  = 57,
         .tm_sec  = 0,
     };
-    time_t now = mktime(&tm);
-
     /* Temporarily set TZ to UTC so localtime_r gives predictable output.
      * getenv()'s return value is only valid until the next setenv() call
      * (setenv may free/realloc the underlying string), so it must be
@@ -40,6 +38,8 @@ void test_rec_id_synced_basic(void)
     char *old_tz = tz_ptr ? strdup(tz_ptr) : NULL;
     setenv("TZ", "UTC", 1);
     tzset();
+
+    time_t now = mktime(&tm);
 
     char buf[REC_ID_MAX_LEN];
     rec_id_err_t err = rec_id_generate(buf, sizeof(buf), true, now, 0, 0);
