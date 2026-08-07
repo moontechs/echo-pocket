@@ -77,6 +77,15 @@ extern "C" {
 /** Minimal board init. Currently a stub; fills out in later tasks. */
 void board_init(void);
 
+/**
+ * @brief Cut battery power (drives BOARD_BAT_POWER_PIN low) and halt.
+ *
+ * Does not return — the board loses power immediately. On USB power the
+ * pin drop has no effect since the board is fed directly, so this also
+ * spins forever as a fallback.
+ */
+void board_power_off(void);
+
 #ifdef __cplusplus
 }
 #endif

@@ -309,6 +309,11 @@ static void ui_task_loop(void *arg)
                         delete_confirm_enter(DELETE_CONFIRM_ALL,
                                              sd_storage_count_recordings());
                         screen_changed = true;
+                    } else if (s_menu_state.cursor == MENU_ITEM_SHUTDOWN) {
+                        s_screen = UI_SCREEN_DELETE_CONFIRM;
+                        s_delete_confirm_kind = DELETE_CONFIRM_SHUTDOWN;
+                        delete_confirm_enter(DELETE_CONFIRM_SHUTDOWN, 1);
+                        screen_changed = true;
                     } else {
                         ESP_LOGI(TAG, "Menu item '%s' selected (stub)",
                                  menu_item_label(s_menu_state.cursor));
@@ -391,8 +396,10 @@ static void ui_task_loop(void *arg)
                 delete_confirm_navigate(btn_evt.button, &confirmed,
                                         &should_exit);
                 if (confirmed) {
-                    int deleted;
-                    if (s_delete_confirm_kind == DELETE_CONFIRM_ALL) {
+                    int deleted = 0;
+                    if (s_delete_confirm_kind == DELETE_CONFIRM_SHUTDOWN) {
+                        board_power_off(); /* does not return */
+                    } else if (s_delete_confirm_kind == DELETE_CONFIRM_ALL) {
                         deleted = sd_storage_delete_all_recordings();
                         queue_store_delete_all(s_queue);
                         ESP_LOGI(TAG, "Deleted %d recording(s) (Delete All)", deleted);

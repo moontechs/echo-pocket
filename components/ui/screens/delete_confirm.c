@@ -18,6 +18,7 @@
 #include "ui_colors.h"
 
 #include <stdio.h>
+#include <string.h>
 
 #define TITLE_BAR_H     24
 #define HELP_BAR_H      24
@@ -51,14 +52,18 @@ void delete_confirm_enter(delete_confirm_kind_t kind, int item_count)
 
 void delete_confirm_screen_draw(void)
 {
-    const char *title = (s_kind == DELETE_CONFIRM_ALL) ? "Delete All" : "Delete Sent";
+    const char *title = (s_kind == DELETE_CONFIRM_ALL) ? "Delete All"
+                       : (s_kind == DELETE_CONFIRM_SHUTDOWN) ? "Shutdown"
+                       : "Delete Sent";
 
     display_clear(UI_COLOR_VOID);
     draw_title_bar(title);
 
     char line[48];
     if (s_state == DELETE_CONFIRM_STATE_ASK) {
-        if (s_item_count > 0) {
+        if (s_kind == DELETE_CONFIRM_SHUTDOWN) {
+            snprintf(line, sizeof(line), "Shut down now?");
+        } else if (s_item_count > 0) {
             if (s_kind == DELETE_CONFIRM_ALL) {
                 snprintf(line, sizeof(line), "Delete ALL %d recording%s?",
                          s_item_count, s_item_count == 1 ? "" : "s");
@@ -80,8 +85,10 @@ void delete_confirm_screen_draw(void)
         display_draw_hline(0, HELP_BAR_Y, 240, UI_COLOR_TEXT_DIM);
         display_draw_text(4, HELP_BAR_Y + 5, "Cancel", UI_COLOR_TEXT_DIM);
         if (s_item_count > 0) {
-            display_draw_text(240 - 8 * 6 - 4, HELP_BAR_Y + 5, "Delete",
-                              UI_COLOR_ACCENT_CORAL);
+            const char *right_label =
+                (s_kind == DELETE_CONFIRM_SHUTDOWN) ? "Shutdown" : "Delete";
+            display_draw_text(240 - (int)strlen(right_label) * 8 - 4,
+                              HELP_BAR_Y + 5, right_label, UI_COLOR_ACCENT_CORAL);
         }
     } else {
         snprintf(line, sizeof(line), "Deleted %d file%s.",

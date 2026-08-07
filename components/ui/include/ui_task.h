@@ -163,17 +163,20 @@ void unsent_list_navigate(ButtonId button, bool *should_exit);
 /** Draw the Info screen (Wi-Fi status/SSID/IP, SD status, battery %). */
 void info_screen_draw(const ui_status_t *status);
 
-/** Which bulk-delete action the confirm screen (below) is guarding. */
+/** Which action the confirm screen (below) is guarding. */
 typedef enum {
     DELETE_CONFIRM_SENT = 0, /**< Delete Sent: only SENT queue entries    */
     DELETE_CONFIRM_ALL,      /**< Delete All: every .wav on the SD card   */
+    DELETE_CONFIRM_SHUTDOWN, /**< Shutdown: power off the board           */
 } delete_confirm_kind_t;
 
 /**
- * @brief Called when entering the delete confirm screen.
+ * @brief Called when entering the confirm screen.
  *
  * @param kind         Which menu item triggered this (changes title/copy).
- * @param item_count   Number of recordings that would be deleted.
+ * @param item_count   Number of recordings that would be deleted, or 1 for
+ *                      DELETE_CONFIRM_SHUTDOWN (just needs to be > 0 so
+ *                      RIGHT is armed).
  */
 void delete_confirm_enter(delete_confirm_kind_t kind, int item_count);
 

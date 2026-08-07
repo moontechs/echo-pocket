@@ -2,6 +2,8 @@
 #include "device_events.h"
 #include "esp_log.h"
 #include "driver/gpio.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 
 /* Define the esp_event base declared in device_events.h.
  * This lives here because board is the neutral home — no component
@@ -36,4 +38,13 @@ void board_init(void)
      *   Task 6: Audio I2S + ES7210 (audio_capture.c)
      *   Task 18: Battery (battery.c)
      */
+}
+
+void board_power_off(void)
+{
+    ESP_LOGI(TAG, "Powering off — dropping BAT_POWER_PIN");
+    gpio_set_level(BOARD_BAT_POWER_PIN, 0);
+    while (1) {
+        vTaskDelay(portMAX_DELAY);
+    }
 }

@@ -6,7 +6,7 @@
  *
  * Menu structure (per AGENTS.md §4.5):
  *   New Recording / Recordings / Unsent / Send All / Face /
- *   Delete Sent / Delete All / Info
+ *   Delete Sent / Delete All / Info / Shutdown
  *
  * Face submenu lists the 4 registered themes by display name.
  */
@@ -30,6 +30,7 @@ typedef enum {
     MENU_ITEM_DELETE_SENT,
     MENU_ITEM_DELETE_ALL,
     MENU_ITEM_INFO,
+    MENU_ITEM_SHUTDOWN,
     MENU_ITEM_COUNT
 } menu_item_t;
 

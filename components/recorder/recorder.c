@@ -16,6 +16,7 @@
 #include "device_events.h"
 #include "queue_store.h"
 #include "battery.h"
+#include "board.h"
 
 #include <inttypes.h>
 #include <string.h>
@@ -159,7 +160,6 @@ static bool finalize_recording(wav_writer_t *wav)
         const char *prefix = RECORDER_FILE_PREFIX;
         const char *suffix = RECORDER_FILE_SUFFIX;
         size_t prefix_len = strlen(prefix);
-        size_t suffix_len = strlen(suffix);
         char rec_id[REC_ID_MAX_LEN];
 
         const char *start = path_buf + prefix_len;
@@ -312,8 +312,7 @@ static void sd_writer_task(void *arg)
             s_state = RECORDER_STATE_IDLE;
             audio_process_stop();
             audio_capture_stop();
-            /* Power down — if the hardware supports it */
-            /* TODO: call board_power_off() once that API is added */
+            board_power_off();
         }
 
         /* ── If recording, consume mono PCM from process output ────── */

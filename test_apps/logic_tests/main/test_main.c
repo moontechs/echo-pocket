@@ -264,7 +264,7 @@ extern void test_menu_center_face(void);
 extern void test_menu_center_send_all(void);
 extern void test_menu_center_stub_items(void);
 extern void test_menu_navigate_null_safety(void);
-extern void test_menu_item_count_is_eight(void);
+extern void test_menu_item_count_is_nine(void);
 extern void test_face_submenu_init(void);
 extern void test_face_submenu_init_zero_count(void);
 extern void test_face_submenu_init_null(void);
@@ -631,7 +631,7 @@ void app_main(void)
     RUN_TEST(test_menu_center_send_all);
     RUN_TEST(test_menu_center_stub_items);
     RUN_TEST(test_menu_navigate_null_safety);
-    RUN_TEST(test_menu_item_count_is_eight);
+    RUN_TEST(test_menu_item_count_is_nine);
     RUN_TEST(test_face_submenu_init);
     RUN_TEST(test_face_submenu_init_zero_count);
     RUN_TEST(test_face_submenu_init_null);

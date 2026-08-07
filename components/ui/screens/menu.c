@@ -34,6 +34,7 @@ static const char *s_menu_labels[MENU_ITEM_COUNT] = {
     "Delete Sent",
     "Delete All",
     "Info",
+    "Shutdown",
 };
 
 const char *menu_item_label(menu_item_t item)

@@ -32,6 +32,7 @@ void test_menu_label_known_items(void)
     TEST_ASSERT_EQUAL_STRING("Delete Sent",   menu_item_label(MENU_ITEM_DELETE_SENT));
     TEST_ASSERT_EQUAL_STRING("Delete All",    menu_item_label(MENU_ITEM_DELETE_ALL));
     TEST_ASSERT_EQUAL_STRING("Info",          menu_item_label(MENU_ITEM_INFO));
+    TEST_ASSERT_EQUAL_STRING("Shutdown",      menu_item_label(MENU_ITEM_SHUTDOWN));
 }
 
 void test_menu_label_unknown(void)
@@ -67,7 +68,7 @@ void test_menu_right_wraps_around(void)
     for (int i = 0; i < MENU_ITEM_COUNT - 1; i++) {
         menu_navigate(&state, BUTTON_RIGHT, &action);
     }
-    TEST_ASSERT_EQUAL(MENU_ITEM_INFO, state.cursor);
+    TEST_ASSERT_EQUAL(MENU_ITEM_SHUTDOWN, state.cursor);
 
     /* One more RIGHT wraps to first */
     menu_navigate(&state, BUTTON_RIGHT, &action);
@@ -138,7 +139,8 @@ void test_menu_center_stub_items(void)
     /* Test every stub item produces MENU_ACTION_SHOW_STUB */
     menu_item_t stubs[] = {
         MENU_ITEM_RECORDINGS, MENU_ITEM_UNSENT,
-        MENU_ITEM_DELETE_SENT, MENU_ITEM_DELETE_ALL, MENU_ITEM_INFO
+        MENU_ITEM_DELETE_SENT, MENU_ITEM_DELETE_ALL, MENU_ITEM_INFO,
+        MENU_ITEM_SHUTDOWN
     };
 
     for (size_t s = 0; s < sizeof(stubs) / sizeof(stubs[0]); s++) {
@@ -169,13 +171,13 @@ void test_menu_navigate_null_safety(void)
     menu_action_t action = (menu_action_t)99;
     menu_navigate(NULL, BUTTON_CENTER, &action);
     /* action should be untouched when state is NULL */
-    TEST_ASSERT_EQUAL(MENU_ACTION_NONE, action);
+    TEST_ASSERT_EQUAL((menu_action_t)99, action);
 }
 
-void test_menu_item_count_is_eight(void)
+void test_menu_item_count_is_nine(void)
 {
-    /* Regression check: the menu has exactly 8 items */
-    TEST_ASSERT_EQUAL(8, MENU_ITEM_COUNT);
+    /* Regression check: the menu has exactly 9 items */
+    TEST_ASSERT_EQUAL(9, MENU_ITEM_COUNT);
 }
 
 /* ── Face submenu state machine ──────────────────────────────────────── */
@@ -286,11 +288,11 @@ void test_face_submenu_navigate_null_safety(void)
     face_submenu_navigate(NULL, BUTTON_CENTER, NULL, NULL);
 
     int theme_index = -1;
-    bool should_exit;
+    bool should_exit = true;
     face_submenu_navigate(NULL, BUTTON_CENTER, &theme_index, &should_exit);
     /* Should be untouched */
     TEST_ASSERT_EQUAL(-1, theme_index);
-    TEST_ASSERT_FALSE(should_exit);
+    TEST_ASSERT_TRUE(should_exit);
 }
 
 /* ── Integration: menu → face submenu → back → menu ──────────────────── */
