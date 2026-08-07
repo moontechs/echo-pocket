@@ -217,18 +217,7 @@ private:
     }
 
     const char *eventLabel() const {
-        switch (event_) {
-            case FaceEvent::Idle:          return "READY";
-            case FaceEvent::Recording:     return "[REC]";
-            case FaceEvent::VoiceActive:   return "TALK";
-            case FaceEvent::Silence:       return ".....";
-            case FaceEvent::Saving:        return "SAVE";
-            case FaceEvent::Uploading:     return "SEND";
-            case FaceEvent::UploadSuccess: return "OK!";
-            case FaceEvent::UploadError:   return "ERR";
-            case FaceEvent::LowBattery:    return "BATT";
-            default:                       return NULL;
-        }
+        return face_event_label(event_);
     }
 
     FaceConfig cfg_;

@@ -10,6 +10,7 @@ idf_component_register(
          "screens/unsent_list.c"
          "screens/info_screen.c"
          "face_engine/face_registry.cpp"
+         "face_engine/face_plugin.cpp"
          "face_engine/owl_face.cpp"
          "face_engine/minimal_face.cpp"
          "face_engine/robot_face.cpp"

@@ -56,6 +56,16 @@ void display_draw_text(int x, int y, const char *text, uint16_t color);
 void display_fill_rect(int x, int y, int w, int h, uint16_t color);
 
 /**
+ * @brief Fill a rectangle with rounded corners.
+ *
+ * @p x, y      Top-left corner.
+ * @p w, h      Width and height in pixels.
+ * @p radius    Corner radius in pixels (clamped to half of w/h).
+ * @p color     16-bit RGB565 fill color.
+ */
+void display_fill_rounded_rect(int x, int y, int w, int h, int radius, uint16_t color);
+
+/**
  * @brief Draw a 1-pixel outline rectangle.
  *
  * @p x, y   Top-left corner.
@@ -87,12 +97,14 @@ void display_draw_hline(int x, int y, int w, uint16_t color);
  *
  * Used for happy/closed eyes and smiling mouths.
  *
- * @p cx, cy    Center of the full circle the arc is cut from.
- * @p r         Radius in pixels.
- * @p thickness Stroke thickness in pixels.
- * @p color     16-bit RGB565 color.
+ * @p cx, cy      Center of the full circle the arc is cut from.
+ * @p r           Radius in pixels — controls curvature (bigger = flatter).
+ * @p half_width  Horizontal half-span drawn, in pixels. Must be <= r.
+ *                Pass r itself for a plain half-circle.
+ * @p thickness   Stroke thickness in pixels.
+ * @p color       16-bit RGB565 color.
  */
-void display_draw_smile_arc(int cx, int cy, int r, int thickness, uint16_t color);
+void display_draw_smile_arc(int cx, int cy, int r, int half_width, int thickness, uint16_t color);
 
 #ifdef __cplusplus
 }

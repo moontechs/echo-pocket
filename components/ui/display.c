@@ -134,12 +134,32 @@ static inline uint16_t rgb565(uint8_t r, uint8_t g, uint8_t b)
     return (uint16_t)(((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3));
 }
 
+/** Linear-interpolate two RGB565 colors in their native 5/6/5 component
+ *  space. @p t in [0,1], 0 = bg, 1 = fg. Used to anti-alias curved edges
+ *  by blending into whatever is already in the framebuffer at that pixel. */
+static uint16_t blend565(uint16_t bg, uint16_t fg, float t)
+{
+    int br = (bg >> 11) & 0x1F, bg6 = (bg >> 5) & 0x3F, bb = bg & 0x1F;
+    int fr = (fg >> 11) & 0x1F, fg6 = (fg >> 5) & 0x3F, fb5 = fg & 0x1F;
+    int r = br + (int)(t * (float)(fr - br) + 0.5f);
+    int g = bg6 + (int)(t * (float)(fg6 - bg6) + 0.5f);
+    int b = bb + (int)(t * (float)(fb5 - bb) + 0.5f);
+    return (uint16_t)((r << 11) | (g << 5) | b);
+}
+
 /** Fill the whole PSRAM framebuffer with @p color. */
 static void fb_fill(uint16_t color)
 {
     for (size_t i = 0; i < FB_SIZE; i++) {
         fb[i] = color;
     }
+}
+
+/** Read one pixel at (x, y). Out-of-bounds returns black. */
+static uint16_t fb_get(int x, int y)
+{
+    if (x < 0 || x >= BOARD_LCD_H_RES || y < 0 || y >= BOARD_LCD_V_RES) return 0;
+    return fb[y * BOARD_LCD_H_RES + x];
 }
 
 /** Put one pixel at (x, y). Out-of-bounds silently ignored. */
@@ -387,6 +407,54 @@ void display_fill_rect(int x, int y, int w, int h, uint16_t color)
     }
 }
 
+void display_fill_rounded_rect(int x, int y, int w, int h, int radius, uint16_t color)
+{
+    if (!fb || w <= 0 || h <= 0) return;
+    if (radius <= 0) { display_fill_rect(x, y, w, h, color); return; }
+    if (radius > w / 2) radius = w / 2;
+    if (radius > h / 2) radius = h / 2;
+
+    /* Corner arcs are anti-aliased by blending edge pixels with whatever's
+     * already in the framebuffer, based on fractional circle coverage —
+     * a hard in/out pixel mask stairsteps visibly at this radius. */
+    float r = (float)radius;
+    float cy_top = y + r - 0.5f;
+    float cy_bot = y + h - r - 0.5f;
+    float cx_left  = x + r - 0.5f;
+    float cx_right = x + w - r - 0.5f;
+
+    for (int row = 0; row < h; row++) {
+        int py = y + row;
+        int top    = row < radius;
+        int bottom = row >= h - radius;
+
+        if (!top && !bottom) {
+            display_fill_rect(x, py, w, 1, color);
+            continue;
+        }
+        float cyc = top ? cy_top : cy_bot;
+        for (int col = 0; col < w; col++) {
+            int px = x + col;
+            int left  = col < radius;
+            int right = col >= w - radius;
+
+            if (!left && !right) {
+                fb_put(px, py, color);
+                continue;
+            }
+            float cxc = left ? cx_left : cx_right;
+            float dx = (px + 0.5f) - cxc;
+            float dy = (py + 0.5f) - cyc;
+            float dist = sqrtf(dx * dx + dy * dy);
+            float coverage = r + 0.5f - dist; /* ~1px soft edge */
+
+            if (coverage <= 0.0f) continue;
+            if (coverage >= 1.0f) { fb_put(px, py, color); continue; }
+            fb_put(px, py, blend565(fb_get(px, py), color, coverage));
+        }
+    }
+}
+
 void display_draw_rect(int x, int y, int w, int h, uint16_t color)
 {
     if (!fb) return;
@@ -438,13 +506,18 @@ void display_fill_circle(int cx, int cy, int r, uint16_t color)
     }
 }
 
-void display_draw_smile_arc(int cx, int cy, int r, int thickness, uint16_t color)
+void display_draw_smile_arc(int cx, int cy, int r, int half_width, int thickness, uint16_t color)
 {
     if (!fb || r <= 0) return;
     if (thickness < 1) thickness = 1;
+    if (half_width <= 0 || half_width > r) half_width = r;
 
-    for (int dx = -r; dx <= r; dx++) {
-        int dy = (int)sqrtf((float)(r * r - dx * dx));
+    /* Offset so the curve's endpoints (dx = ±half_width) sit at cy even
+     * when half_width < r — a bigger r with the same half_width traces a
+     * shallower arc between those endpoints, i.e. a flatter smile. */
+    float edge_dy = sqrtf((float)(r * r - half_width * half_width));
+    for (int dx = -half_width; dx <= half_width; dx++) {
+        int dy = (int)(sqrtf((float)(r * r - dx * dx)) - edge_dy);
         for (int t = 0; t < thickness; t++) {
             fb_put(cx + dx, cy + dy - t, color);
         }

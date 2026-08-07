@@ -15,10 +15,11 @@
 /* ── Constants ───────────────────────────────────────────────────────── */
 
 #define VEC_CENTER_X    120
-#define VEC_EYE_Y        92   /* top of eye rect at rest             */
-#define VEC_EYE_W        52
-#define VEC_EYE_H        40
+#define VEC_EYE_Y        87   /* top of eye rect at rest             */
+#define VEC_EYE_W        64
+#define VEC_EYE_H        50
 #define VEC_EYE_GAP      16   /* gap between the two eyes            */
+#define VEC_EYE_RADIUS   14   /* eye corner rounding                 */
 #define VEC_BROW_OFFSET   8   /* brow line above eye top             */
 #define VEC_MOUTH_Y     172
 #define VEC_LABEL_Y     205
@@ -118,13 +119,20 @@ public:
         int h = blink_shut ? VEC_BLINK_BAR_H : eye_h_;
         int y = VEC_EYE_Y + (VEC_EYE_H - h) / 2; /* keep eyes vertically centered */
 
-        display_fill_rect(VEC_LEFT_X,  y, VEC_EYE_W, h, eye_color);
-        display_fill_rect(VEC_RIGHT_X, y, VEC_EYE_W, h, eye_color);
+        /* Eyes are sharp rectangles except right after a successful send,
+         * when they round off to match the smiling mouth. */
+        int radius = (event_ == FaceEvent::UploadSuccess) ? VEC_EYE_RADIUS : 0;
+        display_fill_rounded_rect(VEC_LEFT_X,  y, VEC_EYE_W, h, radius, eye_color);
+        display_fill_rounded_rect(VEC_RIGHT_X, y, VEC_EYE_W, h, radius, eye_color);
 
-        /* Brow lines — flat only; a diagonal tilt would need a line-draw
-         * primitive display.h doesn't expose. */
-        display_draw_hline(VEC_LEFT_X,  VEC_EYE_Y - VEC_BROW_OFFSET, VEC_EYE_W, VEC_BROW_COLOR);
-        display_draw_hline(VEC_RIGHT_X, VEC_EYE_Y - VEC_BROW_OFFSET, VEC_EYE_W, VEC_BROW_COLOR);
+        /* Brow lines track the eye's current top (y), not the resting
+         * position — so they move down with the eye on blink/squash,
+         * matching the reference face. Flat for every state, including
+         * UploadSuccess — the reference video's post-send face keeps
+         * flat brows too, only the mouth changes to a smile. */
+        int brow_y = y - VEC_BROW_OFFSET;
+        display_draw_hline(VEC_LEFT_X,  brow_y, VEC_EYE_W, VEC_BROW_COLOR);
+        display_draw_hline(VEC_RIGHT_X, brow_y, VEC_EYE_W, VEC_BROW_COLOR);
 
         mouthDraw();
 
@@ -156,10 +164,9 @@ private:
 
     void mouthDraw() {
         switch (event_) {
-            case FaceEvent::Idle:
             case FaceEvent::UploadSuccess:
                 /* Smile ⌣ */
-                display_draw_smile_arc(VEC_CENTER_X, VEC_MOUTH_Y - 10, 16, 3, VEC_MOUTH_COLOR);
+                display_draw_smile_arc(VEC_CENTER_X, VEC_MOUTH_Y - 10, 32, 16, 3, VEC_MOUTH_COLOR);
                 break;
             case FaceEvent::UploadError:
             case FaceEvent::LowBattery:
@@ -173,18 +180,7 @@ private:
     }
 
     const char *eventLabel() const {
-        switch (event_) {
-            case FaceEvent::Idle:          return "READY";
-            case FaceEvent::Recording:     return "REC";
-            case FaceEvent::VoiceActive:   return "LISTEN";
-            case FaceEvent::Silence:       return "IDLE";
-            case FaceEvent::Saving:        return "SAVE";
-            case FaceEvent::Uploading:     return "SEND";
-            case FaceEvent::UploadSuccess: return "OK";
-            case FaceEvent::UploadError:   return "ERR";
-            case FaceEvent::LowBattery:    return "LOW BATT";
-            default:                       return NULL;
-        }
+        return face_event_label(event_);
     }
 
     FaceConfig cfg_;

@@ -82,3 +82,8 @@ public:
      *  Called by the UI task, rate-limited by the frame-rate cap. */
     virtual void draw() = 0;
 };
+
+/** Shared status word for a FaceEvent, common to every theme so the
+ *  device says the same thing regardless of which face is active.
+ *  Returns NULL for Idle — themes show no label at rest. */
+const char *face_event_label(FaceEvent event);

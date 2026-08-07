@@ -67,6 +67,10 @@ static const char *TAG = "ui_task";
 /** How long the "Saved" screen stays before returning to Home (ms). */
 #define SAVED_SCREEN_DURATION_MS  2000
 
+/** How long the face flashes "SENT" / "ERROR" before reverting to Idle. */
+#define FACE_FLASH_SENT_MS        3000
+#define FACE_FLASH_ERROR_MS       3000
+
 /** Button event queue depth (same as what buttons_init expects). */
 #define UI_BUTTON_QUEUE_DEPTH     4
 
@@ -82,6 +86,10 @@ static volatile bool  s_running       = false;
 static ui_screen_t    s_screen        = UI_SCREEN_HOME;
 static uint32_t       s_rec_start_ms  = 0;
 static uint32_t       s_saved_enter_ms = 0;
+
+static bool            s_face_flash_active      = false;
+static uint32_t        s_face_flash_started_ms  = 0;
+static uint32_t        s_face_flash_duration_ms = 0;
 
 static bool           s_wifi_connected = false;
 static bool           s_sd_mounted     = false;
@@ -115,10 +123,12 @@ static void ui_event_handler(void *handler_arg, esp_event_base_t base,
 
     switch ((recorder_event_id_t)id) {
     case RECORDER_EVENT_STARTED:
+        s_face_flash_active = false; /* cancel any pending revert — new state wins */
         face->setEvent(FaceEvent::Recording);
         break;
 
     case RECORDER_EVENT_STOPPED:
+        s_face_flash_active = false;
         face->setEvent(FaceEvent::Saving);
         break;
 
@@ -129,19 +139,27 @@ static void ui_event_handler(void *handler_arg, esp_event_base_t base,
         break;
 
     case RECORDER_EVENT_UPLOAD_STARTED:
+        s_face_flash_active = false;
         face->setEvent(FaceEvent::Uploading);
         break;
 
     case RECORDER_EVENT_UPLOAD_SUCCESS:
         face->setEvent(FaceEvent::UploadSuccess);
+        s_face_flash_active     = true;
+        s_face_flash_started_ms = (uint32_t)(esp_timer_get_time() / 1000);
+        s_face_flash_duration_ms = FACE_FLASH_SENT_MS;
         break;
 
     case RECORDER_EVENT_UPLOAD_ERROR:
         face->setEvent(FaceEvent::UploadError);
+        s_face_flash_active     = true;
+        s_face_flash_started_ms = (uint32_t)(esp_timer_get_time() / 1000);
+        s_face_flash_duration_ms = FACE_FLASH_ERROR_MS;
         break;
 
     case RECORDER_EVENT_BATTERY_WARNING:
     case RECORDER_EVENT_BATTERY_CRITICAL:
+        s_face_flash_active = false;
         face->setEvent(FaceEvent::LowBattery);
         break;
 
@@ -389,9 +407,21 @@ static void ui_task_loop(void *arg)
                 if (face) {
                     face->setEvent(FaceEvent::Idle);
                 }
+                s_face_flash_active = false;
                 s_screen = UI_SCREEN_HOME;
                 screen_changed = true;
             }
+        }
+
+        /* ── SENT / ERROR flash auto-revert to Idle ───────────── */
+        if (s_face_flash_active &&
+            (now_ms - s_face_flash_started_ms) >= s_face_flash_duration_ms) {
+            FacePlugin *face = face_registry_get_active();
+            if (face) {
+                face->setEvent(FaceEvent::Idle);
+            }
+            s_face_flash_active = false;
+            screen_changed = true;
         }
 
         /* ── Render frame (rate-limited) ────────────────────── */

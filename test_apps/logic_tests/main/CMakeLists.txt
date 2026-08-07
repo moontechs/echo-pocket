@@ -20,6 +20,7 @@ idf_component_register(
          "../../../components/ui/test/test_ui_button_routing.c"
          "../../../components/ui/test/test_menu_nav.c"
          "../../../components/ui/face_engine/face_registry.cpp"
+         "../../../components/ui/face_engine/face_plugin.cpp"
          "../../../components/ui/face_engine/owl_face.cpp"
          "../../../components/ui/face_engine/minimal_face.cpp"
          "../../../components/ui/face_engine/robot_face.cpp"

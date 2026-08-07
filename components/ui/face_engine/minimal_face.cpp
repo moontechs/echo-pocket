@@ -102,8 +102,8 @@ public:
         if (!blink_active_) {
             if (event_ == FaceEvent::Idle) {
                 /* Happy closed-eye curves ⌣⌣, like the resting face */
-                display_draw_smile_arc(MIN_LEFT_X,  MIN_EYE_Y, r, 3, MIN_EYE_COLOR);
-                display_draw_smile_arc(MIN_RIGHT_X, MIN_EYE_Y, r, 3, MIN_EYE_COLOR);
+                display_draw_smile_arc(MIN_LEFT_X,  MIN_EYE_Y, r, r, 3, MIN_EYE_COLOR);
+                display_draw_smile_arc(MIN_RIGHT_X, MIN_EYE_Y, r, r, 3, MIN_EYE_COLOR);
             } else {
                 display_fill_circle(MIN_LEFT_X,  MIN_EYE_Y, r, MIN_EYE_COLOR);
                 display_fill_circle(MIN_RIGHT_X, MIN_EYE_Y, r, MIN_EYE_COLOR);
@@ -126,7 +126,7 @@ private:
         switch (event_) {
             case FaceEvent::Idle:
                 /* Happy smile curve ⌣ */
-                display_draw_smile_arc(MIN_CENTER_X, MIN_MOUTH_Y - 12, 18, 4, MIN_MOUTH_COLOR);
+                display_draw_smile_arc(MIN_CENTER_X, MIN_MOUTH_Y - 12, 18, 18, 4, MIN_MOUTH_COLOR);
                 break;
             case FaceEvent::Recording:
             case FaceEvent::VoiceActive:
@@ -153,17 +153,7 @@ private:
     }
 
     const char *eventLabel() const {
-        switch (event_) {
-            case FaceEvent::Idle:          return "Ready";
-            case FaceEvent::Recording:     return "REC";
-            case FaceEvent::VoiceActive:   return "...";
-            case FaceEvent::Saving:        return "Save";
-            case FaceEvent::Uploading:     return "Send";
-            case FaceEvent::UploadSuccess: return "OK";
-            case FaceEvent::UploadError:   return "Err";
-            case FaceEvent::LowBattery:    return "Bat!";
-            default:                       return NULL;
-        }
+        return face_event_label(event_);
     }
 
     FaceConfig cfg_;

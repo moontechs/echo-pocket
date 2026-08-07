@@ -629,7 +629,7 @@ int queue_deserialize(const char *content,
 
             p = pure_skip_ws(p);
             if (!p || *p != ':') return -1;
-            p++;
+            p = pure_skip_ws(p + 1);
 
             if (strcmp(key, "id") == 0) {
                 p = pure_get_string(p, e->id, sizeof(e->id));
