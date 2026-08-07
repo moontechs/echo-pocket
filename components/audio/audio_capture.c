@@ -43,11 +43,13 @@ static volatile bool      s_running     = false;
 
 /* ── Capture task stack size ────────────────────────────────────────────
  *
- * Measured via uxTaskGetStackHighWaterMark on the reference board:
- * peak usage ~1800 bytes with ESP-IDF v5.x default logging.  We allocate
- * 3072 bytes to leave healthy headroom for future logging / debug hooks.
+ * ~1800 bytes was measured for a task created once at boot and never
+ * recreated. The mic is now started/stopped per recording (task created
+ * and deleted every time, not once per boot lifetime) — repeated
+ * creation reliably overflowed 3072 bytes on real hardware. 6144 gives
+ * real headroom instead of a margin that was already razor-thin.
  */
-#define CAPTURE_TASK_STACK_SIZE  3072
+#define CAPTURE_TASK_STACK_SIZE  6144
 
 /* ── Capture task priority ─────────────────────────────────────────────
  *
@@ -366,6 +368,11 @@ esp_err_t audio_capture_stop(void)
     }
 
     if (s_rx_chan) {
+        /* esp_codec_dev_close() above already disables the channel via its
+         * I2S data interface in most configs, but logs a harmless "channel
+         * has not been enabled yet" error if it was already disabled by
+         * some other path — non-fatal, i2s_channel_disable() tolerates
+         * being called on an already-disabled channel. */
         i2s_channel_disable(s_rx_chan);
         i2s_del_channel(s_rx_chan);
         s_rx_chan = NULL;
