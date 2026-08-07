@@ -21,7 +21,6 @@ extern void test_subdirs_under_app_root(void);
 extern void test_subdirs_are_distinct(void);
 extern void test_subdir_names_are_expected(void);
 extern void test_error_strings_are_distinct(void);
-extern void test_mounted_flag_initially_false(void);
 
 /* ── Ring buffer tests (Task 6) ─────────────────────────────────────── */
 /* Defined in test_ring_buffer.c (compiled alongside this file) */
@@ -388,7 +387,6 @@ void app_main(void)
     RUN_TEST(test_subdirs_are_distinct);
     RUN_TEST(test_subdir_names_are_expected);
     RUN_TEST(test_error_strings_are_distinct);
-    RUN_TEST(test_mounted_flag_initially_false);
 
     /* Task 6: audio ring buffer and downmix helper */
     RUN_TEST(test_rb_alloc_free);

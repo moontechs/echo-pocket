@@ -89,9 +89,3 @@ void test_error_strings_are_distinct(void)
     TEST_ASSERT_TRUE(strcmp(s_mount, s_notmount) != 0);
     TEST_ASSERT_TRUE(strcmp(s_dir, s_notmount) != 0);
 }
-
-void test_mounted_flag_initially_false(void)
-{
-    /* sd_storage_is_mounted(NULL) must not crash */
-    TEST_ASSERT_FALSE(sd_storage_is_mounted(NULL));
-}

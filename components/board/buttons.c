@@ -32,60 +32,7 @@ static const ButtonPin s_buttons[] = {
 static QueueHandle_t s_event_queue;
 static ButtonDebounce s_debounce[NUM_BUTTONS];
 
-/* ── Debounce state machine (pure logic) ─────────────────────────────── */
-
-void button_debounce_init(ButtonDebounce *db)
-{
-    db->history_idx = 0;
-    db->debounced_pressed = false;
-    db->event_pending = false;
-    for (int i = 0; i < BUTTON_DEBOUNCE_SAMPLES; i++) {
-        db->history[i] = false; /* all samples start as released */
-    }
-}
-
-bool button_debounce_feed(ButtonDebounce *db, bool raw_pressed, uint32_t now_ms)
-{
-    (void)now_ms; /* reserved for time-based variant */
-
-    /* Write the new sample into the ring buffer */
-    db->history[db->history_idx] = raw_pressed;
-    db->history_idx = (db->history_idx + 1) % BUTTON_DEBOUNCE_SAMPLES;
-
-    /* Check if all history entries agree (stable) */
-    bool all_same = true;
-    for (int i = 0; i < BUTTON_DEBOUNCE_SAMPLES; i++) {
-        if (db->history[i] != raw_pressed) {
-            all_same = false;
-            break;
-        }
-    }
-
-    if (!all_same) {
-        /* Not stable — don't change debounced state, no event */
-        db->event_pending = false;
-        return false;
-    }
-
-    /* Stable — transitions matter */
-    if (raw_pressed && !db->debounced_pressed) {
-        /* Transition: released → pressed */
-        db->debounced_pressed = true;
-        db->event_pending = false;  /* no event on press, only on release */
-        return false;
-    }
-
-    if (!raw_pressed && db->debounced_pressed) {
-        /* Transition: pressed → released → emit event */
-        db->debounced_pressed = false;
-        db->event_pending = false;
-        return true; /* short-press release detected */
-    }
-
-    /* Stable, no transition */
-    db->event_pending = false;
-    return false;
-}
+/* ── Debounce state machine lives in button_debounce.c ──────────────── */
 
 /* ── Polling task ────────────────────────────────────────────────────── */
 

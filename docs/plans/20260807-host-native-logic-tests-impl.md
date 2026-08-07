@@ -233,13 +233,13 @@ Validation note: both required build commands were attempted. This environment h
 - Modify: `components/storage/CMakeLists.txt`
 - Modify: `test_apps/logic_tests/main/test_sd_storage.c`
 
-- [ ] before moving any code: given two prior rounds of review each found a wrong `REQUIRES`/transitive-include assumption (`test_main.c`→`board.h`→`esp_driver_gpio`, and `sd_storage_is_mounted`→`sdmmc_card_t`), grep every header transitively included by `battery.h`, `buttons.h`, and `sd_storage.h` for anything under `driver/`, `esp_adc/`, `esp_driver_*`, or `sdmmc*` and confirm the plan's assumptions about which functions are actually hardware-free still hold before creating the three new files below
-- [ ] create `components/board/battery_pure.c`: move `battery_voltage_to_percent()`, `battery_percent_to_threshold()`, `battery_should_block_upload()`, and the `s_discharge_curve[]` table + `DISCHARGE_CURVE_LEN` macro out of `battery.c` verbatim; include `battery.h` and `<stddef.h>`; add it to `SRCS` in `components/board/CMakeLists.txt`; update the stale doc-comment at the top of `battery.c` (currently claims pure logic "is in battery.h", which was never true — point it at `battery_pure.c` instead)
-- [ ] create `components/board/button_debounce.c`: move `button_debounce_init()` and `button_debounce_feed()` out of `buttons.c` verbatim; include `buttons.h`; add it to `SRCS` in `components/board/CMakeLists.txt`
-- [ ] create `components/storage/sd_storage_pure.c`: move only `sd_storage_err_str()` out of `sd_storage.c` verbatim; include `sd_storage.h`; add it to `SRCS` in `components/storage/CMakeLists.txt`. Leave `sd_storage_is_mounted()` in `sd_storage.c` — it dereferences the opaque `sd_storage_t`'s `mounted` field, whose struct definition embeds `sdmmc_card_t` (an anonymous-typedef SDMMC type with no cheap forward-declaration), so it can't move without pulling in `driver`/`sdmmc` headers
-- [ ] in `test_apps/logic_tests/main/test_sd_storage.c`, remove `test_mounted_flag_initially_false()` (line 93-97) and its `RUN_TEST` call — it asserts `sd_storage_is_mounted(NULL)`, which is no longer linkable once the test app drops `REQUIRES storage` in Task 3; this is the one accepted test-coverage reduction from this plan (a single NULL-safety check on a one-line accessor)
-- [ ] write/confirm: no new tests needed for the three moved functions — `test_battery_curve.c` and the remaining `test_buttons.c` cases already exercise them; re-run against the new locations
-- [ ] run tests — `idf.py -C test_apps/logic_tests -B build.esp32s3 build flash monitor` (or compile-only `build` if no board attached) must pass before Task 3
+- [x] before moving any code: header include scan confirmed only standard types, FreeRTOS, and `esp_err.h`; no `driver/`, `esp_adc/`, `esp_driver_*`, or `sdmmc` headers are pulled by the pure APIs
+- [x] create `components/board/battery_pure.c`: moved the battery curve and threshold logic; added it to the board component; updated the battery source comment
+- [x] create `components/board/button_debounce.c`: moved both debounce functions and added it to the board component
+- [x] create `components/storage/sd_storage_pure.c`: moved `sd_storage_err_str()` and added it to the storage component; left `sd_storage_is_mounted()` in the hardware file
+- [x] in `test_apps/logic_tests/main/test_sd_storage.c`, remove `test_mounted_flag_initially_false()` and its registration; this is the accepted coverage reduction documented above
+- [x] write/confirm: existing battery and button tests cover the moved functions; no new tests were needed
+- [x] run tests — skipped: `idf.py` is unavailable in this environment (`command not found`); compile validation could not run
 
 ### Task 3: Add `config.c` as a loose source, drop `REQUIRES board storage`, split target-specific sdkconfig
 

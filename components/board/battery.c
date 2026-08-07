@@ -2,7 +2,7 @@
  * @brief Battery monitoring — calibrated ADC read, cached level/percent,
  *        threshold-crossing event publishing.
  *
- * Pure logic (discharge curve + threshold) is in battery.h so it can be
+ * Pure logic (discharge curve + threshold) is in battery_pure.c so it can be
  * tested under logic_tests without this file's hardware dependencies.
  */
 
@@ -31,85 +31,7 @@ static adc_oneshot_unit_handle_t s_adc_handle = NULL;
 static adc_cali_handle_t         s_cali_handle = NULL;
 static TimerHandle_t             s_timer        = NULL;
 
-/* ── Pure logic implementations ──────────────────────────────────────── */
-
-/**
- * Single-cell Li-ion discharge curve, calibrated for a 3.7 V nominal
- * cell with a conservative knee at the low end.
- *
- * Entries: { voltage_mv, percent } — sorted descending.
- * Values between table points are linearly interpolated.
- * Values above the first entry → 100 %; below the last → 0 %.
- */
-static const struct {
-    int voltage_mv;
-    int percent;
-} s_discharge_curve[] = {
-    { 4200, 100 },
-    { 4100,  95 },
-    { 4000,  83 },
-    { 3900,  71 },
-    { 3850,  64 },
-    { 3800,  56 },
-    { 3750,  46 },
-    { 3700,  36 },
-    { 3650,  26 },
-    { 3600,  19 },
-    { 3550,  13 },
-    { 3500,   8 },
-    { 3450,   5 },
-    { 3400,   3 },
-    { 3350,   1 },
-    { 3300,   0 },
-};
-
-#define DISCHARGE_CURVE_LEN (sizeof(s_discharge_curve) / sizeof(s_discharge_curve[0]))
-
-int battery_voltage_to_percent(int voltage_mv)
-{
-    if (voltage_mv <= 0) return 0;
-
-    /* Above max → 100 % */
-    if (voltage_mv >= s_discharge_curve[0].voltage_mv) return 100;
-
-    /* Below min → 0 % */
-    if (voltage_mv <= s_discharge_curve[DISCHARGE_CURVE_LEN - 1].voltage_mv) return 0;
-
-    /* Linear interpolation between two table points */
-    for (size_t i = 0; i < DISCHARGE_CURVE_LEN - 1; i++) {
-        int v_high = s_discharge_curve[i].voltage_mv;
-        int v_low  = s_discharge_curve[i + 1].voltage_mv;
-
-        if (voltage_mv <= v_high && voltage_mv >= v_low) {
-            int p_high = s_discharge_curve[i].percent;
-            int p_low  = s_discharge_curve[i + 1].percent;
-
-            /* Linear interpolate:  percent = p_low + (p_high - p_low) * (mv - v_low) / (v_high - v_low) */
-            int num = (p_high - p_low) * (voltage_mv - v_low);
-            int den = v_high - v_low;
-            if (den == 0) return p_low;
-            return p_low + num / den;
-        }
-    }
-
-    /* Fallback: shouldn't get here given the boundary checks above */
-    return 0;
-}
-
-battery_level_t battery_percent_to_threshold(int percent)
-{
-    if (percent == BATTERY_PERCENT_UNKNOWN) return BATTERY_UNKNOWN;
-    if (percent <= 10) return BATTERY_CRITICAL;
-    if (percent <= 20) return BATTERY_WARNING;
-    return BATTERY_NORMAL;
-}
-
-bool battery_should_block_upload(int percent, uint32_t file_bytes)
-{
-    if (percent == BATTERY_PERCENT_UNKNOWN) return false;
-    if (percent > 10) return false;
-    return file_bytes > LOW_BATTERY_UPLOAD_MAX_BYTES;
-}
+/* ── Pure logic implementations live in battery_pure.c ──────────────── */
 
 /* ── Hardware-dependent ADC read ─────────────────────────────────────── */
 
