@@ -357,13 +357,18 @@ telegram_err_t telegram_client_send_document(const char *chat_id,
         return TELEGRAM_ERR_OOM;
     }
 
+    /* Streaming manually via esp_http_client_write() below, so no
+     * post_field is set — a freshly-initialised client already has
+     * post_data == NULL. Do NOT call esp_http_client_set_post_field(client,
+     * NULL, 0) here: passing a NULL data pointer makes it actively clear
+     * the Content-Type header we just set (its NULL branch calls
+     * esp_http_client_set_header(client, "Content-Type", NULL)), which
+     * silently dropped our multipart boundary declaration on every upload. */
     esp_http_client_set_header(client, "Content-Type", content_type);
 
     char content_len_str[32];
     snprintf(content_len_str, sizeof(content_len_str), "%zu", content_length);
     esp_http_client_set_header(client, "Content-Length", content_len_str);
-
-    esp_http_client_set_post_field(client, NULL, 0); /* We'll stream manually */
 
     /* ── Open connection ───────────────────────────────────────────── */
     esp_err_t esp_err = esp_http_client_open(client, content_length);
