@@ -17,6 +17,7 @@
 #include "esp_log.h"
 #include "esp_http_client.h"
 #include "esp_tls.h"
+#include "esp_crt_bundle.h"
 #include "cJSON.h"
 #include "telegram_client.h"
 
@@ -182,6 +183,7 @@ telegram_err_t telegram_client_get_me(char *out_bot_username)
         .timeout_ms = 15000,
         .buffer_size = 512,
         .disable_auto_redirect = false,
+        .crt_bundle_attach = esp_crt_bundle_attach,
     };
 
     esp_http_client_handle_t client = esp_http_client_init(&http_cfg);
@@ -346,6 +348,7 @@ telegram_err_t telegram_client_send_document(const char *chat_id,
         .timeout_ms = 120000,  /* 2 minutes — enough for 38 MB upload */
         .buffer_size = TG_UPLOAD_CHUNK_SIZE,
         .disable_auto_redirect = false,
+        .crt_bundle_attach = esp_crt_bundle_attach,
     };
 
     esp_http_client_handle_t client = esp_http_client_init(&http_cfg);
@@ -383,12 +386,23 @@ telegram_err_t telegram_client_send_document(const char *chat_id,
     }
 
     /* ── Stream file from SD in chunks ─────────────────────────────── */
-    uint8_t chunk[TG_UPLOAD_CHUNK_SIZE];
+    /* Heap-allocated (not a stack array): this task's stack is small and
+     * shared with call-depth from esp_http_client/mbedTLS, so an 8 KB
+     * local here overflowed the stack and corrupted adjacent memory. */
+    uint8_t *chunk = malloc(TG_UPLOAD_CHUNK_SIZE);
+    if (!chunk) {
+        ESP_LOGE(TAG, "sendDocument: chunk buffer alloc failed");
+        esp_http_client_close(client);
+        esp_http_client_cleanup(client);
+        fclose(fp);
+        return TELEGRAM_ERR_OOM;
+    }
+
     size_t total_file_sent = 0;
     bool stream_ok = true;
 
     while (!feof(fp)) {
-        size_t nread = fread(chunk, 1, sizeof(chunk), fp);
+        size_t nread = fread(chunk, 1, TG_UPLOAD_CHUNK_SIZE, fp);
         if (nread == 0) break; /* EOF or error */
 
         written = esp_http_client_write(client, (const char *)chunk, nread);
@@ -400,6 +414,7 @@ telegram_err_t telegram_client_send_document(const char *chat_id,
         }
         total_file_sent += nread;
     }
+    free(chunk);
     fclose(fp);
 
     if (!stream_ok) {

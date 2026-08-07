@@ -40,8 +40,13 @@ extern "C" {
 /** Maximum number of upload attempts before marking failed. */
 #define UPLOAD_MAX_ATTEMPTS         5
 
-/** Stack size for the upload task. */
-#define UPLOAD_TASK_STACK_SIZE      4096
+/** Stack size for the upload task. Lives in PSRAM (see s_upload_task_stack
+ *  in upload_task.c), so this isn't fighting the board's scarce internal
+ *  RAM budget. telegram_client's sendDocument has ~4.5 KB of stack-local
+ *  buffers (multipart pre-body + response) plus deep esp_http_client/
+ *  mbedTLS call stack on top — verifying against the full CA bundle
+ *  overflowed 8192. */
+#define UPLOAD_TASK_STACK_SIZE      20480
 
 /**
  * Upload task priority — LOW, below UI and Wi-Fi.

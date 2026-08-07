@@ -22,6 +22,7 @@
 #include "recorder.h"
 #include "device_events.h"
 #include "battery.h"
+#include "wifi_manager.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -34,6 +35,7 @@
 #include "freertos/semphr.h"
 #include "esp_log.h"
 #include "esp_event.h"
+#include "esp_heap_caps.h"
 
 static const char *TAG = "upload_task";
 
@@ -55,6 +57,13 @@ typedef struct {
 } upload_state_t;
 
 static upload_state_t s_state;
+
+/* Task stack lives in PSRAM (CONFIG_SPIRAM_ALLOW_STACK_EXTERNAL_MEMORY):
+ * internal RAM is the scarce resource on this board (single-digit KB free
+ * at boot — see AGENTS.md), and this task's HTTPS/multipart upload needs
+ * more stack than that budget affords via a normal xTaskCreate. */
+static StaticTask_t s_upload_task_tcb;
+static StackType_t *s_upload_task_stack = NULL;
 
 /* ── Pure logic ──────────────────────────────────────────────────────── */
 
@@ -314,6 +323,17 @@ static void upload_wifi_event_handler(void *arg, esp_event_base_t event_base,
         } else {
             ESP_LOGI(TAG, "Wi-Fi connected but auto_upload=false — skipping");
         }
+    } else if (event_id == RECORDER_EVENT_ENQUEUED) {
+        /* A recording just finished and was queued — Wi-Fi's connected
+         * event only fires once (typically at boot), so without this,
+         * recordings made after that point would sit queued until the
+         * next reconnect or a manual Send All. */
+        if (s_state.cfg && s_state.cfg->auto_upload &&
+            wifi_manager_is_connected()) {
+            ESP_LOGI(TAG, "Recording enqueued — kicking auto-upload");
+            upload_trigger_t trigger = TRIGGER_WIFI_CONNECTED;
+            xQueueSend(s_state.cmd_queue, &trigger, 0);
+        }
     }
 }
 
@@ -408,26 +428,41 @@ void upload_task_init(const RecorderConfig *cfg, queue_index_t *queue)
         return;
     }
 
-    /* Subscribe to Wi-Fi connected events for auto-upload */
+    /* Subscribe to Wi-Fi connected events for auto-upload, and to
+     * ENQUEUED so recordings made while already connected also upload. */
     esp_event_handler_register(RECORDER_EVENTS,
                                RECORDER_EVENT_WIFI_CONNECTED,
                                upload_wifi_event_handler, NULL);
+    esp_event_handler_register(RECORDER_EVENTS,
+                               RECORDER_EVENT_ENQUEUED,
+                               upload_wifi_event_handler, NULL);
 
-    /* Create the task — start suspended so app_main can control boot order */
-    BaseType_t ret = xTaskCreate(
-        upload_task_main,
-        "upload",
-        UPLOAD_TASK_STACK_SIZE,
-        NULL,
-        UPLOAD_TASK_PRIORITY,
-        NULL  /* No handle needed */
-    );
+    /* Stack in PSRAM — see s_upload_task_stack comment above. */
+    s_upload_task_stack = heap_caps_malloc(UPLOAD_TASK_STACK_SIZE,
+                                           MALLOC_CAP_SPIRAM);
+    TaskHandle_t handle = NULL;
+    if (s_upload_task_stack) {
+        handle = xTaskCreateStatic(
+            upload_task_main,
+            "upload",
+            UPLOAD_TASK_STACK_SIZE / sizeof(StackType_t),
+            NULL,
+            UPLOAD_TASK_PRIORITY,
+            s_upload_task_stack,
+            &s_upload_task_tcb
+        );
+    }
 
-    if (ret != pdPASS) {
+    if (!handle) {
         ESP_LOGE(TAG, "Failed to create upload task");
+        free(s_upload_task_stack);
+        s_upload_task_stack = NULL;
         vQueueDelete(s_state.cmd_queue);
         esp_event_handler_unregister(RECORDER_EVENTS,
                                      RECORDER_EVENT_WIFI_CONNECTED,
+                                     upload_wifi_event_handler);
+        esp_event_handler_unregister(RECORDER_EVENTS,
+                                     RECORDER_EVENT_ENQUEUED,
                                      upload_wifi_event_handler);
         return;
     }
@@ -440,6 +475,9 @@ void upload_task_deinit(void)
 {
     esp_event_handler_unregister(RECORDER_EVENTS,
                                  RECORDER_EVENT_WIFI_CONNECTED,
+                                 upload_wifi_event_handler);
+    esp_event_handler_unregister(RECORDER_EVENTS,
+                                 RECORDER_EVENT_ENQUEUED,
                                  upload_wifi_event_handler);
 
     if (s_state.cmd_queue) {
