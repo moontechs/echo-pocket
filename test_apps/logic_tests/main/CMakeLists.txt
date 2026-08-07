@@ -28,10 +28,14 @@ idf_component_register(
          "../../../components/ui/face_engine/vector_face.cpp"
          "../../../components/ui/face_engine/test/test_face_registry.cpp"
          "../../../components/storage/queue_store.c"
+         "../../../components/storage/config.c"
+         "../../../components/storage/sd_storage_pure.c"
          "../../../components/storage/test/test_queue_store.c"
          "../../../components/telegram/telegram_caption.c"
          "../../../components/telegram/test/test_caption.c"
          "../../../components/board/test/test_battery_curve.c"
+         "../../../components/board/button_debounce.c"
+         "../../../components/board/battery_pure.c"
     INCLUDE_DIRS "."
                 "../../../components/audio/include"
                 "../../../components/recorder/include"
@@ -42,5 +46,5 @@ idf_component_register(
                 "../../../components/network/include"
                 "../../../components/telegram/include"
                 "../../../components/board/include"
-    REQUIRES unity board storage log
+    REQUIRES unity log
 )

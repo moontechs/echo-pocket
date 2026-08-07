@@ -75,7 +75,7 @@ Bad/missing config never crashes the firmware — SD recording keeps working reg
 Unit tests (pure logic, no hardware needed) live in `test_apps/logic_tests/`:
 
 ```bash
-idf.py -C test_apps/logic_tests build flash monitor
+idf.py -C test_apps/logic_tests -B build.esp32s3 build flash monitor
 ```
 
 This builds a separate ESP-IDF project that links the main project's `components/` via
