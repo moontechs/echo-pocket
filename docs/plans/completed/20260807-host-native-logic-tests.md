@@ -39,10 +39,16 @@ implementation plan can skip the discovery phase.
 
 ### What's already target-agnostic
 - `unity` and the loose pure-logic `.c` files listed above have no
-  direct hardware calls (verified by grepping for
+  direct hardware calls (checked by grepping for
   `gpio_/adc_/i2s_/spi_` etc. — zero hits in `recorder_logic.c`,
   `ui_screen_logic.c`, `screens/menu.c`, `queue_store.c`,
-  `telegram_caption.c`).
+  `telegram_caption.c`). This is a text-search check, not a build
+  verification — it doesn't rule out transitive hardware coupling
+  through a header or macro. Actually building these loose sources
+  under `--preview set-target linux` (even standalone, before doing
+  the `board`/`storage` split below) is the fastest way to close that
+  gap and should be the first step of the follow-up implementation
+  plan, not an assumption carried into it.
 - The linux-target blockers are narrower than "nothing hardware-adjacent
   builds": `freertos` has a real POSIX port
   (`$IDF_PATH/components/freertos/{FreeRTOS-Kernel,FreeRTOS-Kernel-SMP}/portable/linux`),
@@ -59,13 +65,27 @@ implementation plan can skip the discovery phase.
 ### What's still hardware-coupled
 - **`board` component** (`components/board/CMakeLists.txt`, `REQUIRES
   esp_driver_gpio freertos esp_event esp_adc`): bundles `board_pins.c`
-  (pure GPIO init, no pure logic worth extracting), `buttons.c` (3
-  `gpio_*` calls — button debounce is a pure state machine but the file
-  also owns the ISR/GPIO init), and `battery.c` (11 `gpio_*`/`adc_*`
-  calls — the discharge-curve math tested by
-  `components/board/test/test_battery_curve.c` is pure). The
-  `esp_driver_gpio`/`esp_adc` entries in `REQUIRES` are what actually
-  blocks linux.
+  (pure GPIO init, no pure logic worth extracting), `buttons.c`, and
+  `battery.c`. Both were read in full (not just grepped) to check the
+  extraction risk:
+  - `buttons.c`: the debounce state machine
+    (`button_debounce_init`/`button_debounce_feed`, lines 37–88) is
+    already cleanly separated from the polling task — it only touches
+    its `ButtonDebounce *db` parameter, no shared statics, no ISR
+    (buttons are polled, not interrupt-driven — `GPIO_INTR_DISABLE`).
+    Extraction is a pure cut-and-paste, not a real refactor.
+  - `battery.c`: `battery_voltage_to_percent`,
+    `battery_percent_to_threshold`, and `battery_should_block_upload`
+    (an earlier draft of this doc called this last one
+    `battery_threshold_for_upload`, which doesn't exist in the
+    source — fixed throughout) are already visually isolated under a
+    `/* Pure logic implementations */` comment block (lines 34–112)
+    and touch no hardware state. `battery.h` already declares them as
+    "pure functions (testable under logic_tests)" — the header's
+    intent was already to separate them, only the `.c` split was
+    never done. Extraction is likewise mechanical.
+  The `esp_driver_gpio`/`esp_adc` entries in `REQUIRES` are what
+  actually blocks linux.
 - **`storage` component** (`components/storage/CMakeLists.txt`,
   `REQUIRES fatfs driver board`): bundles `sd_storage.c` (3
   `sdmmc_*`/FATFS calls — `sd_storage_err_str()` and
@@ -104,7 +124,7 @@ repeat the double-listing for newly split files.
 **Option A: Split `battery.c`/`buttons.c`/`sd_storage.c` into hardware
 vs. pure-logic files, no new components (recommended)**
 - How: extract `battery_voltage_to_percent`/`battery_percent_to_threshold`/
-  `battery_threshold_for_upload` out of `battery.c`; extract the button
+  `battery_should_block_upload` out of `battery.c`; extract the button
   debounce state machine out of `buttons.c`; extract
   `sd_storage_err_str()`/`sd_storage_is_mounted()` out of
   `sd_storage.c`. Compile the three extracted pure files directly in
@@ -155,23 +175,46 @@ vs. pure-logic files, no new components (recommended)**
 - Cons: loses `idf.py`'s FreeRTOS POSIX simulation if any future test
   needs real task/queue semantics rather than pure functions; a second,
   hand-rolled build path to maintain alongside the real firmware build.
+  Checked: no current test in `test_apps/logic_tests/main/` calls
+  `xTaskCreate`/`xQueueSend`/`xQueueReceive`/`vTaskDelay`/
+  `xTimerCreate` — the con is real for hypothetical future tests, not
+  today's suite.
 
 **Recommendation: Option A**, on its own merits (not because it's "more
 of the same" — it's the smallest change that keeps one build system).
 It requires real work on exactly two files (`battery.c`, `buttons.c`)
-plus a trivial third (`sd_storage.c`), stays inside `idf.py`/CMake so
+plus a trivial third (`sd_storage.c`) — and, per the full-file read
+above, that work is mechanical extraction, not a risky refactor, for
+`battery.c`/`buttons.c` both. It stays inside `idf.py`/CMake so
 there's no second build toolchain to maintain, and directly enables
-`IDF_TARGET=linux` once IDF drops the `--preview` gate. Option D is a
-reasonable runner-up if minimizing build-system surface matters more
-than staying inside `idf.py` — worth revisiting if the linux target
-turns out to have friction Option A didn't anticipate.
+`IDF_TARGET=linux` once IDF drops the `--preview` gate.
+
+Two things this scoping pass did **not** verify, which the follow-up
+plan should treat as open risks rather than assumptions:
+- **`--preview` stability**: IDF v5.3's linux target is explicitly
+  preview-gated and its maturity/roadmap wasn't checked here (no
+  `IDF_PATH` available in this environment). Before committing to
+  Option A, confirm the preview target actually builds and runs the
+  loose-source files today — see the first-step suggestion above.
+- **CI feasibility**: "unblocks CI" is this doc's stated motivation
+  (see "Why this matters"), but no CI job was sketched and IDF
+  install time/size in the actual CI image is unknown. If IDF setup
+  in CI turns out to be slow or unreliable, Option D's "no ESP-IDF
+  version dependency for running tests" con-turned-pro becomes the
+  deciding factor, not a runner-up detail.
+
+If either of those checks goes badly, Option D is the fallback, not a
+consolation prize — nothing in today's test suite depends on
+FreeRTOS task/queue semantics, so D's only real cost (a second build
+path) is the sole thing being traded against Option A's preview-flag
+and CI-setup risk.
 
 ## Suggested shape of the follow-up implementation plan
 
 Not written here (out of scope for a scoping doc), but based on these
 findings it would look like:
 1. Extract `battery_voltage_to_percent`/`battery_percent_to_threshold`/
-   `battery_threshold_for_upload` out of `battery.c` into a pure file;
+   `battery_should_block_upload` out of `battery.c` into a pure file;
    compile it as a loose source instead of relying on `REQUIRES board`.
 2. Extract the button debounce state machine out of `buttons.c`;
    compile it as a loose source.

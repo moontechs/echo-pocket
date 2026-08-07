@@ -78,6 +78,14 @@ Unit tests (pure logic, no hardware needed) live in `test_apps/logic_tests/`:
 idf.py -C test_apps/logic_tests -B build.esp32s3 build flash monitor
 ```
 
+For host-native tests without a board, build the Linux target and run the
+resulting binary directly:
+
+```bash
+idf.py -C test_apps/logic_tests -B build.linux --preview set-target linux build
+build.linux/logic_tests.elf
+```
+
 This builds a separate ESP-IDF project that links the main project's `components/` via
 `EXTRA_COMPONENT_DIRS` and runs Unity test cases over serial. All tests must pass.
 

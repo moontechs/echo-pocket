@@ -276,9 +276,9 @@ Validation note: both required build commands were attempted. This environment h
 - [x] run full test suite on both targets one more time (skipped — `idf.py` is unavailable in this environment; both commands returned exit 127 before running)
 
 ### Task 6: Update documentation
-- [ ] add the host-native run command to `README.md` (e.g. `idf.py -C test_apps/logic_tests -B build.linux --preview set-target linux build` as an alternative to the hardware flow) — the `-B build.esp32s3` update to the existing command already happened in Task 3
-- [ ] update `AGENTS.md` if the logic_tests dev-loop section should mention the host-native option
-- [ ] move `docs/plans/20260807-host-native-logic-tests.md` (scoping doc) and this plan to `docs/plans/completed/`
+- [x] add the host-native run command to `README.md` (e.g. `idf.py -C test_apps/logic_tests -B build.linux --preview set-target linux build` as an alternative to the hardware flow) — the `-B build.esp32s3` update to the existing command already happened in Task 3
+- [x] update `AGENTS.md` if the logic_tests dev-loop section should mention the host-native option
+- [x] move `docs/plans/20260807-host-native-logic-tests.md` (scoping doc) and this plan to `docs/plans/completed/`
 
 ## Post-Completion
 *Not applicable — no external/manual action required. CI job wiring is
