@@ -57,7 +57,7 @@ typedef enum {
 typedef struct {
     bool     wifi_connected;       /**< Wi-Fi is associated              */
     bool     sd_mounted;           /**< SD card is present and mounted   */
-    int      pending_uploads;      /**< Queue entries in pending state   */
+    int      pending_uploads;      /**< Queue entries in pending/failed state */
     bool     battery_present;      /**< Battery monitoring available     */
     int      battery_percent;      /**< 0–100, or -1 if unknown         */
     bool     charging;             /**< USB/charger connected            */
@@ -91,15 +91,6 @@ void ui_task_deinit(void);
  * @param start_ms  Monotonic timestamp when recording began.
  */
 void ui_task_set_recording_start(uint32_t start_ms);
-
-/**
- * @brief Update the pending upload count shown on the home screen.
- *
- * Called by the upload task (Task 17) or queue_store (Task 15).
- *
- * @param count  Number of pending uploads.
- */
-void ui_task_set_pending_uploads(int count);
 
 /**
  * @brief Report whether the SD card is mounted, for the home screen's

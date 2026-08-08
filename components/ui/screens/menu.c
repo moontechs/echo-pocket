@@ -31,6 +31,7 @@ static const char *s_menu_labels[MENU_ITEM_COUNT] = {
     "Unsent",
     "Send All",
     "Face",
+    "Wifi",
     "Delete Sent",
     "Delete All",
     "Info",
@@ -84,6 +85,9 @@ void menu_navigate(menu_state_t *state, ButtonId button,
             break;
         case MENU_ITEM_SEND_ALL:
             *out_action = MENU_ACTION_SEND_ALL;
+            break;
+        case MENU_ITEM_WIFI:
+            *out_action = MENU_ACTION_TOGGLE_WIFI;
             break;
         default:
             /* Recordings, Unsent, Delete Sent, Delete All, Info — routed
@@ -189,7 +193,7 @@ static void draw_menu_row(int y, const char *label, bool selected)
 
 /* ── Menu screen renderer ────────────────────────────────────────────── */
 
-void menu_screen_draw(const menu_state_t *state)
+void menu_screen_draw(const menu_state_t *state, bool wifi_on)
 {
     if (!state) return;
 
@@ -217,8 +221,15 @@ void menu_screen_draw(const menu_state_t *state)
         if (item_idx >= MENU_ITEM_COUNT) break;
 
         int y = LIST_TOP_Y + i * LIST_ITEM_H;
-        draw_menu_row(y, s_menu_labels[item_idx],
-                      item_idx == (int)state->cursor);
+
+        if (item_idx == MENU_ITEM_WIFI) {
+            char label[16];
+            snprintf(label, sizeof(label), "Wifi: %s", wifi_on ? "On" : "Off");
+            draw_menu_row(y, label, item_idx == (int)state->cursor);
+        } else {
+            draw_menu_row(y, s_menu_labels[item_idx],
+                          item_idx == (int)state->cursor);
+        }
     }
 }
 

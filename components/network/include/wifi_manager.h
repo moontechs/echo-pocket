@@ -46,6 +46,10 @@ extern "C" {
 /** Bit in the Wi-Fi event group: disconnected. */
 #define WIFI_DISCONNECTED_BIT (1 << 1)
 
+/** Full passes through all configured networks to attempt before giving up
+ *  and letting the radio idle (re-enable from the menu to retry). */
+#define WIFI_MANAGER_MAX_CONNECT_ROUNDS  3
+
 /* ── API ─────────────────────────────────────────────────────────────── */
 
 /**
@@ -71,6 +75,16 @@ void wifi_manager_deinit(void);
  * @return true if connected to an AP.
  */
 bool wifi_manager_is_connected(void);
+
+/**
+ * @brief Check whether the Wi-Fi radio task is running.
+ *
+ * false after wifi_manager_deinit(), or after the task gives up on its
+ * own following WIFI_MANAGER_MAX_CONNECT_ROUNDS failed rounds.
+ *
+ * @return true if the radio is powered up and the manager task is active.
+ */
+bool wifi_manager_is_running(void);
 
 /**
  * @brief Get the SSID currently being used and the assigned IP address

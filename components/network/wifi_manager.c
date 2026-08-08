@@ -42,6 +42,12 @@ static char                   s_ip[16]     = {0};
 /* Event group for connection status */
 static EventGroupHandle_t     s_wifi_event_group = NULL;
 
+/* One-time, process-wide setup — esp_netif_init() and the default STA
+ * netif are meant to exist for the life of the device, not be torn down
+ * and recreated on every Wi-Fi on/off cycle (menu toggle, or the
+ * give-up-after-N-rounds path). Guarded so wifi_task can run many times. */
+static bool                   s_platform_ready = false;
+
 /* ── Forward declarations ────────────────────────────────────────────── */
 
 static void wifi_event_handler(void *arg, esp_event_base_t event_base,
@@ -222,22 +228,26 @@ static void wifi_task(void *arg)
     /* Wi-Fi is optional — if the stack can't init (e.g. out of internal
      * DMA-capable RAM under memory pressure from audio/display buffers),
      * log it and run without networking rather than aborting the device. */
-    esp_err_t err = esp_netif_init();
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "esp_netif_init failed: %s — Wi-Fi unavailable", esp_err_to_name(err));
-        vTaskDelete(NULL);
-        return;
-    }
+    if (!s_platform_ready) {
+        esp_err_t netif_err = esp_netif_init();
+        if (netif_err != ESP_OK) {
+            ESP_LOGE(TAG, "esp_netif_init failed: %s — Wi-Fi unavailable",
+                     esp_err_to_name(netif_err));
+            vTaskDelete(NULL);
+            return;
+        }
 
-    esp_netif_t *sta_netif = esp_netif_create_default_wifi_sta();
-    if (!sta_netif) {
-        ESP_LOGE(TAG, "Failed to create default STA netif");
-        vTaskDelete(NULL);
-        return;
+        if (!esp_netif_create_default_wifi_sta()) {
+            ESP_LOGE(TAG, "Failed to create default STA netif");
+            vTaskDelete(NULL);
+            return;
+        }
+
+        s_platform_ready = true;
     }
 
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
-    err = esp_wifi_init(&cfg);
+    esp_err_t err = esp_wifi_init(&cfg);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "esp_wifi_init failed: %s — Wi-Fi unavailable", esp_err_to_name(err));
         vTaskDelete(NULL);
@@ -260,6 +270,7 @@ static void wifi_task(void *arg)
     /* ── Connection loop ──────────────────────────────────────────── */
     s_try_index = -1;
     TickType_t reconnect_delay = pdMS_TO_TICKS(5000); /* 5 s between attempts */
+    int no_more_rounds = 0; /* full passes through all networks with no luck */
 
     while (s_running) {
         int next_index = -1;
@@ -320,9 +331,19 @@ static void wifi_task(void *arg)
             break;
 
         case NET_NEXT_NO_MORE:
-            /* No more networks to try — wait and retry from beginning */
-            ESP_LOGW(TAG, "All %d networks exhausted — retrying from start in 30 s",
-                     s_cfg ? s_cfg->wifi_count : 0);
+            /* One full pass through all configured networks failed. */
+            no_more_rounds++;
+            if (no_more_rounds >= WIFI_MANAGER_MAX_CONNECT_ROUNDS) {
+                ESP_LOGW(TAG, "Wi-Fi: gave up after %d rounds — turn back on "
+                              "from the menu to retry", no_more_rounds);
+                disconnect_current();
+                s_running = false;
+                break;
+            }
+            ESP_LOGW(TAG, "All %d networks exhausted — retrying from start in 30 s "
+                          "(round %d/%d)",
+                     s_cfg ? s_cfg->wifi_count : 0,
+                     no_more_rounds + 1, WIFI_MANAGER_MAX_CONNECT_ROUNDS);
             vTaskDelay(pdMS_TO_TICKS(30000));
             disconnect_current();
             s_try_index = -1;
@@ -350,9 +371,12 @@ static void wifi_task(void *arg)
     esp_wifi_disconnect();
     esp_wifi_stop();
     esp_wifi_deinit();
-    esp_netif_destroy_default_wifi(sta_netif);
-    esp_event_loop_delete_default();
-    esp_netif_deinit();
+    /* The STA netif and the default esp_event loop are process-wide
+     * singletons (the loop is created once by app_main.c and shared by
+     * every other task) — never torn down here.  Deleting the default
+     * loop on every Wi-Fi off/give-up left every other component with
+     * dangling event registrations and crashed the board the moment
+     * Wi-Fi was turned back on and tried to re-register on it. */
 
     if (s_wifi_event_group) {
         vEventGroupDelete(s_wifi_event_group);
@@ -420,6 +444,11 @@ void wifi_manager_deinit(void)
 bool wifi_manager_is_connected(void)
 {
     return s_connected;
+}
+
+bool wifi_manager_is_running(void)
+{
+    return s_running;
 }
 
 void wifi_manager_get_status(char *ssid_buf, size_t ssid_len,

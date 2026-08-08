@@ -30,6 +30,7 @@
 #include "queue_store.h"
 #include "sd_storage.h"
 #include "upload_task.h"
+#include "wifi_manager.h"
 
 #include <string.h>
 #include <stdio.h>
@@ -98,7 +99,6 @@ static uint32_t        s_face_flash_duration_ms = 0;
 
 static bool           s_wifi_connected = false;
 static bool           s_sd_mounted     = false;
-static int            s_pending_uploads = 0;
 
 static queue_index_t *s_queue = NULL;
 static delete_confirm_kind_t s_delete_confirm_kind = DELETE_CONFIRM_SENT;
@@ -185,7 +185,7 @@ static void build_status(ui_status_t *status)
 {
     status->wifi_connected  = s_wifi_connected;
     status->sd_mounted      = s_sd_mounted;
-    status->pending_uploads = s_pending_uploads;
+    status->pending_uploads = s_queue ? queue_store_count_pending_failed(s_queue) : 0;
     status->battery_present = battery_is_present();
     status->battery_percent = battery_percent();
     status->charging        = battery_is_charging();
@@ -236,6 +236,28 @@ static void apply_and_persist_theme(int theme_index)
     }
 }
 
+/** Flip the Wi-Fi radio on/off from the menu.
+ *
+ * Off = wifi_manager_deinit() — stops and tears down the radio (same
+ * cleanup path used at shutdown), not just a disconnect.
+ * On  = wifi_manager_init() — reloads config and restarts the radio from
+ * scratch, so a manual re-enable behaves like a fresh boot attempt.
+ */
+static void toggle_wifi(void)
+{
+    static RecorderConfig s_wifi_cfg;
+
+    if (wifi_manager_is_running()) {
+        wifi_manager_deinit();
+        s_wifi_connected = false;
+        ESP_LOGI(TAG, "Wi-Fi turned off");
+    } else {
+        s_wifi_cfg = config_load(CONFIG_FILE_PATH, NULL);
+        wifi_manager_init(&s_wifi_cfg);
+        ESP_LOGI(TAG, "Wi-Fi turned on");
+    }
+}
+
 /* ── Main task loop ──────────────────────────────────────────────────── */
 
 static void ui_task_loop(void *arg)
@@ -283,6 +305,10 @@ static void ui_task_loop(void *arg)
                     upload_task_trigger_send_all();
                     break;
 
+                case MENU_ACTION_TOGGLE_WIFI:
+                    toggle_wifi();
+                    break;
+
                 case MENU_ACTION_SHOW_STUB:
                     /* Route specific stub items to their
                      * real screens if available. */
@@ -292,7 +318,7 @@ static void ui_task_loop(void *arg)
                         screen_changed = true;
                     } else if (s_menu_state.cursor == MENU_ITEM_UNSENT) {
                         s_screen = UI_SCREEN_UNSENT_LIST;
-                        unsent_list_enter();
+                        unsent_list_enter(s_queue);
                         screen_changed = true;
                     } else if (s_menu_state.cursor == MENU_ITEM_INFO) {
                         s_screen = UI_SCREEN_INFO;
@@ -523,7 +549,7 @@ static void ui_task_loop(void *arg)
                 break;
 
             case UI_SCREEN_MENU:
-                menu_screen_draw(&s_menu_state);
+                menu_screen_draw(&s_menu_state, wifi_manager_is_running());
                 break;
 
             case UI_SCREEN_FACE_SUBMENU:
@@ -622,11 +648,6 @@ void ui_task_deinit(void)
 void ui_task_set_recording_start(uint32_t start_ms)
 {
     s_rec_start_ms = start_ms;
-}
-
-void ui_task_set_pending_uploads(int count)
-{
-    s_pending_uploads = (count < 0) ? 0 : count;
 }
 
 void ui_task_set_sd_mounted(bool mounted)

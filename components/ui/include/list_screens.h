@@ -3,8 +3,7 @@
  *        and renderer declarations for Recordings and Unsent screens.
  *
  * Recordings: paged list of /echo-pocket/rec/ .wav files (browse only).
- * Unsent:     paged list of queue entries in pending/failed state
- *             (stubbed until Task 15 creates queue_store).
+ * Unsent:     paged list of queue entries in pending/failed state.
  *
  * Send All:   no separate screen — dispatched directly from the
  *             main menu via MENU_ACTION_SEND_ALL (already wired).
@@ -13,6 +12,7 @@
 #pragma once
 
 #include "buttons.h"
+#include "queue_store.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -62,7 +62,10 @@ void unsent_list_screen_draw(void);
 void unsent_list_navigate(ButtonId button, bool *should_exit);
 
 /** Called when entering the Unsent list screen — reads queue once. */
-void unsent_list_enter(void);
+void unsent_list_enter(const queue_index_t *queue);
+
+/** Number of unsent items read by the last unsent_list_enter() call. */
+int unsent_list_get_item_count(void);
 
 #ifdef __cplusplus
 }

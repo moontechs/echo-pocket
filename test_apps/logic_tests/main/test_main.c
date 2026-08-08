@@ -181,7 +181,8 @@ extern void test_menu_center_face(void);
 extern void test_menu_center_send_all(void);
 extern void test_menu_center_stub_items(void);
 extern void test_menu_navigate_null_safety(void);
-extern void test_menu_item_count_is_nine(void);
+extern void test_menu_item_count_is_ten(void);
+extern void test_menu_center_wifi(void);
 extern void test_face_submenu_init(void);
 extern void test_face_submenu_init_zero_count(void);
 extern void test_face_submenu_init_null(void);
@@ -192,6 +193,9 @@ extern void test_face_submenu_center_selects(void);
 extern void test_face_submenu_center_first(void);
 extern void test_face_submenu_navigate_null_safety(void);
 extern void test_menu_to_face_and_back(void);
+extern void test_unsent_list_reads_pending_and_failed(void);
+extern void test_unsent_list_empty_queue(void);
+extern void test_unsent_list_null_queue_safe(void);
 
 /* ── Net selection tests (Task 14) ──────────────────────────────────── */
 /* Defined in test_net_selection.c (compiled alongside this file) */
@@ -551,9 +555,10 @@ void app_main(void)
     RUN_TEST(test_menu_center_new_recording);
     RUN_TEST(test_menu_center_face);
     RUN_TEST(test_menu_center_send_all);
+    RUN_TEST(test_menu_center_wifi);
     RUN_TEST(test_menu_center_stub_items);
     RUN_TEST(test_menu_navigate_null_safety);
-    RUN_TEST(test_menu_item_count_is_nine);
+    RUN_TEST(test_menu_item_count_is_ten);
     RUN_TEST(test_face_submenu_init);
     RUN_TEST(test_face_submenu_init_zero_count);
     RUN_TEST(test_face_submenu_init_null);
@@ -564,6 +569,9 @@ void app_main(void)
     RUN_TEST(test_face_submenu_center_first);
     RUN_TEST(test_face_submenu_navigate_null_safety);
     RUN_TEST(test_menu_to_face_and_back);
+    RUN_TEST(test_unsent_list_reads_pending_and_failed);
+    RUN_TEST(test_unsent_list_empty_queue);
+    RUN_TEST(test_unsent_list_null_queue_safe);
 
     /* Task 13: list pagination state machine */
     RUN_TEST(test_pagination_init_normal);

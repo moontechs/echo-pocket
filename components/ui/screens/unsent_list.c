@@ -2,9 +2,6 @@
  * @brief Unsent list screen — paged list of queue entries in
  *        pending/failed state.
  *
- * Reads from queue_store (wired once Task 15 lands).  Until then,
- * the list is always empty and shows a "No unsent recordings" message.
- *
  * Layout (240×240):
  *   Row   0–23  Title bar ("Unsent")
  *   Row  24–215 List items (scrolling if needed)
@@ -13,13 +10,12 @@
  * Left   = back to menu
  * Right  = move cursor down / next
  * Center = Send All (triggers manual drain — wired once Task 17 exists)
- *
- * TODO(task-15): replace the empty-list stub with real queue_store reads.
  */
 
 #include "list_screens.h"
 #include "display.h"
 #include "ui_colors.h"
+#include "queue_store.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -102,45 +98,49 @@ static void draw_row(int y, const unsent_item_t *item, bool selected)
     }
 }
 
-/* ── TODO(task-15): replace with real queue_store read ─────────────── */
-
-/**
- * Stub: read unsent queue entries from the queue store.
- *
- * Until Task 15 creates queue_store, this always returns 0 items.
- * When wired, it should populate s_items[] from
- * /echo-pocket/queue/index.json entries in "pending" or "failed" state.
- */
-static void read_unsent_queue(void)
+/** Read entries in PENDING or FAILED state from the queue store into
+ *  s_items[]. */
+static void read_unsent_queue(const queue_index_t *queue)
 {
     s_item_count = 0;
+    if (!queue) return;
 
-    /* TODO(task-15): call queue_store_read_pending_and_failed()
-     * to populate s_items[] and s_item_count.
-     *
-     * Example (after Task 15):
-     *   queue_entry_t entries[MAX_UNSENT_ITEMS];
-     *   int count = queue_store_get_unsent(entries, MAX_UNSENT_ITEMS);
-     *   for (int i = 0; i < count; i++) {
-     *       strncpy(s_items[i].rec_id, entries[i].id, sizeof(…)-1);
-     *       s_items[i].state_str = queue_state_name(entries[i].state);
-     *       s_items[i].attempts = entries[i].attempts;
-     *   }
-     *   s_item_count = count;
-     */
+    int count = 0;
+    const queue_entry_t *entries = queue_store_get_entries(queue, &count);
+    if (!entries) return;
+
+    for (int i = 0; i < count && s_item_count < MAX_UNSENT_ITEMS; i++) {
+        if (entries[i].state != QUEUE_STATE_PENDING &&
+            entries[i].state != QUEUE_STATE_FAILED) {
+            continue;
+        }
+
+        unsent_item_t *item = &s_items[s_item_count];
+        strncpy(item->rec_id, entries[i].id, sizeof(item->rec_id) - 1);
+        item->rec_id[sizeof(item->rec_id) - 1] = '\0';
+        strncpy(item->state_str, queue_state_str(entries[i].state),
+                sizeof(item->state_str) - 1);
+        item->state_str[sizeof(item->state_str) - 1] = '\0';
+        item->attempts = entries[i].attempts;
+        s_item_count++;
+    }
 }
 
 /* ── Public API ──────────────────────────────────────────────────────── */
 
-void unsent_list_enter(void)
+void unsent_list_enter(const queue_index_t *queue)
 {
-    /* Read queue (stubbed until Task 15) */
-    read_unsent_queue();
+    read_unsent_queue(queue);
 
     /* Pagination init */
     int visible = (LIST_BOTTOM_Y - LIST_TOP_Y) / LIST_ITEM_H;
     if (visible < 1) visible = 1;
     list_pagination_init(&s_pagination, s_item_count, visible);
+}
+
+int unsent_list_get_item_count(void)
+{
+    return s_item_count;
 }
 
 void unsent_list_screen_draw(void)

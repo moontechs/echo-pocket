@@ -27,6 +27,7 @@ typedef enum {
     MENU_ITEM_UNSENT,
     MENU_ITEM_SEND_ALL,
     MENU_ITEM_FACE,
+    MENU_ITEM_WIFI,
     MENU_ITEM_DELETE_SENT,
     MENU_ITEM_DELETE_ALL,
     MENU_ITEM_INFO,
@@ -44,6 +45,7 @@ typedef enum {
     MENU_ACTION_START_RECORDING,    /**< User chose "New Recording"       */
     MENU_ACTION_ENTER_FACE_SUBMENU, /**< User chose "Face"                */
     MENU_ACTION_SEND_ALL,           /**< User chose "Send All"            */
+    MENU_ACTION_TOGGLE_WIFI,        /**< User chose "Wifi" — flip on/off  */
     MENU_ACTION_BACK_TO_HOME,       /**< User pressed back/left from menu */
     MENU_ACTION_SHOW_STUB,          /**< Stub screen (Info/etc.)          */
 } menu_action_t;
@@ -97,9 +99,10 @@ void face_submenu_navigate(face_submenu_state_t *state, ButtonId button,
  * Displays a scrolling list of 9 menu items with cursor highlight.
  * The face theme continues to draw in a small inset area.
  *
- * @param state  Current menu cursor position.
+ * @param state     Current menu cursor position.
+ * @param wifi_on   Current Wi-Fi radio state, shown on the Wifi row.
  */
-void menu_screen_draw(const menu_state_t *state);
+void menu_screen_draw(const menu_state_t *state, bool wifi_on);
 
 /**
  * @brief Draw the Face submenu screen.

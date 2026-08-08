@@ -216,7 +216,7 @@ Minimalist, low frame rate (must not compete with audio capture for CPU/time).
 
 - **Home screen**: face, ready status, Wi-Fi, SD, pending-upload count, battery (if available)
 - **Recording screen**: face, REC indicator, timer only — no waveform/level meter by default
-- **Main menu**: New Recording / Recordings / Unsent / Send All / Face / Delete Sent /
+- **Main menu**: New Recording / Recordings / Unsent / Send All / Face / Wifi / Delete Sent /
   Delete All / Info (Wi-Fi status/IP, SD status, and battery % now live in Info). Telegram
   and Settings were removed — Wi-Fi/Telegram config is edited on the SD card's INI file,
   not on-device.
@@ -228,6 +228,12 @@ Minimalist, low frame rate (must not compete with audio capture for CPU/time).
     queue entry at all) — and clears the entire queue index. Confirm screen explicitly
     warns this includes unsent/untracked recordings; use only when reclaiming SD space and
     accepting the loss of anything not yet confirmed delivered.
+  - "Wifi" toggles the radio fully on/off (`wifi_manager_init`/`_deinit`, not just
+    disconnect) and shows the live state ("Wifi: On"/"Wifi: Off") on the row. On boot,
+    the Wi-Fi manager tries every configured `[wifi_N]` network for up to
+    `WIFI_MANAGER_MAX_CONNECT_ROUNDS` (3) full passes; if none connect it gives up and
+    powers the radio down instead of retrying forever — re-enable from this menu item to
+    try again.
 
 ### Face engine (plugin interface, built into firmware — no code loaded from SD)
 

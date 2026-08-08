@@ -29,6 +29,7 @@ void test_menu_label_known_items(void)
     TEST_ASSERT_EQUAL_STRING("Unsent",        menu_item_label(MENU_ITEM_UNSENT));
     TEST_ASSERT_EQUAL_STRING("Send All",      menu_item_label(MENU_ITEM_SEND_ALL));
     TEST_ASSERT_EQUAL_STRING("Face",          menu_item_label(MENU_ITEM_FACE));
+    TEST_ASSERT_EQUAL_STRING("Wifi",          menu_item_label(MENU_ITEM_WIFI));
     TEST_ASSERT_EQUAL_STRING("Delete Sent",   menu_item_label(MENU_ITEM_DELETE_SENT));
     TEST_ASSERT_EQUAL_STRING("Delete All",    menu_item_label(MENU_ITEM_DELETE_ALL));
     TEST_ASSERT_EQUAL_STRING("Info",          menu_item_label(MENU_ITEM_INFO));
@@ -131,6 +132,22 @@ void test_menu_center_send_all(void)
     TEST_ASSERT_EQUAL(MENU_ACTION_SEND_ALL, action);
 }
 
+void test_menu_center_wifi(void)
+{
+    menu_state_t state;
+    menu_state_init(&state);
+    menu_action_t action;
+
+    /* Move to Wifi (index 5) */
+    for (int i = 0; i < 5; i++) {
+        menu_navigate(&state, BUTTON_RIGHT, &action);
+    }
+    TEST_ASSERT_EQUAL(MENU_ITEM_WIFI, state.cursor);
+
+    menu_navigate(&state, BUTTON_CENTER, &action);
+    TEST_ASSERT_EQUAL(MENU_ACTION_TOGGLE_WIFI, action);
+}
+
 void test_menu_center_stub_items(void)
 {
     menu_state_t state;
@@ -174,10 +191,10 @@ void test_menu_navigate_null_safety(void)
     TEST_ASSERT_EQUAL((menu_action_t)99, action);
 }
 
-void test_menu_item_count_is_nine(void)
+void test_menu_item_count_is_ten(void)
 {
-    /* Regression check: the menu has exactly 9 items */
-    TEST_ASSERT_EQUAL(9, MENU_ITEM_COUNT);
+    /* Regression check: the menu has exactly 10 items */
+    TEST_ASSERT_EQUAL(10, MENU_ITEM_COUNT);
 }
 
 /* ── Face submenu state machine ──────────────────────────────────────── */
