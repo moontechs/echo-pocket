@@ -30,7 +30,7 @@
  *   voice_detection   → Task 8  (ESP-SR AFE VAD enable/disable gate)
  *
  * [face]
- *   theme          → Task 9  (registry resolve; unknown → "minimal")
+ *   theme          → Task 9  (registry resolve; unknown → "vector")
  *   react_to_voice → Task 10 (eye-size reactivity gate)
  *   eye_min_size   → Task 10 (eye interpolation lower bound)
  *   eye_max_size   → Task 10 (eye interpolation upper bound)

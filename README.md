@@ -61,7 +61,7 @@ noise_suppression=true
 voice_detection=true
 
 [face]
-theme=owl
+theme=vector
 react_to_voice=true
 eye_min_size=5
 eye_max_size=22

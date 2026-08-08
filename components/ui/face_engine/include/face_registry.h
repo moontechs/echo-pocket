@@ -54,10 +54,10 @@ FacePlugin *face_registry_find(const char *theme_id);
 /** Resolve and activate the theme named @p theme_id.
  *
  *  If a plugin with that id is registered: calls its begin() and makes it
- *  the active theme.  If no plugin matches: resolves to the "minimal"
+ *  the active theme.  If no plugin matches: resolves to the "vector"
  *  plugin instead (hard requirement per AGENTS.md §Face engine).
  *
- *  If even "minimal" is not found (corrupted build), logs an error and
+ *  If even "vector" is not found (corrupted build), logs an error and
  *  sets active to NULL — the UI task must guard against this. */
 void face_registry_begin(const char *theme_id);
 

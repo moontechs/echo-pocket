@@ -228,7 +228,7 @@ void app_main(void)
      * Must happen before ui_task_init so the active theme is resolved. */
     face_registry_register_defaults();
 
-    /* Apply the theme from config (unknown id falls back to "minimal"). */
+    /* Apply the theme from config (unknown id falls back to "vector"). */
     face_registry_begin(s_config.theme);
     ESP_LOGI(TAG, "Face theme: '%s' (active: '%s')",
              s_config.theme, face_registry_get_active_id());

@@ -132,7 +132,7 @@ extern void test_face_registry_register_increases_count(void);
 extern void test_face_registry_register_null_noop(void);
 extern void test_face_registry_find_by_id(void);
 extern void test_face_registry_find_missing_returns_null(void);
-extern void test_face_registry_fallback_to_minimal(void);
+extern void test_face_registry_fallback_to_vector(void);
 extern void test_face_registry_fallback_calls_begin_on_fallback(void);
 extern void test_face_registry_begin_known(void);
 extern void test_face_registry_begin_empty_registry(void);
@@ -146,17 +146,12 @@ extern void test_face_registry_active_draw_routing(void);
 
 /* ── Face theme tests (Task 10) ──────────────────────────────────────── */
 /* Defined in test_face_themes.cpp (compiled alongside this file) */
-extern void test_face_theme_owl_all_events(void);
-extern void test_face_theme_minimal_all_events(void);
-extern void test_face_theme_minimal_is_fallback(void);
-extern void test_face_theme_robot_all_events(void);
-extern void test_face_theme_pixel_all_events(void);
 extern void test_face_theme_vector_all_events(void);
+extern void test_face_theme_vector_is_fallback(void);
 extern void test_face_theme_config_eye_range(void);
 extern void test_face_theme_config_no_react(void);
 extern void test_face_theme_config_no_blink(void);
 extern void test_face_theme_begin_resets_state(void);
-extern void test_face_theme_unique_ids(void);
 
 /* ── UI button routing tests (Task 11) ────────────────────────────────── */
 /* Defined in test_ui_button_routing.c (compiled alongside this file) */
@@ -522,7 +517,7 @@ void app_main(void)
     RUN_TEST(test_face_registry_register_null_noop);
     RUN_TEST(test_face_registry_find_by_id);
     RUN_TEST(test_face_registry_find_missing_returns_null);
-    RUN_TEST(test_face_registry_fallback_to_minimal);
+    RUN_TEST(test_face_registry_fallback_to_vector);
     RUN_TEST(test_face_registry_fallback_calls_begin_on_fallback);
     RUN_TEST(test_face_registry_begin_known);
     RUN_TEST(test_face_registry_begin_empty_registry);
@@ -535,17 +530,12 @@ void app_main(void)
     RUN_TEST(test_face_registry_active_draw_routing);
 
     /* Task 10: face themes */
-    RUN_TEST(test_face_theme_owl_all_events);
-    RUN_TEST(test_face_theme_minimal_all_events);
-    RUN_TEST(test_face_theme_minimal_is_fallback);
-    RUN_TEST(test_face_theme_robot_all_events);
-    RUN_TEST(test_face_theme_pixel_all_events);
     RUN_TEST(test_face_theme_vector_all_events);
+    RUN_TEST(test_face_theme_vector_is_fallback);
     RUN_TEST(test_face_theme_config_eye_range);
     RUN_TEST(test_face_theme_config_no_react);
     RUN_TEST(test_face_theme_config_no_blink);
     RUN_TEST(test_face_theme_begin_resets_state);
-    RUN_TEST(test_face_theme_unique_ids);
 
     /* Task 11: UI button routing state machine */
     RUN_TEST(test_home_center_starts_recording);

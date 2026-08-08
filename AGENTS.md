@@ -84,7 +84,7 @@ components/
   audio/                   # I2S capture, PSRAM ring buffer, ESP-SR AFE, voice level
   recorder/                # WAV writer, recording state machine, rec_id, split logic
   ui/
-    face_engine/           # FacePlugin interface + registry + 4 built-in themes
+    face_engine/           # FacePlugin interface + registry + Vector theme
     screens/               # Home, recording, menu, list screens
   storage/                 # SD mount, config parser + write-back, queue persistence
   network/                 # Wi-Fi manager, net_selection, upload task
@@ -212,7 +212,7 @@ noise_suppression=true
 voice_detection=true
 
 [face]
-theme=owl
+theme=vector
 react_to_voice=true
 eye_min_size=5
 eye_max_size=22
@@ -268,11 +268,11 @@ public:
 };
 ```
 
-- v1.0 built-in themes: **Owl, Minimal, Robot, Pixel, Vector** (compiled in, no plugin loading from SD)
+- v1.0 built-in themes: **Vector** (compiled in, no plugin loading from SD)
 - Themes only receive device state + voice level — never touch recording/network/SD directly
 - A crashing/misbehaving theme must not corrupt the queue or recording
 - Theme switch is live, no reboot; active theme persisted in config; unknown theme → falls back
-  to `minimal`
+  to `vector`
 - Eye size reacts to post-noise-suppression voice level, not raw mic level
 
 ## Buttons
@@ -353,8 +353,7 @@ Post-Completion section in the plan).
 
 - Buttons start/stop recording; WAV on SD is valid; 10-min recording has no dropouts
 - Noise suppression measurably improves intelligibility
-- Face eyes react to cleaned voice level; ≥4 built-in themes; live theme switch; unknown theme →
-  minimal
+- Face eyes react to cleaned voice level; live theme switch; unknown theme → vector
 - Works fully offline; each recording has a durable state; queue drains when Wi-Fi returns;
   `telegram_message_id` stored after confirmed send; reboot never loses the queue
 - Network/screen never interrupt an active recording

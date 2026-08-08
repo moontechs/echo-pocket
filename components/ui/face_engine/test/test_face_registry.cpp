@@ -60,7 +60,7 @@ struct SpyFace : public FacePlugin {
 
 /* ── Helper: spies are re-created fresh in setUp() each test ──────── */
 
-static SpyFace *g_spy_minimal = NULL;
+static SpyFace *g_spy_vector = NULL;
 static SpyFace *g_spy_owl     = NULL;
 static SpyFace *g_spy_robot   = NULL;
 
@@ -69,11 +69,11 @@ static SpyFace *g_spy_robot   = NULL;
 extern "C" void setUp(void)
 {
     /* Re-create spies fresh each test */
-    delete g_spy_minimal;
+    delete g_spy_vector;
     delete g_spy_owl;
     delete g_spy_robot;
 
-    g_spy_minimal = new SpyFace("minimal", "Minimal");
+    g_spy_vector = new SpyFace("vector", "Vector");
     g_spy_owl     = new SpyFace("owl",     "Owl");
     g_spy_robot   = new SpyFace("robot",   "Robot");
 
@@ -94,7 +94,7 @@ extern "C" void test_face_registry_empty_count(void)
 
 extern "C" void test_face_registry_empty_find(void)
 {
-    TEST_ASSERT_NULL(face_registry_find("minimal"));
+    TEST_ASSERT_NULL(face_registry_find("vector"));
 }
 
 extern "C" void test_face_registry_empty_active_is_null(void)
@@ -106,7 +106,7 @@ extern "C" void test_face_registry_empty_active_is_null(void)
 
 extern "C" void test_face_registry_register_increases_count(void)
 {
-    TEST_ASSERT_EQUAL(1, face_registry_register(g_spy_minimal));
+    TEST_ASSERT_EQUAL(1, face_registry_register(g_spy_vector));
     TEST_ASSERT_EQUAL(1, face_registry_count());
 
     TEST_ASSERT_EQUAL(2, face_registry_register(g_spy_owl));
@@ -123,56 +123,56 @@ extern "C" void test_face_registry_register_null_noop(void)
 
 extern "C" void test_face_registry_find_by_id(void)
 {
-    face_registry_register(g_spy_minimal);
+    face_registry_register(g_spy_vector);
     face_registry_register(g_spy_owl);
 
     FacePlugin *found = face_registry_find("owl");
     TEST_ASSERT_NOT_NULL(found);
     TEST_ASSERT_EQUAL_STRING("owl", found->id());
 
-    found = face_registry_find("minimal");
+    found = face_registry_find("vector");
     TEST_ASSERT_NOT_NULL(found);
-    TEST_ASSERT_EQUAL_STRING("minimal", found->id());
+    TEST_ASSERT_EQUAL_STRING("vector", found->id());
 }
 
 extern "C" void test_face_registry_find_missing_returns_null(void)
 {
-    face_registry_register(g_spy_minimal);
+    face_registry_register(g_spy_vector);
     TEST_ASSERT_NULL(face_registry_find("pixel"));
     TEST_ASSERT_NULL(face_registry_find(""));
     TEST_ASSERT_NULL(face_registry_find(NULL));
 }
 
-/* ── Test: unknown theme falls back to minimal ───────────────────────── */
+/* ── Test: unknown theme falls back to vector ────────────────────────── */
 
-extern "C" void test_face_registry_fallback_to_minimal(void)
+extern "C" void test_face_registry_fallback_to_vector(void)
 {
-    face_registry_register(g_spy_minimal);
+    face_registry_register(g_spy_vector);
     face_registry_register(g_spy_owl);
 
     /* Request unknown theme */
     face_registry_begin("nonexistent");
 
-    /* Should have fallen back to minimal */
+    /* Should have fallen back to vector */
     FacePlugin *active = face_registry_get_active();
     TEST_ASSERT_NOT_NULL(active);
-    TEST_ASSERT_EQUAL_STRING("minimal", active->id());
-    TEST_ASSERT_EQUAL(1, g_spy_minimal->begin_count);
+    TEST_ASSERT_EQUAL_STRING("vector", active->id());
+    TEST_ASSERT_EQUAL(1, g_spy_vector->begin_count);
     TEST_ASSERT_EQUAL(0, g_spy_owl->begin_count);
 }
 
 extern "C" void test_face_registry_fallback_calls_begin_on_fallback(void)
 {
-    face_registry_register(g_spy_minimal);
+    face_registry_register(g_spy_vector);
     face_registry_begin("unknown");
-    TEST_ASSERT_EQUAL(1, g_spy_minimal->begin_count);
+    TEST_ASSERT_EQUAL(1, g_spy_vector->begin_count);
 }
 
 /* ── Test: direct resolution of known theme ──────────────────────────── */
 
 extern "C" void test_face_registry_begin_known(void)
 {
-    face_registry_register(g_spy_minimal);
+    face_registry_register(g_spy_vector);
     face_registry_register(g_spy_owl);
 
     face_registry_begin("owl");
@@ -181,14 +181,14 @@ extern "C" void test_face_registry_begin_known(void)
     TEST_ASSERT_NOT_NULL(active);
     TEST_ASSERT_EQUAL_STRING("owl", active->id());
     TEST_ASSERT_EQUAL(1, g_spy_owl->begin_count);
-    TEST_ASSERT_EQUAL(0, g_spy_minimal->begin_count);
+    TEST_ASSERT_EQUAL(0, g_spy_vector->begin_count);
 }
 
 /* ── Test: active is NULL when no themes registered ──────────────────── */
 
 extern "C" void test_face_registry_begin_empty_registry(void)
 {
-    face_registry_begin("minimal");
+    face_registry_begin("vector");
     TEST_ASSERT_NULL(face_registry_get_active());
 }
 
@@ -196,7 +196,7 @@ extern "C" void test_face_registry_begin_empty_registry(void)
 
 extern "C" void test_face_registry_all_events_dispatch(void)
 {
-    face_registry_register(g_spy_minimal);
+    face_registry_register(g_spy_vector);
     face_registry_register(g_spy_owl);
     face_registry_begin("owl");
 

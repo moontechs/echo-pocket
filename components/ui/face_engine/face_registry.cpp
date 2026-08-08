@@ -83,12 +83,12 @@ void face_registry_begin(const char *theme_id)
     FacePlugin *chosen = face_registry_find(theme_id);
 
     if (!chosen) {
-        ESP_LOGW(TAG, "Theme '%s' not found — falling back to 'minimal'", theme_id);
-        chosen = face_registry_find("minimal");
+        ESP_LOGW(TAG, "Theme '%s' not found — falling back to 'vector'", theme_id);
+        chosen = face_registry_find("vector");
     }
 
     if (!chosen) {
-        ESP_LOGE(TAG, "Fallback theme 'minimal' also not found! No face active.");
+        ESP_LOGE(TAG, "Fallback theme 'vector' also not found! No face active.");
         s_active = NULL;
         return;
     }
@@ -168,9 +168,5 @@ bool face_registry_should_update(uint32_t now_ms)
 void face_registry_register_defaults(void)
 {
     FaceConfig defaults;
-    face_registry_register(create_owl_face(defaults));
-    face_registry_register(create_minimal_face(defaults));
-    face_registry_register(create_robot_face(defaults));
-    face_registry_register(create_pixel_face(defaults));
     face_registry_register(create_vector_face(defaults));
 }

@@ -13,10 +13,6 @@
 extern "C" {
 #endif
 
-FacePlugin *create_owl_face(const FaceConfig &cfg);
-FacePlugin *create_minimal_face(const FaceConfig &cfg);
-FacePlugin *create_robot_face(const FaceConfig &cfg);
-FacePlugin *create_pixel_face(const FaceConfig &cfg);
 FacePlugin *create_vector_face(const FaceConfig &cfg);
 
 #ifdef __cplusplus

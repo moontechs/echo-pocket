@@ -1,5 +1,5 @@
 /** @file test_face_themes.cpp
- * @brief Table-driven smoke tests for all 4 built-in face themes (Task 10).
+ * @brief Table-driven smoke tests for the Vector face theme (Task 10).
  *
  * Each test:
  *   1. Creates a theme with default FaceConfig
@@ -89,47 +89,6 @@ static void exercise_theme(FacePlugin *theme)
     delete theme;
 }
 
-/* ── Test: Owl ───────────────────────────────────────────────────────── */
-
-extern "C" void test_face_theme_owl_all_events(void)
-{
-    FaceConfig cfg;
-    exercise_theme(create_owl_face(cfg));
-}
-
-/* ── Test: Minimal ───────────────────────────────────────────────────── */
-
-extern "C" void test_face_theme_minimal_all_events(void)
-{
-    FaceConfig cfg;
-    exercise_theme(create_minimal_face(cfg));
-}
-
-extern "C" void test_face_theme_minimal_is_fallback(void)
-{
-    /* Verify id matches the fallback name */
-    FaceConfig cfg;
-    FacePlugin *theme = create_minimal_face(cfg);
-    TEST_ASSERT_EQUAL_STRING("minimal", theme->id());
-    delete theme;
-}
-
-/* ── Test: Robot ─────────────────────────────────────────────────────── */
-
-extern "C" void test_face_theme_robot_all_events(void)
-{
-    FaceConfig cfg;
-    exercise_theme(create_robot_face(cfg));
-}
-
-/* ── Test: Pixel ─────────────────────────────────────────────────────── */
-
-extern "C" void test_face_theme_pixel_all_events(void)
-{
-    FaceConfig cfg;
-    exercise_theme(create_pixel_face(cfg));
-}
-
 /* ── Test: Vector ────────────────────────────────────────────────────── */
 
 extern "C" void test_face_theme_vector_all_events(void)
@@ -138,16 +97,25 @@ extern "C" void test_face_theme_vector_all_events(void)
     exercise_theme(create_vector_face(cfg));
 }
 
+extern "C" void test_face_theme_vector_is_fallback(void)
+{
+    /* Verify id matches the fallback name hardcoded in face_registry.cpp */
+    FaceConfig cfg;
+    FacePlugin *theme = create_vector_face(cfg);
+    TEST_ASSERT_EQUAL_STRING("vector", theme->id());
+    delete theme;
+}
+
 /* ── Test: Config values are respected ───────────────────────────────── */
 
 extern "C" void test_face_theme_config_eye_range(void)
 {
-    /* Themes should accept custom eye ranges without crashing */
+    /* Theme should accept custom eye ranges without crashing */
     FaceConfig cfg;
     cfg.eye_min_size = 1;
     cfg.eye_max_size = 40;
 
-    FacePlugin *theme = create_owl_face(cfg);
+    FacePlugin *theme = create_vector_face(cfg);
     theme->begin();
 
     /* Max voice → should use eye_max_size path */
@@ -173,7 +141,7 @@ extern "C" void test_face_theme_config_no_react(void)
     cfg.react_to_voice = false;
     cfg.eye_min_size = 8;
 
-    FacePlugin *theme = create_minimal_face(cfg);
+    FacePlugin *theme = create_vector_face(cfg);
     theme->begin();
 
     theme->setEvent(FaceEvent::VoiceActive);
@@ -191,7 +159,7 @@ extern "C" void test_face_theme_config_no_blink(void)
     FaceConfig cfg;
     cfg.blink = false;
 
-    FacePlugin *theme = create_robot_face(cfg);
+    FacePlugin *theme = create_vector_face(cfg);
     theme->begin();
 
     /* Run many update cycles (would trigger blink if enabled) */
@@ -210,7 +178,7 @@ extern "C" void test_face_theme_config_no_blink(void)
 extern "C" void test_face_theme_begin_resets_state(void)
 {
     FaceConfig cfg;
-    FacePlugin *theme = create_owl_face(cfg);
+    FacePlugin *theme = create_vector_face(cfg);
 
     /* Drive theme to a non-default state */
     theme->begin();
@@ -225,30 +193,4 @@ extern "C" void test_face_theme_begin_resets_state(void)
     TEST_ASSERT_GREATER_THAN(0, total_draw_calls());
 
     delete theme;
-}
-
-/* ── Test: all 5 themes have unique ids ──────────────────────────────── */
-
-extern "C" void test_face_theme_unique_ids(void)
-{
-    FaceConfig cfg;
-    FacePlugin *owl    = create_owl_face(cfg);
-    FacePlugin *min    = create_minimal_face(cfg);
-    FacePlugin *robot  = create_robot_face(cfg);
-    FacePlugin *pixel  = create_pixel_face(cfg);
-    FacePlugin *vector = create_vector_face(cfg);
-
-    FacePlugin *themes[] = { owl, min, robot, pixel, vector };
-    int count = sizeof(themes) / sizeof(themes[0]);
-    for (int i = 0; i < count; i++) {
-        for (int j = i + 1; j < count; j++) {
-            TEST_ASSERT_TRUE(strcmp(themes[i]->id(), themes[j]->id()) != 0);
-        }
-    }
-
-    delete owl;
-    delete min;
-    delete robot;
-    delete pixel;
-    delete vector;
 }

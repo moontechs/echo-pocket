@@ -38,7 +38,7 @@ static void assert_default_config(const RecorderConfig *c)
     TEST_ASSERT_TRUE(c->voice_detection);
 
     /* [face] */
-    TEST_ASSERT_EQUAL_STRING("minimal", c->theme);
+    TEST_ASSERT_EQUAL_STRING("vector", c->theme);
     TEST_ASSERT_TRUE(c->react_to_voice);
     TEST_ASSERT_EQUAL_INT(5, c->eye_min_size);
     TEST_ASSERT_EQUAL_INT(22, c->eye_max_size);

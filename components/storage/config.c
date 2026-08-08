@@ -117,7 +117,7 @@ void config_set_defaults(RecorderConfig *cfg)
     cfg->voice_detection     = true;
 
     /* [face] */
-    safe_copy(cfg->theme, "minimal", CONFIG_MAX_THEME_NAME);
+    safe_copy(cfg->theme, "vector", CONFIG_MAX_THEME_NAME);
     cfg->react_to_voice = true;
     cfg->eye_min_size   = 5;
     cfg->eye_max_size   = 22;
