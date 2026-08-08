@@ -1,11 +1,14 @@
 # ESP-IDF build artifacts
 build/
-test_apps/logic_tests/build.esp32s3/
-test_apps/logic_tests/build.linux/
+build.linux/
+test_apps/logic_tests/build*/
 sdkconfig
 sdkconfig.old
 dependencies.lock
 managed_components/
+
+# clangd index cache
+.cache/
 
 # Compiled object files
 *.o
