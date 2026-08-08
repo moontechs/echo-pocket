@@ -38,6 +38,13 @@
 #define VEC_STRAIN_EYE_H       24
 #define VEC_STRAIN_INSET_PX     5   /* < VEC_EYE_GAP/2 or eyes overlap  */
 
+/* Straining pulse — once settled at VEC_STRAIN_EYE_H, eyes slowly swell
+ * (effort), snap back quickly, then hold before the next pulse. */
+#define VEC_STRAIN_PULSE_PX    18   /* added height at peak of grow     */
+#define VEC_STRAIN_GROW_MS    900   /* slow swell                       */
+#define VEC_STRAIN_SNAP_MS    150   /* quick release                    */
+#define VEC_STRAIN_PAUSE_MS  1000   /* hold at baseline before next rep */
+
 /* Colors */
 #define VEC_BG          0x0000  /* black                        */
 #define VEC_EYE_NORMAL  0x07E6  /* mint green                   */
@@ -55,7 +62,8 @@ public:
     VectorFace(const FaceConfig &cfg)
         : cfg_(cfg), event_(FaceEvent::Idle),
           eye_h_(VEC_EYE_H), blink_timer_(0), blink_phase_(0),
-          next_blink_ms_(3500), anim_timer_(0) {}
+          next_blink_ms_(3500), anim_timer_(0),
+          strain_phase_(-1), strain_timer_(0) {}
 
     const char* id() const override          { return "vector"; }
     const char* displayName() const override { return "Vector"; }
@@ -67,9 +75,15 @@ public:
         blink_phase_ = 0;
         next_blink_ms_ = 3500;
         anim_timer_ = 0;
+        strain_phase_ = -1;
+        strain_timer_ = 0;
     }
 
     void setEvent(FaceEvent event) override {
+        if (event == FaceEvent::Uploading && event_ != FaceEvent::Uploading) {
+            blink_phase_ = 0;
+            blink_timer_ = 0;
+        }
         event_ = event;
     }
 
@@ -93,8 +107,8 @@ public:
                 eye_h_ = target;
         }
 
-        /* ── Blink animation ────────────────────────────────────── */
-        if (cfg_.blink) {
+        /* ── Blink animation (suppressed while straining/uploading) ── */
+        if (cfg_.blink && event_ != FaceEvent::Uploading) {
             if (blink_phase_ == 0) {
                 if (next_blink_ms_ <= (int32_t)deltaMs) {
                     blink_phase_ = 1;
@@ -113,6 +127,51 @@ public:
                     blink_phase_ = 0; blink_timer_ = 0;
                 }
             }
+        }
+
+        /* ── Straining pulse while uploading ────────────────────── */
+        if (event_ == FaceEvent::Uploading) {
+            if (strain_phase_ < 0) {
+                if (eye_h_ == VEC_STRAIN_EYE_H) {
+                    strain_phase_ = 0;
+                    strain_timer_ = 0;
+                }
+            } else {
+                strain_timer_ += deltaMs;
+                switch (strain_phase_) {
+                    case 0: /* pause at baseline */
+                        eye_h_ = VEC_STRAIN_EYE_H;
+                        if (strain_timer_ >= VEC_STRAIN_PAUSE_MS) {
+                            strain_phase_ = 1;
+                            strain_timer_ = 0;
+                        }
+                        break;
+                    case 1: { /* slow swell */
+                        float t = (float)strain_timer_ / VEC_STRAIN_GROW_MS;
+                        if (t >= 1.0f) {
+                            t = 1.0f;
+                            strain_phase_ = 2;
+                            strain_timer_ = 0;
+                        }
+                        eye_h_ = VEC_STRAIN_EYE_H + (int)(VEC_STRAIN_PULSE_PX * t);
+                        break;
+                    }
+                    case 2: { /* quick release */
+                        float t = (float)strain_timer_ / VEC_STRAIN_SNAP_MS;
+                        if (t >= 1.0f) {
+                            t = 1.0f;
+                            strain_phase_ = 0;
+                            strain_timer_ = 0;
+                        }
+                        eye_h_ = VEC_STRAIN_EYE_H + VEC_STRAIN_PULSE_PX
+                                 - (int)(VEC_STRAIN_PULSE_PX * t);
+                        break;
+                    }
+                }
+            }
+        } else {
+            strain_phase_ = -1;
+            strain_timer_ = 0;
         }
 
         anim_timer_ += deltaMs;
@@ -204,6 +263,8 @@ private:
     int        blink_phase_;
     int32_t    next_blink_ms_;
     uint32_t   anim_timer_;
+    int        strain_phase_;   /* -1=settling, 0=pause, 1=grow, 2=snap */
+    uint32_t   strain_timer_;
 };
 
 /* ── Factory function for registry ───────────────────────────────────── */
