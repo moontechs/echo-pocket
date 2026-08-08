@@ -235,9 +235,21 @@ telegram_err_t telegram_client_get_me(char *out_bot_username)
     return TELEGRAM_OK;
 }
 
-/* ── sendDocument with multipart/form-data ───────────────────────────── */
+/* ── Shared multipart/form-data file sender ──────────────────────────── */
 
-telegram_err_t telegram_client_send_document(const char *chat_id,
+/**
+ * Send a file to a Telegram Bot API method as multipart/form-data, with an
+ * optional caption. Shared by sendDocument and sendAudio — they differ only
+ * in method name, form field name, MIME type, and uploaded filename.
+ *
+ * Streams the file from SD via esp_http_client_write() rather than
+ * buffering it in RAM.
+ */
+static telegram_err_t tg_send_multipart_file(const char *method,
+                                              const char *field_name,
+                                              const char *content_type_value,
+                                              const char *upload_filename,
+                                              const char *chat_id,
                                               const char *file_path,
                                               const char *caption,
                                               int *out_message_id)
@@ -252,25 +264,25 @@ telegram_err_t telegram_client_send_document(const char *chat_id,
     /* ── Check file exists and is within size limit ─────────────────── */
     struct stat st;
     if (stat(file_path, &st) != 0) {
-        ESP_LOGE(TAG, "sendDocument: file not found: %s", file_path);
+        ESP_LOGE(TAG, "%s: file not found: %s", method, file_path);
         return TELEGRAM_ERR_FILE_NOT_FOUND;
     }
 
     if ((uint64_t)st.st_size > TELEGRAM_MAX_UPLOAD_BYTES) {
-        ESP_LOGE(TAG, "sendDocument: file too large: %lld bytes (max %d)",
-                 (long long)st.st_size, TELEGRAM_MAX_UPLOAD_BYTES);
+        ESP_LOGE(TAG, "%s: file too large: %lld bytes (max %d)",
+                 method, (long long)st.st_size, TELEGRAM_MAX_UPLOAD_BYTES);
         return TELEGRAM_ERR_FILE_TOO_LARGE;
     }
 
     FILE *fp = fopen(file_path, "rb");
     if (!fp) {
-        ESP_LOGE(TAG, "sendDocument: fopen failed: %s", file_path);
+        ESP_LOGE(TAG, "%s: fopen failed: %s", method, file_path);
         return TELEGRAM_ERR_FILE_NOT_FOUND;
     }
 
     /* ── Build multipart form body ────────────────────────────────────
      *
-     * Telegram sendDocument multipart format:
+     * Telegram multipart format:
      *   --BOUNDARY\r\n
      *   Content-Disposition: form-data; name="chat_id"\r\n\r\n
      *   <chat_id>\r\n
@@ -278,8 +290,8 @@ telegram_err_t telegram_client_send_document(const char *chat_id,
      *   Content-Disposition: form-data; name="caption"\r\n\r\n
      *   <caption>\r\n
      *   --BOUNDARY\r\n
-     *   Content-Disposition: form-data; name="document"; filename="file.wav"\r\n
-     *   Content-Type: audio/wav\r\n\r\n
+     *   Content-Disposition: form-data; name="<field_name>"; filename="<upload_filename>"\r\n
+     *   Content-Type: <content_type_value>\r\n\r\n
      *   <file data>\r\n
      *   --BOUNDARY--\r\n
      *
@@ -304,23 +316,23 @@ telegram_err_t telegram_client_send_document(const char *chat_id,
             "Content-Disposition: form-data; name=\"caption\"\r\n\r\n"
             "%s\r\n"
             "--%s\r\n"
-            "Content-Disposition: form-data; name=\"document\"; "
-            "filename=\"recording.wav\"\r\n"
-            "Content-Type: audio/wav\r\n\r\n",
+            "Content-Disposition: form-data; name=\"%s\"; "
+            "filename=\"%s\"\r\n"
+            "Content-Type: %s\r\n\r\n",
             BOUNDARY, chat_id,
             BOUNDARY, caption,
-            BOUNDARY);
+            BOUNDARY, field_name, upload_filename, content_type_value);
     } else {
         pre_len = snprintf(pre_body, sizeof(pre_body),
             "--%s\r\n"
             "Content-Disposition: form-data; name=\"chat_id\"\r\n\r\n"
             "%s\r\n"
             "--%s\r\n"
-            "Content-Disposition: form-data; name=\"document\"; "
-            "filename=\"recording.wav\"\r\n"
-            "Content-Type: audio/wav\r\n\r\n",
+            "Content-Disposition: form-data; name=\"%s\"; "
+            "filename=\"%s\"\r\n"
+            "Content-Type: %s\r\n\r\n",
             BOUNDARY, chat_id,
-            BOUNDARY);
+            BOUNDARY, field_name, upload_filename, content_type_value);
     }
 
     /* ── Assemble post-body trailer ────────────────────────────────── */
@@ -333,7 +345,7 @@ telegram_err_t telegram_client_send_document(const char *chat_id,
 
     /* ── Build URL ─────────────────────────────────────────────────── */
     char url[256];
-    tg_build_url("sendDocument", url, sizeof(url));
+    tg_build_url(method, url, sizeof(url));
 
     /* Content-Type header with boundary */
     char content_type[128];
@@ -373,7 +385,7 @@ telegram_err_t telegram_client_send_document(const char *chat_id,
     /* ── Open connection ───────────────────────────────────────────── */
     esp_err_t esp_err = esp_http_client_open(client, content_length);
     if (esp_err != ESP_OK) {
-        ESP_LOGE(TAG, "sendDocument: open failed: %d", esp_err);
+        ESP_LOGE(TAG, "%s: open failed: %d", method, esp_err);
         esp_http_client_cleanup(client);
         fclose(fp);
         return TELEGRAM_ERR_CONNECT;
@@ -382,8 +394,8 @@ telegram_err_t telegram_client_send_document(const char *chat_id,
     /* ── Write pre-body (chat_id + caption + document header) ──────── */
     int written = esp_http_client_write(client, pre_body, pre_len);
     if (written != pre_len) {
-        ESP_LOGE(TAG, "sendDocument: pre-body write failed: %d/%d",
-                 written, pre_len);
+        ESP_LOGE(TAG, "%s: pre-body write failed: %d/%d",
+                 method, written, pre_len);
         esp_http_client_close(client);
         esp_http_client_cleanup(client);
         fclose(fp);
@@ -396,7 +408,7 @@ telegram_err_t telegram_client_send_document(const char *chat_id,
      * local here overflowed the stack and corrupted adjacent memory. */
     uint8_t *chunk = malloc(TG_UPLOAD_CHUNK_SIZE);
     if (!chunk) {
-        ESP_LOGE(TAG, "sendDocument: chunk buffer alloc failed");
+        ESP_LOGE(TAG, "%s: chunk buffer alloc failed", method);
         esp_http_client_close(client);
         esp_http_client_cleanup(client);
         fclose(fp);
@@ -412,8 +424,8 @@ telegram_err_t telegram_client_send_document(const char *chat_id,
 
         written = esp_http_client_write(client, (const char *)chunk, nread);
         if (written != (int)nread) {
-            ESP_LOGE(TAG, "sendDocument: chunk write failed: %d/%zu at offset %zu",
-                     written, nread, total_file_sent);
+            ESP_LOGE(TAG, "%s: chunk write failed: %d/%zu at offset %zu",
+                     method, written, nread, total_file_sent);
             stream_ok = false;
             break;
         }
@@ -431,8 +443,8 @@ telegram_err_t telegram_client_send_document(const char *chat_id,
     /* ── Write trailer ─────────────────────────────────────────────── */
     written = esp_http_client_write(client, trailer, trailer_len);
     if (written != trailer_len) {
-        ESP_LOGE(TAG, "sendDocument: trailer write failed: %d/%d",
-                 written, trailer_len);
+        ESP_LOGE(TAG, "%s: trailer write failed: %d/%d",
+                 method, written, trailer_len);
         esp_http_client_close(client);
         esp_http_client_cleanup(client);
         return TELEGRAM_ERR_HTTP;
@@ -441,7 +453,7 @@ telegram_err_t telegram_client_send_document(const char *chat_id,
     /* ── Finish request and read response ──────────────────────────── */
     int response_length = esp_http_client_fetch_headers(client);
     if (response_length < 0 && response_length != -ESP_ERR_HTTP_EAGAIN) {
-        ESP_LOGE(TAG, "sendDocument: fetch_headers failed: %d", response_length);
+        ESP_LOGE(TAG, "%s: fetch_headers failed: %d", method, response_length);
         esp_http_client_close(client);
         esp_http_client_cleanup(client);
         return TELEGRAM_ERR_HTTP;
@@ -456,7 +468,7 @@ telegram_err_t telegram_client_send_document(const char *chat_id,
                         ? response_length : (int)(sizeof(response) - 1);
         int bytes_read = esp_http_client_read(client, response, to_read);
         if (bytes_read < 0) {
-            ESP_LOGW(TAG, "sendDocument: read returned %d", bytes_read);
+            ESP_LOGW(TAG, "%s: read returned %d", method, bytes_read);
         }
     }
 
@@ -465,7 +477,7 @@ telegram_err_t telegram_client_send_document(const char *chat_id,
 
     /* ── Check HTTP status ─────────────────────────────────────────── */
     if (status != 200) {
-        ESP_LOGE(TAG, "sendDocument: HTTP %d, body: %s", status, response);
+        ESP_LOGE(TAG, "%s: HTTP %d, body: %s", method, status, response);
         return TELEGRAM_ERR_HTTP;
     }
 
@@ -474,7 +486,7 @@ telegram_err_t telegram_client_send_document(const char *chat_id,
     int msg_id = 0;
 
     if (!tg_parse_response(response, &msg_id, api_error, sizeof(api_error))) {
-        ESP_LOGE(TAG, "sendDocument: API error: %s", api_error);
+        ESP_LOGE(TAG, "%s: API error: %s", method, api_error);
         return TELEGRAM_ERR_API;
     }
 
@@ -482,9 +494,31 @@ telegram_err_t telegram_client_send_document(const char *chat_id,
         *out_message_id = msg_id;
     }
 
-    ESP_LOGI(TAG, "sendDocument: OK, message_id=%d, sent=%zu bytes, file=%s",
-             msg_id, total_file_sent, file_path);
+    ESP_LOGI(TAG, "%s: OK, message_id=%d, sent=%zu bytes, file=%s",
+             method, msg_id, total_file_sent, file_path);
     return TELEGRAM_OK;
+}
+
+telegram_err_t telegram_client_send_document(const char *chat_id,
+                                              const char *file_path,
+                                              const char *caption,
+                                              int *out_message_id)
+{
+    return tg_send_multipart_file("sendDocument", "document", "audio/wav",
+                                   "recording.wav", chat_id, file_path,
+                                   caption, out_message_id);
+}
+
+telegram_err_t telegram_client_send_audio(const char *chat_id,
+                                           const char *file_path,
+                                           const char *upload_filename,
+                                           int *out_message_id)
+{
+    return tg_send_multipart_file("sendAudio", "audio", "audio/mpeg",
+                                   (upload_filename && upload_filename[0])
+                                       ? upload_filename : "voice.mp3",
+                                   chat_id, file_path,
+                                   NULL, out_message_id);
 }
 
 /* ── Fan-out helper ──────────────────────────────────────────────────── */
@@ -554,6 +588,72 @@ telegram_err_t telegram_client_send_to_channels(const RecorderConfig *cfg,
     }
 
     ESP_LOGI(TAG, "send_to_channels: %d sent, result=%s",
+             sent_count,
+             (last_err == TELEGRAM_OK) ? "ok" : telegram_err_str(last_err));
+
+    return (last_err == TELEGRAM_OK) ? TELEGRAM_OK : last_err;
+}
+
+telegram_err_t telegram_client_send_audio_to_channels(const RecorderConfig *cfg,
+                                                       const char *file_path,
+                                                       const char *upload_filename,
+                                                       int *out_message_id)
+{
+    if (!cfg || !file_path) {
+        return TELEGRAM_ERR_NULL_PARAM;
+    }
+
+    telegram_err_t last_err = TELEGRAM_OK;
+    int last_msg_id = 0;
+    int sent_count = 0;
+
+    if (cfg->send_to_all) {
+        for (int i = 0; i < cfg->channel_count; i++) {
+            if (cfg->channels[i].id[0] == '\0') continue;
+
+            int msg_id = 0;
+            telegram_err_t err = telegram_client_send_audio(
+                cfg->channels[i].id, file_path, upload_filename, &msg_id);
+
+            if (err == TELEGRAM_OK) {
+                sent_count++;
+                last_msg_id = msg_id;
+            } else {
+                ESP_LOGW(TAG, "send_audio_to_channels: channel %s failed: %s",
+                         cfg->channels[i].id, telegram_err_str(err));
+                last_err = err;
+                break; /* Stop on first failure per plan */
+            }
+        }
+    } else {
+        int idx = cfg->active_channel - 1;
+        if (idx < 0 || idx >= cfg->channel_count ||
+            cfg->channels[idx].id[0] == '\0') {
+            ESP_LOGE(TAG, "send_audio_to_channels: invalid active_channel %d",
+                     cfg->active_channel);
+            return TELEGRAM_ERR_NULL_PARAM;
+        }
+
+        telegram_err_t err = telegram_client_send_audio(
+            cfg->channels[idx].id, file_path, upload_filename, &last_msg_id);
+
+        if (err == TELEGRAM_OK) {
+            sent_count++;
+        } else {
+            last_err = err;
+        }
+    }
+
+    if (out_message_id) {
+        *out_message_id = last_msg_id;
+    }
+
+    if (sent_count == 0 && last_err == TELEGRAM_OK) {
+        ESP_LOGE(TAG, "send_audio_to_channels: no configured target channels");
+        return TELEGRAM_ERR_NULL_PARAM;
+    }
+
+    ESP_LOGI(TAG, "send_audio_to_channels: %d sent, result=%s",
              sent_count,
              (last_err == TELEGRAM_OK) ? "ok" : telegram_err_str(last_err));
 

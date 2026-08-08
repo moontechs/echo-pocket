@@ -6,8 +6,8 @@
  *
  * Route of a single entry through the drain loop:
  *   1. Mark QUEUE_STATE_UPLOADING → persist
- *   2. Format caption via telegram_format_caption()
- *   3. Send via telegram_client_send_to_channels()
+ *   2. Convert the WAV to a temp MP3 via wav_to_mp3()
+ *   3. Send via telegram_client_send_audio_to_channels() (no caption)
  *   4. Classify result → upload_drain_compute_outcome()
  *   5. Apply outcome (mark sent/failed/pending, delete file if applicable)
  *   6. Post RECORDER_EVENT_UPLOAD_SUCCESS / UPLOAD_ERROR
@@ -19,6 +19,7 @@
 
 #include "upload_task.h"
 #include "telegram_client.h"
+#include "wav_to_mp3.h"
 #include "recorder.h"
 #include "device_events.h"
 #include "battery.h"
@@ -149,6 +150,24 @@ static upload_send_result_t classify_send_error(telegram_err_t err)
 }
 
 /**
+ * Build the temporary MP3 path used for one upload: the WAV path with its
+ * extension replaced by ".mp3". Deleted again after each send attempt —
+ * only the WAV is durable queue state.
+ */
+static void build_temp_mp3_path(const char *wav_path, char *out, size_t out_size)
+{
+    strncpy(out, wav_path, out_size - 1);
+    out[out_size - 1] = '\0';
+
+    size_t len = strlen(out);
+    if (len >= 4 && strcmp(out + len - 4, ".wav") == 0) {
+        strcpy(out + len - 4, ".mp3");
+    } else {
+        strncat(out, ".mp3", out_size - strlen(out) - 1);
+    }
+}
+
+/**
  * Delete a WAV file from SD, if it exists.
  * Emits a warning on failure but never blocks the drain loop.
  */
@@ -216,12 +235,6 @@ static int upload_drain_loop(void)
         esp_event_post(RECORDER_EVENTS, RECORDER_EVENT_UPLOAD_STARTED,
                        NULL, 0, pdMS_TO_TICKS(100));
 
-        /* ── Format caption ──────────────────────────────────────── */
-        char caption[TELEGRAM_CAPTION_MAX];
-        telegram_format_caption(entry->id, entry->duration_ms,
-                                s_state.cfg->device_name,
-                                caption, sizeof(caption));
-
         /* ── Check battery before auto-upload ──────────────────── */
         if (battery_should_block_upload(battery_percent(), entry->size)) {
             ESP_LOGW(TAG, "Skipping %s — battery too low for %" PRIu32 " bytes",
@@ -238,10 +251,24 @@ static int upload_drain_loop(void)
             break;
         }
 
-        /* ── Send ────────────────────────────────────────────────── */
+        /* ── Convert to MP3 and send (no caption — audio only) ────── */
+        char mp3_path[288];
+        build_temp_mp3_path(entry->file, mp3_path, sizeof(mp3_path));
+
+        char upload_filename[64];
+        telegram_format_audio_filename(entry->id, upload_filename,
+                                       sizeof(upload_filename));
+
         int message_id = 0;
-        telegram_err_t terr = telegram_client_send_to_channels(
-            s_state.cfg, entry->file, caption, &message_id);
+        telegram_err_t terr;
+        if (wav_to_mp3(entry->file, mp3_path)) {
+            terr = telegram_client_send_audio_to_channels(
+                s_state.cfg, mp3_path, upload_filename, &message_id);
+            remove(mp3_path);
+        } else {
+            ESP_LOGE(TAG, "Failed to convert %s to MP3", entry->id);
+            terr = TELEGRAM_ERR_FILE_NOT_FOUND;
+        }
 
         /* ── Classify and compute outcome ─────────────────────────── */
         upload_send_result_t sres = classify_send_error(terr);

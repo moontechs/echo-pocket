@@ -88,7 +88,8 @@ components/
     screens/               # Home, recording, menu, list screens
   storage/                 # SD mount, config parser + write-back, queue persistence
   network/                 # Wi-Fi manager, net_selection, upload task
-  telegram/                # Bot API client (sendDocument), caption formatting
+  telegram/                # Bot API client (sendDocument, sendAudio), caption formatting
+  mp3enc/                  # WAV -> MP3 conversion (vendored shine encoder, LGPL)
 test_apps/
   logic_tests/             # Unity-based unit tests (pure logic, no hardware)
 ```
@@ -159,14 +160,23 @@ Rules:
 
 ## Telegram
 
-- Bot API, `sendDocument`, multipart/form-data, stream file from SD (don't buffer whole file in RAM)
+- Before upload, the queued WAV is converted to a temp MP3 (`components/mp3enc`, vendored
+  `shine` fixed-point encoder, 64 kbps) — the WAV on SD stays the durable queue artifact; the
+  MP3 is deleted right after the send attempt, win or lose.
+- Bot API `sendAudio`, multipart/form-data, stream file from SD (don't buffer whole file in RAM).
+  No caption, title, or performer field — just the audio. The uploaded filename (which
+  Telegram displays as the track title in its player) is set to a human-readable local
+  date/time via `telegram_format_audio_filename()`, e.g. `Sat, 08.08.2026, 18-30.mp3`
+  (hyphen, not colon — Telegram mangles `:` in uploaded filenames, rendering it as a space);
+  falls back to the raw rec_id when the clock wasn't synced at record time (`REC_BOOT_...`
+  ids). (`sendDocument` still exists in `telegram_client.c` for the WAV path but is no
+  longer used by the upload task.)
+- Telegram only renders a true voice-note bubble (waveform UI) for OGG/Opus; MP3 via
+  `sendAudio` shows as a regular inline audio player. Real Opus voice messages remain out of
+  scope (see below).
 - Channel targeting: numeric `chat_id` or `@username`; one active channel, optional send-to-all
-- Caption per upload for de-dup:
-  ```
-  Recorder ID: REC_20260804_215700_001
-  Duration: 03:04
-  Device: VoiceRecorder
-  ```
+- `telegram_format_caption()` (Recorder ID / Duration / Device) still exists and is
+  unit-tested, but nothing in the upload path calls it anymore.
 
 ## Wi-Fi
 
@@ -178,7 +188,10 @@ kick the upload queue; show status on screen.
 ```ini
 [device]
 name=VoiceRecorder
-timezone=Europe/Berlin
+# POSIX TZ string, NOT an IANA zone name — ESP-IDF's newlib has no bundled
+# zoneinfo database, so "Europe/Berlin" silently applies no offset (stays
+# UTC). Look up the right POSIX string for your zone; Berlin's is:
+timezone=CET-1CEST,M3.5.0,M10.5.0/3
 
 [wifi_1]
 ssid=HomeWiFi

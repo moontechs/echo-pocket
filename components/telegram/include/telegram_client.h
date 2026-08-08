@@ -117,6 +117,28 @@ telegram_err_t telegram_client_send_document(const char *chat_id,
                                               int *out_message_id);
 
 /**
+ * @brief Send an MP3 file as a Telegram audio message (no caption).
+ *
+ * Uses the Bot API `sendAudio` method rather than `sendDocument`, so the
+ * file plays inline as audio in the chat. Streams from SD the same way as
+ * telegram_client_send_document(). Never attaches a caption — this exists
+ * specifically to send just the audio with no extra text.
+ *
+ * @param chat_id          Numeric chat_id as string or @username.
+ * @param file_path        Absolute path to the MP3 file on SD.
+ * @param upload_filename  Filename Telegram shows as the track title
+ *                         (there's no caption field to carry it instead).
+ *                         NULL or empty falls back to "voice.mp3".
+ * @param[out] out_message_id  If non-NULL, receives the Telegram
+ *                             message_id on success.
+ * @return TELEGRAM_OK on success (ok: true received).
+ */
+telegram_err_t telegram_client_send_audio(const char *chat_id,
+                                           const char *file_path,
+                                           const char *upload_filename,
+                                           int *out_message_id);
+
+/**
  * @brief Convenience: send a WAV to all configured target channels.
  *
  * If cfg->send_to_all is true, sends to every channel in cfg->channels[].
@@ -135,6 +157,22 @@ telegram_err_t telegram_client_send_to_channels(const RecorderConfig *cfg,
                                                  const char *file_path,
                                                  const char *caption,
                                                  int *out_message_id);
+
+/**
+ * @brief Convenience: send an MP3 (no caption) to all configured target
+ * channels. Same fan-out rules as telegram_client_send_to_channels().
+ *
+ * @param cfg              Loaded config (contains channel list + send_to_all).
+ * @param file_path        Path to MP3 on SD.
+ * @param upload_filename  Filename Telegram shows as the track title
+ *                         (NULL/empty falls back to "voice.mp3").
+ * @param[out] out_message_id  If non-NULL, receives the last message_id.
+ * @return TELEGRAM_OK on success for all targets.
+ */
+telegram_err_t telegram_client_send_audio_to_channels(const RecorderConfig *cfg,
+                                                       const char *file_path,
+                                                       const char *upload_filename,
+                                                       int *out_message_id);
 
 /* ── Pure-logic helpers (unit-testable) ──────────────────────────────── */
 
@@ -159,6 +197,26 @@ size_t telegram_format_caption(const char *rec_id,
                                uint32_t duration_ms,
                                const char *device_name,
                                char *buf, size_t buf_size);
+
+/**
+ * @brief Format the uploaded-audio filename shown as the track title in
+ * Telegram's inline player (since sendAudio carries no caption).
+ *
+ * Pure function. When @p rec_id is a clock-synced
+ * "REC_YYYYMMDD_HHMMSS_NNN" id, produces "Ddd, DD.MM.YYYY, HH-MM.mp3"
+ * (device local time, weekday computed from the calendar date — no
+ * timezone/DST dependency; hyphen rather than colon because Telegram
+ * mangles ':' in uploaded filenames, rendering it as a space). Otherwise
+ * (offline "REC_BOOT_..." ids, or a NULL/malformed rec_id) falls back to
+ * "<rec_id>.mp3".
+ *
+ * @param rec_id    Recording ID string.
+ * @param buf       Output buffer.
+ * @param buf_size  Size of output buffer.
+ * @return  Number of bytes written (excluding NUL), or 0 if buf is too small.
+ */
+size_t telegram_format_audio_filename(const char *rec_id,
+                                      char *buf, size_t buf_size);
 
 #ifdef __cplusplus
 }

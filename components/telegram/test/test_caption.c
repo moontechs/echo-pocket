@@ -295,3 +295,74 @@ void test_caption_default_device_name(void)
     TEST_ASSERT_GREATER_THAN(0, len);
     TEST_ASSERT_NOT_NULL(strstr(buf, "Device: VoiceRecorder"));
 }
+
+/* ── Audio upload filename tests ──────────────────────────────────────── */
+
+void test_audio_filename_synced_saturday(void)
+{
+    char buf[64];
+    size_t len = telegram_format_audio_filename(
+        "REC_20260808_183005_001", buf, sizeof(buf));
+
+    TEST_ASSERT_GREATER_THAN(0, len);
+    TEST_ASSERT_EQUAL_STRING("Sat, 08.08.2026, 18-30.mp3", buf);
+}
+
+void test_audio_filename_synced_known_weekdays(void)
+{
+    char buf[64];
+
+    telegram_format_audio_filename("REC_20000101_000000_001", buf, sizeof(buf));
+    TEST_ASSERT_EQUAL_STRING("Sat, 01.01.2000, 00-00.mp3", buf);
+
+    telegram_format_audio_filename("REC_20240229_235900_001", buf, sizeof(buf));
+    TEST_ASSERT_EQUAL_STRING("Thu, 29.02.2024, 23-59.mp3", buf);
+
+    telegram_format_audio_filename("REC_19991231_120000_001", buf, sizeof(buf));
+    TEST_ASSERT_EQUAL_STRING("Fri, 31.12.1999, 12-00.mp3", buf);
+
+    telegram_format_audio_filename("REC_20260101_090000_001", buf, sizeof(buf));
+    TEST_ASSERT_EQUAL_STRING("Thu, 01.01.2026, 09-00.mp3", buf);
+}
+
+void test_audio_filename_offline_boot_id_falls_back(void)
+{
+    char buf[64];
+    size_t len = telegram_format_audio_filename(
+        "REC_BOOT_12345_001", buf, sizeof(buf));
+
+    TEST_ASSERT_GREATER_THAN(0, len);
+    TEST_ASSERT_EQUAL_STRING("REC_BOOT_12345_001.mp3", buf);
+}
+
+void test_audio_filename_null_rec_id_falls_back(void)
+{
+    char buf[64];
+    size_t len = telegram_format_audio_filename(NULL, buf, sizeof(buf));
+
+    TEST_ASSERT_GREATER_THAN(0, len);
+    TEST_ASSERT_EQUAL_STRING("voice.mp3", buf);
+}
+
+void test_audio_filename_null_buffer(void)
+{
+    TEST_ASSERT_EQUAL(0, telegram_format_audio_filename("REC_TEST", NULL, 64));
+}
+
+void test_audio_filename_zero_buf_size(void)
+{
+    char buf[64];
+    TEST_ASSERT_EQUAL(0, telegram_format_audio_filename("REC_TEST", buf, 0));
+}
+
+void test_audio_filename_buffer_too_small_falls_back_gracefully(void)
+{
+    /* Buffer too small even for the raw-id fallback: must not overflow,
+     * and must NUL-terminate whatever fits. */
+    char buf[4];
+    size_t len = telegram_format_audio_filename(
+        "REC_20260808_183005_001", buf, sizeof(buf));
+
+    TEST_ASSERT_EQUAL(0, len);
+    TEST_ASSERT_EQUAL('\0', buf[sizeof(buf) - 1]);
+}

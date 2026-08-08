@@ -39,7 +39,8 @@ firmware creates the directory tree and reads the config. Example:
 ```ini
 [device]
 name=VoiceRecorder
-timezone=Europe/Berlin
+# POSIX TZ string (not an IANA name — ESP-IDF has no zoneinfo database)
+timezone=CET-1CEST,M3.5.0,M10.5.0/3
 
 [wifi_1]
 ssid=HomeWiFi

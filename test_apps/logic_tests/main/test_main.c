@@ -64,6 +64,11 @@ extern void test_wav_header_size(void);
 extern void test_wav_header_offsets(void);
 extern void test_wav_header_fill_null(void);
 
+/* ── WAV → MP3 conversion tests ───────────────────────────────────────── */
+/* Defined in test_wav_to_mp3.c (compiled alongside this file) */
+extern void test_wav_to_mp3_produces_valid_mp3(void);
+extern void test_wav_to_mp3_rejects_missing_file(void);
+
 /* ── Recorder split threshold tests (Task 7) ────────────────────────── */
 extern void test_recorder_split_below_threshold(void);
 extern void test_recorder_split_at_threshold(void);
@@ -306,6 +311,13 @@ extern void test_caption_subsecond_truncation(void);
 extern void test_caption_exact_expected_format(void);
 extern void test_caption_error_strings(void);
 extern void test_caption_default_device_name(void);
+extern void test_audio_filename_synced_saturday(void);
+extern void test_audio_filename_synced_known_weekdays(void);
+extern void test_audio_filename_offline_boot_id_falls_back(void);
+extern void test_audio_filename_null_rec_id_falls_back(void);
+extern void test_audio_filename_null_buffer(void);
+extern void test_audio_filename_zero_buf_size(void);
+extern void test_audio_filename_buffer_too_small_falls_back_gracefully(void);
 
 /* ── Upload drain flow tests (Task 17) ───────────────────────────────── */
 extern void test_ok_without_delete(void);
@@ -445,6 +457,10 @@ void app_main(void)
     RUN_TEST(test_wav_header_size);
     RUN_TEST(test_wav_header_offsets);
     RUN_TEST(test_wav_header_fill_null);
+
+    /* WAV -> MP3 conversion */
+    RUN_TEST(test_wav_to_mp3_produces_valid_mp3);
+    RUN_TEST(test_wav_to_mp3_rejects_missing_file);
 
     /* Task 7: recorder split threshold (state machine) */
     RUN_TEST(test_recorder_split_below_threshold);
@@ -678,6 +694,13 @@ void app_main(void)
     RUN_TEST(test_caption_exact_expected_format);
     RUN_TEST(test_caption_error_strings);
     RUN_TEST(test_caption_default_device_name);
+    RUN_TEST(test_audio_filename_synced_saturday);
+    RUN_TEST(test_audio_filename_synced_known_weekdays);
+    RUN_TEST(test_audio_filename_offline_boot_id_falls_back);
+    RUN_TEST(test_audio_filename_null_rec_id_falls_back);
+    RUN_TEST(test_audio_filename_null_buffer);
+    RUN_TEST(test_audio_filename_zero_buf_size);
+    RUN_TEST(test_audio_filename_buffer_too_small_falls_back_gracefully);
 
     /* Task 17: upload drain flow state machine */
     RUN_TEST(test_ok_without_delete);
