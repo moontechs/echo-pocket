@@ -63,6 +63,8 @@ typedef struct {
     bool     charging;             /**< USB/charger connected            */
     uint32_t recording_elapsed_ms; /**< Milliseconds since rec start     */
     bool     show_saved;           /**< Overlay "Saved" text             */
+    bool     shutdown_warning;     /**< Idle-timeout auto-shutdown looms */
+    int      shutdown_in_sec;      /**< Seconds until auto shutdown      */
 } ui_status_t;
 
 /* ── Public API ──────────────────────────────────────────────────────── */

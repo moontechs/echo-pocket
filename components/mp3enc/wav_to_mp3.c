@@ -10,8 +10,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-/** Fixed encode bitrate — adequate for voice, keeps files small. */
-#define WAV_TO_MP3_BITRATE_KBPS  64
+/** Fixed encode bitrate — higher quality voice, still small at 16kHz mono. */
+#define WAV_TO_MP3_BITRATE_KBPS  128
 
 static bool read_wav_header(FILE *fp, wav_header_t *hdr)
 {

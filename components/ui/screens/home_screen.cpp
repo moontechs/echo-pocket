@@ -33,6 +33,7 @@ static void draw_status_bar_bg(void)
  *  the bar stays hidden otherwise so the face owns the full screen. */
 static bool status_needs_attention(const ui_status_t *status)
 {
+    if (status->shutdown_warning) return true;
     if (!status->wifi_connected) return true;
     if (!status->sd_mounted) return true;
     if (status->pending_uploads > 0) return true;
@@ -65,6 +66,13 @@ void home_screen_draw(const ui_status_t *status)
 
     char buf[32];
     int x = 2;
+
+    /* ── Idle-timeout shutdown warning — takes over the whole bar ── */
+    if (status->shutdown_warning) {
+        snprintf(buf, sizeof(buf), "SHUTDOWN IN %ds", status->shutdown_in_sec);
+        display_draw_text(x, 4, buf, UI_COLOR_ACCENT_CORAL);
+        return;
+    }
 
     /* ── Wi-Fi indicator ─────────────────────────────────────── */
     uint16_t wifi_color = status->wifi_connected ? UI_COLOR_ACCENT_MINT : UI_COLOR_ACCENT_CORAL;

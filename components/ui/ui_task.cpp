@@ -76,6 +76,11 @@ static const char *TAG = "ui_task";
 #define FACE_FLASH_SENT_MS        3000
 #define FACE_FLASH_ERROR_MS       3000
 
+/** Idle-timeout auto-shutdown: warn at 4:30, power off at 5:00 with no
+ *  button press / voice activity while sitting on the Home screen. */
+#define IDLE_WARNING_MS           (4 * 60 * 1000 + 30 * 1000)
+#define IDLE_SHUTDOWN_MS          (5 * 60 * 1000)
+
 /** Button event queue depth (same as what buttons_init expects). */
 #define UI_BUTTON_QUEUE_DEPTH     4
 
@@ -91,6 +96,7 @@ static volatile bool  s_running       = false;
 static ui_screen_t    s_screen        = UI_SCREEN_HOME;
 static uint32_t       s_rec_start_ms  = 0;
 static uint32_t       s_saved_enter_ms = 0;
+static uint32_t       s_idle_since_ms = 0;
 
 static bool            s_upload_in_progress     = false;
 static bool            s_face_flash_active      = false;
@@ -190,6 +196,19 @@ static void build_status(ui_status_t *status)
     status->battery_percent = battery_percent();
     status->charging        = battery_is_charging();
     status->show_saved      = (s_screen == UI_SCREEN_SAVED);
+
+    status->shutdown_warning = false;
+    status->shutdown_in_sec  = 0;
+    if (s_screen == UI_SCREEN_HOME) {
+        uint32_t now_ms = (uint32_t)(esp_timer_get_time() / 1000);
+        uint32_t idle_elapsed = now_ms - s_idle_since_ms;
+        if (idle_elapsed >= IDLE_WARNING_MS) {
+            status->shutdown_warning = true;
+            uint32_t remaining_ms = (idle_elapsed < IDLE_SHUTDOWN_MS)
+                                     ? IDLE_SHUTDOWN_MS - idle_elapsed : 0;
+            status->shutdown_in_sec = (int)(remaining_ms / 1000);
+        }
+    }
 
     if (s_screen == UI_SCREEN_RECORDING || s_screen == UI_SCREEN_SAVED) {
         uint32_t now_ms = (uint32_t)(esp_timer_get_time() / 1000);
@@ -476,6 +495,22 @@ static void ui_task_loop(void *arg)
 
             /* After handling one button, break to render */
             if (screen_changed) break;
+        }
+
+        /* ── Idle-timeout auto-shutdown ───────────────────────
+         * Only accrues while sitting on Home with nothing going on;
+         * any button press or detected voice resets it. Warn at
+         * 4:30, power off at 5:00. */
+        if (s_screen == UI_SCREEN_HOME) {
+            if (audio_process_is_voice_active()) {
+                s_idle_since_ms = now_ms;
+            }
+            uint32_t idle_elapsed = now_ms - s_idle_since_ms;
+            if (idle_elapsed >= IDLE_SHUTDOWN_MS) {
+                board_power_off(); /* does not return */
+            }
+        } else {
+            s_idle_since_ms = now_ms;
         }
 
         /* ── Saved screen auto-dismiss ──────────────────────── */
