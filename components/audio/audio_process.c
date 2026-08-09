@@ -305,6 +305,12 @@ esp_err_t audio_process_stop(void)
         s_task = NULL;
     }
 
+    /* Nothing updates s_voice_active once the task exits — clear it so a
+     * recording that ended mid-speech doesn't leave the idle-shutdown
+     * timer permanently reset on the Home screen (audio_process_is_voice_active()
+     * would otherwise return a stale true forever). */
+    s_voice_active = false;
+
     /* AFE stays alive across start/stop cycles — it's created once in
      * audio_process_init() (not recreated in start()), and start/stop now
      * run every recording rather than once per boot. Destroying it here
