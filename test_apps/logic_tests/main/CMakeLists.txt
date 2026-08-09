@@ -1,5 +1,5 @@
 idf_component_register(
-    SRCS "test_main.c" "test_buttons.c" "test_sd_storage.c" "test_config.c"
+    SRCS "test_main.c" "test_sd_storage.c" "test_config.c"
          "test_display_stubs.c" "test_face_themes.cpp"
          "test_list_pagination.c"
          "../../../components/network/test/test_net_selection.c"
@@ -46,6 +46,7 @@ idf_component_register(
          "../../../components/telegram/telegram_error.c"
          "../../../components/telegram/test/test_caption.c"
          "../../../components/board/test/test_battery_curve.c"
+         "../../../components/board/test/test_buttons.c"
          "../../../components/board/button_debounce.c"
          "../../../components/board/battery_pure.c"
     INCLUDE_DIRS "."
