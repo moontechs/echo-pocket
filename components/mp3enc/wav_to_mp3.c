@@ -10,8 +10,17 @@
 #include <stdlib.h>
 #include <string.h>
 
-/** Fixed encode bitrate — higher quality voice, still small at 16kHz mono. */
-#define WAV_TO_MP3_BITRATE_KBPS  128
+/** Fixed encode bitrate — higher quality voice, still small at 16kHz mono.
+ * Must stay under ~116kbps: at 16kHz the shine encoder only has one
+ * granule/frame (MPEG2), and above that the per-granule bit budget
+ * exceeds the 12-bit part2_3_length field's 4095-bit max, so encoded
+ * data silently comes up short of what each frame's header declares
+ * (breaks frame sync for every downstream decoder, incl. Telegram). */
+#define WAV_TO_MP3_BITRATE_KBPS  96
+
+/** Trailing audio dropped before encoding — the stop button's click/pop
+ * lands in the last ~150ms of every recording. */
+#define WAV_TO_MP3_TRIM_TAIL_MS  150
 
 static bool read_wav_header(FILE *fp, wav_header_t *hdr)
 {
@@ -67,14 +76,25 @@ bool wav_to_mp3(const char *wav_path, const char *mp3_path)
         return false;
     }
 
+    uint32_t total_frames = hdr.data_size / (hdr.num_channels * sizeof(int16_t));
+    uint32_t trim_frames = hdr.sample_rate * WAV_TO_MP3_TRIM_TAIL_MS / 1000;
+    /* If trimming would swallow the whole clip, keep it whole instead —
+     * an empty MP3 is worse than one with the click still in it. */
+    uint32_t keep_frames = (trim_frames < total_frames) ? total_frames - trim_frames : total_frames;
+    uint32_t frames_left = keep_frames;
+
     int samples_per_pass = shine_samples_per_pass(s);
     int frame_samples = samples_per_pass * hdr.num_channels;
     int16_t *frame = malloc(frame_samples * sizeof(int16_t));
     bool ok = (frame != NULL);
 
-    while (ok) {
-        size_t nread = fread(frame, sizeof(int16_t), frame_samples, in);
+    while (ok && frames_left > 0) {
+        size_t want_frames = (frames_left < (uint32_t)samples_per_pass)
+                              ? frames_left : (uint32_t)samples_per_pass;
+        size_t nread = fread(frame, sizeof(int16_t),
+                             want_frames * hdr.num_channels, in);
         if (nread == 0) break;
+        frames_left -= nread / hdr.num_channels;
 
         /* Pad a short final frame with silence — shine requires exactly
          * samples_per_pass samples per call. */

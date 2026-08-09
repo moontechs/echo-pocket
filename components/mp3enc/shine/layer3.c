@@ -1,5 +1,7 @@
 /* layer3.c */
 
+#include <stdint.h>
+
 #include "layer3.h"
 #include "bitstream.h"
 #include "l3bitstream.h"
@@ -79,7 +81,6 @@ int shine_samples_per_pass(shine_t s) {
 
 /* Compute default encoding values. */
 shine_global_config *shine_initialise(shine_config_t *pub_config) {
-  double avg_slots_per_frame;
   shine_global_config *config;
 
   if (shine_check_config(pub_config->wave.samplerate, pub_config->mpeg.bitr) <
@@ -119,16 +120,20 @@ shine_global_config *shine_initialise(shine_config_t *pub_config) {
       shine_find_bitrate_index(config->mpeg.bitr, config->mpeg.version);
   config->mpeg.granules_per_frame = granules_per_frame[config->mpeg.version];
 
-  /* Figure average number of 'slots' per frame. */
-  avg_slots_per_frame =
-      ((double)config->mpeg.granules_per_frame * GRANULE_SIZE /
-       ((double)config->wave.samplerate)) *
-      (1000 * (double)config->mpeg.bitr / (double)config->mpeg.bits_per_slot);
+  /* Figure average number of 'slots' per frame — exact integer division so
+   * evenly-dividing rates (common at low sample rates) land on frac==0
+   * precisely, instead of a float epsilon that silently mis-sets the
+   * padding bit and desyncs every decoder's frame boundary. */
+  {
+    int64_t numerator = (int64_t)config->mpeg.granules_per_frame *
+                        GRANULE_SIZE * 1000 * config->mpeg.bitr;
+    int64_t denominator =
+        (int64_t)config->wave.samplerate * config->mpeg.bits_per_slot;
 
-  config->mpeg.whole_slots_per_frame = (int)avg_slots_per_frame;
-
-  config->mpeg.frac_slots_per_frame =
-      avg_slots_per_frame - (double)config->mpeg.whole_slots_per_frame;
+    config->mpeg.whole_slots_per_frame = (int)(numerator / denominator);
+    config->mpeg.frac_slots_per_frame =
+        (double)(numerator % denominator) / (double)denominator;
+  }
   config->mpeg.slot_lag = -config->mpeg.frac_slots_per_frame;
 
   if (config->mpeg.frac_slots_per_frame == 0)

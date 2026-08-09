@@ -9,6 +9,7 @@
 
 #include <stdio.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <math.h>
 
 #define TEST_WAV "/tmp/echo_pocket_test.wav"
@@ -65,7 +66,85 @@ void test_wav_to_mp3_produces_valid_mp3(void)
     remove(TEST_MP3);
 }
 
+/* Regression check: walk every frame header declared by the MPEG2/16kHz
+ * stream and verify the next sync word actually lands where the header's
+ * own bitrate/samplerate/padding fields say it should. A frame-size
+ * miscalculation in the encoder (integer vs. float slot math, or a
+ * per-granule bit budget overflow) desyncs every consecutive frame after
+ * the first, which is silent corruption real decoders (and Telegram) trip
+ * over as "0:00 duration" or worse. */
+void test_wav_to_mp3_frames_stay_in_sync(void)
+{
+    static const int bitrates_mpeg2_l3[16] = {
+        0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160, 0
+    };
+    static const int samplerates_mpeg2[4] = { 22050, 24000, 16000, 0 };
+
+    write_test_wav(16000, 3.0);
+
+    remove(TEST_MP3);
+    TEST_ASSERT_TRUE(wav_to_mp3(TEST_WAV, TEST_MP3));
+
+    FILE *fp = fopen(TEST_MP3, "rb");
+    TEST_ASSERT_NOT_NULL(fp);
+    fseek(fp, 0, SEEK_END);
+    long size = ftell(fp);
+    fseek(fp, 0, SEEK_SET);
+
+    uint8_t *data = malloc((size_t)size);
+    TEST_ASSERT_NOT_NULL(data);
+    TEST_ASSERT_EQUAL_INT(size, fread(data, 1, (size_t)size, fp));
+    fclose(fp);
+
+    long pos = 0;
+    int frame_count = 0;
+    while (pos + 4 <= size) {
+        TEST_ASSERT_EQUAL_HEX8(0xFF, data[pos]);
+        TEST_ASSERT_EQUAL_HEX8(0xE0, data[pos + 1] & 0xE0);
+
+        int bitrate_idx = (data[pos + 2] >> 4) & 0xF;
+        int sr_idx = (data[pos + 2] >> 2) & 0x3;
+        int padding = (data[pos + 2] >> 1) & 0x1;
+        int bitrate = bitrates_mpeg2_l3[bitrate_idx];
+        int samplerate = samplerates_mpeg2[sr_idx];
+        TEST_ASSERT_TRUE(bitrate > 0 && samplerate > 0);
+
+        int framelen = 72 * bitrate * 1000 / samplerate + padding;
+        pos += framelen;
+        frame_count++;
+    }
+
+    /* Reached the end exactly (bar a final short/padded frame) instead of
+     * bailing out mid-stream on a bad sync word. */
+    TEST_ASSERT_GREATER_THAN(5, frame_count);
+
+    free(data);
+    remove(TEST_WAV);
+    remove(TEST_MP3);
+}
+
 void test_wav_to_mp3_rejects_missing_file(void)
 {
     TEST_ASSERT_FALSE(wav_to_mp3("/tmp/echo_pocket_does_not_exist.wav", TEST_MP3));
+}
+
+/* Shorter than the trimmed tail (150ms) — must keep the clip whole rather
+ * than trimming it away to an empty (unusable) MP3. */
+void test_wav_to_mp3_handles_clip_shorter_than_trim(void)
+{
+    write_test_wav(16000, 0.05);
+
+    remove(TEST_MP3);
+    TEST_ASSERT_TRUE(wav_to_mp3(TEST_WAV, TEST_MP3));
+
+    FILE *fp = fopen(TEST_MP3, "rb");
+    TEST_ASSERT_NOT_NULL(fp);
+    fseek(fp, 0, SEEK_END);
+    long size = ftell(fp);
+    fclose(fp);
+
+    TEST_ASSERT_GREATER_THAN(0, size);
+
+    remove(TEST_WAV);
+    remove(TEST_MP3);
 }

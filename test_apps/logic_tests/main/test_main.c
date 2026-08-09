@@ -68,6 +68,8 @@ extern void test_wav_header_fill_null(void);
 /* Defined in test_wav_to_mp3.c (compiled alongside this file) */
 extern void test_wav_to_mp3_produces_valid_mp3(void);
 extern void test_wav_to_mp3_rejects_missing_file(void);
+extern void test_wav_to_mp3_handles_clip_shorter_than_trim(void);
+extern void test_wav_to_mp3_frames_stay_in_sync(void);
 
 /* ── Recorder split threshold tests (Task 7) ────────────────────────── */
 extern void test_recorder_split_below_threshold(void);
@@ -456,6 +458,8 @@ void app_main(void)
     /* WAV -> MP3 conversion */
     RUN_TEST(test_wav_to_mp3_produces_valid_mp3);
     RUN_TEST(test_wav_to_mp3_rejects_missing_file);
+    RUN_TEST(test_wav_to_mp3_handles_clip_shorter_than_trim);
+    RUN_TEST(test_wav_to_mp3_frames_stay_in_sync);
 
     /* Task 7: recorder split threshold (state machine) */
     RUN_TEST(test_recorder_split_below_threshold);
