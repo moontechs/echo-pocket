@@ -37,6 +37,7 @@
 #include "esp_log.h"
 #include "esp_event.h"
 #include "esp_heap_caps.h"
+#include "esp_wifi.h"
 
 static const char *TAG = "upload_task";
 
@@ -429,7 +430,12 @@ static void upload_task_main(void *arg)
                  queue_store_count_pending(s_state.queue),
                  queue_store_count_failed(s_state.queue));
 
+        /* Full Wi-Fi power for the duration of the drain — modem power-save
+         * (the default) sleeps the radio between beacons and badly
+         * throttles upload throughput. Restored once the drain is done. */
+        esp_wifi_set_ps(WIFI_PS_NONE);
         int sent = upload_drain_loop();
+        esp_wifi_set_ps(WIFI_PS_MIN_MODEM);
 
         s_state.drain_active = false;
         ESP_LOGI(TAG, "Drain finished — %d sent, %d pending, %d failed",

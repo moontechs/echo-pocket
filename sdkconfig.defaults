@@ -1,6 +1,15 @@
 # Target: ESP32-S3
 CONFIG_IDF_TARGET_ESP32S3=y
 
+# Release build (-O2) — IDF's own default is Debug (-Og), which measurably
+# slows CPU-bound work; on-device the MP3 encode step (components/mp3enc,
+# shine encoder) alone ate ~70% of the time between "recording stopped" and
+# "sent to Telegram". If you need to single-step or inspect variables with
+# gdb/JTAG, temporarily switch to `idf.py menuconfig` → Compiler options →
+# Optimization Level → Debug for that session, then flip it back to
+# Performance before a final/flashed build.
+CONFIG_COMPILER_OPTIMIZATION_PERF=y
+
 # CPU frequency
 CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y
 

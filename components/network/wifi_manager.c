@@ -267,6 +267,9 @@ static void wifi_task(void *arg)
         return;
     }
 
+    /* Power-save stays at the default (WIFI_PS_MIN_MODEM) here — it's
+     * toggled off only around active uploads, see upload_task.c. */
+
     /* ── Connection loop ──────────────────────────────────────────── */
     s_try_index = -1;
     TickType_t reconnect_delay = pdMS_TO_TICKS(5000); /* 5 s between attempts */

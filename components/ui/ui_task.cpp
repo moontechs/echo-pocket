@@ -199,7 +199,7 @@ static void build_status(ui_status_t *status)
 
     status->shutdown_warning = false;
     status->shutdown_in_sec  = 0;
-    if (s_screen == UI_SCREEN_HOME) {
+    if (s_screen == UI_SCREEN_HOME && !s_upload_in_progress) {
         uint32_t now_ms = (uint32_t)(esp_timer_get_time() / 1000);
         uint32_t idle_elapsed = now_ms - s_idle_since_ms;
         if (idle_elapsed >= IDLE_WARNING_MS) {
@@ -501,7 +501,7 @@ static void ui_task_loop(void *arg)
          * Only accrues while sitting on Home with nothing going on;
          * any button press or detected voice resets it. Warn at
          * 4:30, power off at 5:00. */
-        if (s_screen == UI_SCREEN_HOME) {
+        if (s_screen == UI_SCREEN_HOME && !s_upload_in_progress) {
             if (audio_process_is_voice_active()) {
                 s_idle_since_ms = now_ms;
             }

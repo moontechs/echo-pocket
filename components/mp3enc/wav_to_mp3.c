@@ -10,13 +10,14 @@
 #include <stdlib.h>
 #include <string.h>
 
-/** Fixed encode bitrate — higher quality voice, still small at 16kHz mono.
+/** Fixed encode bitrate — plenty for voice at 16kHz mono, smaller/faster
+ * than the previous 96kbps.
  * Must stay under ~116kbps: at 16kHz the shine encoder only has one
  * granule/frame (MPEG2), and above that the per-granule bit budget
  * exceeds the 12-bit part2_3_length field's 4095-bit max, so encoded
  * data silently comes up short of what each frame's header declares
  * (breaks frame sync for every downstream decoder, incl. Telegram). */
-#define WAV_TO_MP3_BITRATE_KBPS  96
+#define WAV_TO_MP3_BITRATE_KBPS  64
 
 /** Trailing audio dropped before encoding — the stop button's click/pop
  * lands in the last ~150ms of every recording. */
