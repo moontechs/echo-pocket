@@ -21,10 +21,13 @@
 #include "esp_log.h"
 #include "esp_err.h"
 #include "esp_check.h"
+#include "esp_heap_caps.h"
+#include <string.h>
 
 /* ESP-SR AFE — only available when compiling with ESP-IDF.               */
 #if __has_include("esp_afe_sr_iface.h")
 #include "esp_afe_sr_iface.h"
+#include "esp_afe_sr_models.h"
 #define HAS_ESP_SR  1
 #else
 #define HAS_ESP_SR  0
@@ -45,6 +48,13 @@ static audio_mono_ringbuf_t  *s_output_rb  = NULL;
 static TaskHandle_t           s_task       = NULL;
 static volatile bool          s_running    = false;
 
+/* Task stack lives in PSRAM (internal RAM gets fragmented by WiFi/TLS over
+ * uptime, same issue as the capture task in audio_capture.c). The TCB is
+ * internal RAM (FreeRTOS requirement) but heap_caps_malloc'd per
+ * start/stop rather than `static`, so it doesn't grow .bss. */
+static StaticTask_t          *s_task_tcb   = NULL;
+static uint8_t                *s_task_stack = NULL;
+
 /* Config booleans — snapshotted at init so the task doesn't need to hold
  * the full RecorderConfig pointer. */
 static bool s_ns_enabled  = false;   /**< Noise suppression gate          */
@@ -57,7 +67,8 @@ static volatile float s_voice_level   = 0.0f;
 static volatile bool  s_voice_active  = false;
 
 #if HAS_ESP_SR
-static esp_afe_sr_iface_t *s_afe_iface = NULL;
+static const esp_afe_sr_iface_t *s_afe_iface = NULL;
+static esp_afe_sr_data_t  *s_afe_data  = NULL;
 static int s_afe_channel_count = 0;
 #endif
 
@@ -98,17 +109,17 @@ static void process_task(void *arg)
         bool voice_detected = false;
 
 #if HAS_ESP_SR
-        if (s_afe_iface && s_ns_enabled) {
+        if (s_afe_iface && s_afe_data && s_ns_enabled) {
             /* Feed stereo frames into the AFE.
              * The AFE expects interleaved 16-bit PCM. */
-            int feed_ret = s_afe_iface->feed(s_afe_iface,
+            int feed_ret = s_afe_iface->feed(s_afe_data,
                                              (int16_t *)stereo_buf);
             if (feed_ret < 0) {
                 ESP_LOGW(TAG, "AFE feed returned %d", feed_ret);
             }
 
             /* Fetch processed output */
-            afe_fetch_result_t *res = s_afe_iface->fetch(s_afe_iface);
+            afe_fetch_result_t *res = s_afe_iface->fetch(s_afe_data);
             if (res && res->data && res->data_size > 0) {
                 /* Copy mono PCM out of the fetch result.
                  * data_size is in bytes; convert to sample count. */
@@ -120,7 +131,7 @@ static void process_task(void *arg)
 
                 /* VAD state from AFE */
                 if (s_vad_enabled) {
-                    voice_detected = (res->vad_state == AFE_VAD_SPEECH);
+                    voice_detected = (res->vad_state == VAD_SPEECH);
                 }
 
                 /* Zero-fill remainder if AFE returned fewer samples */
@@ -221,40 +232,43 @@ esp_err_t audio_process_init(audio_ringbuf_t *input_rb,
     /* ── Initialise ESP-SR AFE (if available and enabled) ──────────── */
 #if HAS_ESP_SR
     if (s_ns_enabled || s_vad_enabled) {
-        afe_config_t afe_cfg = {
-            .aec_init   = false,   /* No AEC in v1.0                     */
-            .se_init    = s_ns_enabled,  /* Noise suppression             */
-            .vad_init   = s_vad_enabled, /* Voice activity detection      */
-            .agc_init   = true,    /* Moderate AGC per spec §6.2          */
-            .wakenet_init = false, /* No WakeNet in v1.0                  */
-            .voice_communication_init = false, /* No command recognition  */
-            .afe_perferred_core = 1,  /* Run AFE on core 1 (offloads core 0) */
-            .afe_perferred_priority = AUDIO_PROCESS_TASK_PRIORITY,
-            .afe_ringbuf_size = 50,   /* AFE internal ring buffer frames  */
-            .memory_alloc_mode = AFE_MEMORY_ALLOC_PSRAM, /* Use PSRAM     */
-            .agc_mode = AFE_MODE_HIGH_PERF,
-            .se_mode  = AFE_MODE_HIGH_PERF,
-            .vad_mode = AFE_MODE_HIGH_PERF,
-            .pcm_config = {
-                .total_ch_num = AUDIO_CAPTURE_CHANNELS,  /* 2 mics in     */
-                .mic_num      = AUDIO_CAPTURE_CHANNELS,
-                .ref_num      = 0,  /* No reference channel for AEC       */
-                .sample_rate  = AUDIO_PROCESS_SAMPLE_RATE,
-                .afe_mode     = AFE_SR_HIGH_PERF,
-            },
-        };
+        /* afe_config_init() loads the model partition and fills in the
+         * internal model-name/pointer fields (ns_model_name,
+         * vad_model_name, etc.) that a hand-built afe_config_t leaves
+         * NULL, which crashes afe_feed() with a LoadProhibited at a null
+         * deref inside afe_parse_input(). "MM" = 2 microphone channels,
+         * no reference/unknown channels. */
+        srmodel_list_t *models = esp_srmodel_init("model");
+        afe_config_t *afe_cfg = afe_config_init("MM", models, AFE_TYPE_SR,
+                                                AFE_MODE_HIGH_PERF);
 
-        s_afe_iface = esp_afe_handle_from_config(&afe_cfg);
-        if (!s_afe_iface) {
+        afe_cfg->aec_init   = false;        /* No AEC in v1.0             */
+        afe_cfg->se_init    = false;        /* Not a mic-array setup      */
+        afe_cfg->ns_init    = s_ns_enabled; /* Noise suppression          */
+        afe_cfg->vad_init   = s_vad_enabled;/* Voice activity detection   */
+        afe_cfg->agc_init   = true;         /* Moderate AGC per spec §6.2 */
+        afe_cfg->wakenet_init = false;       /* No WakeNet in v1.0        */
+        afe_cfg->afe_perferred_core = 1;    /* Offload core 0             */
+        afe_cfg->afe_perferred_priority = AUDIO_PROCESS_TASK_PRIORITY;
+        afe_cfg->afe_ringbuf_size = 50;     /* AFE internal ring buffer   */
+        afe_cfg->memory_alloc_mode = AFE_MEMORY_ALLOC_MORE_PSRAM;
+        afe_cfg->agc_mode = AFE_AGC_MODE_WEBRTC;
+        afe_cfg->vad_mode = AFE_MODE_HIGH_PERF;
+        afe_cfg->pcm_config.sample_rate = AUDIO_PROCESS_SAMPLE_RATE;
+
+        s_afe_iface = esp_afe_handle_from_config(afe_cfg);
+        s_afe_data  = s_afe_iface ? s_afe_iface->create_from_config(afe_cfg) : NULL;
+        if (!s_afe_iface || !s_afe_data) {
             ESP_LOGW(TAG, "ESP-SR AFE init failed — falling back to downmix");
             s_ns_enabled = false;  /* Disable NS so task uses fallback path */
         } else {
-            s_afe_channel_count = s_afe_iface->get_channel_num(s_afe_iface);
+            s_afe_channel_count = s_afe_iface->get_channel_num(s_afe_data);
             ESP_LOGI(TAG, "ESP-SR AFE initialised: ns=%d, vad=%d, agc=1, "
                      "channels_in=%d",
                      (int)s_ns_enabled, (int)s_vad_enabled,
                      s_afe_channel_count);
         }
+        afe_config_free(afe_cfg);
     } else {
         ESP_LOGI(TAG, "ESP-SR AFE disabled — using downmix fallback");
     }
@@ -276,18 +290,35 @@ esp_err_t audio_process_start(void)
     s_voice_level  = 0.0f;
     s_voice_active = false;
 
-    BaseType_t created = xTaskCreate(
+    s_task_stack = heap_caps_malloc(AUDIO_PROCESS_TASK_STACK_SIZE, MALLOC_CAP_SPIRAM);
+    s_task_tcb   = heap_caps_malloc(sizeof(StaticTask_t), MALLOC_CAP_INTERNAL);
+    if (!s_task_stack || !s_task_tcb) {
+        s_running = false;
+        ESP_LOGE(TAG, "process task stack/TCB alloc failed");
+        heap_caps_free(s_task_stack);
+        s_task_stack = NULL;
+        heap_caps_free(s_task_tcb);
+        s_task_tcb = NULL;
+        return ESP_ERR_NO_MEM;
+    }
+
+    s_task = xTaskCreateStatic(
         process_task,
         "audio_proc",
         AUDIO_PROCESS_TASK_STACK_SIZE,
         NULL,
         AUDIO_PROCESS_TASK_PRIORITY,
-        &s_task
+        s_task_stack,
+        s_task_tcb
     );
 
-    if (created != pdPASS) {
+    if (!s_task) {
         s_running = false;
-        ESP_LOGE(TAG, "xTaskCreate failed");
+        ESP_LOGE(TAG, "xTaskCreateStatic failed");
+        heap_caps_free(s_task_stack);
+        s_task_stack = NULL;
+        heap_caps_free(s_task_tcb);
+        s_task_tcb = NULL;
         return ESP_ERR_NO_MEM;
     }
 
@@ -303,13 +334,23 @@ esp_err_t audio_process_stop(void)
     if (s_task) {
         vTaskDelay(pdMS_TO_TICKS(100));
         s_task = NULL;
+
+        /* Safe to free now — the task has exited and no longer touches
+         * its own stack/TCB. */
+        heap_caps_free(s_task_stack);
+        s_task_stack = NULL;
+        heap_caps_free(s_task_tcb);
+        s_task_tcb = NULL;
     }
 
-    /* Nothing updates s_voice_active once the task exits — clear it so a
-     * recording that ended mid-speech doesn't leave the idle-shutdown
-     * timer permanently reset on the Home screen (audio_process_is_voice_active()
-     * would otherwise return a stale true forever). */
+    /* Nothing updates s_voice_active/s_voice_level once the task exits —
+     * clear both so a recording that ended mid-speech doesn't leave the
+     * idle-shutdown timer permanently reset (audio_process_is_voice_active()
+     * would otherwise return stale true forever) or the face's eyes stuck
+     * at the last loudness-driven size (VectorFace::update() keeps
+     * lerping toward a stale nonzero target on the Home screen). */
     s_voice_active = false;
+    s_voice_level  = 0.0f;
 
     /* AFE stays alive across start/stop cycles — it's created once in
      * audio_process_init() (not recreated in start()), and start/stop now

@@ -39,9 +39,12 @@ extern "C" {
 /** Output ring buffer size in mono samples (4 seconds × 16 kHz). */
 #define AUDIO_PROCESS_OUTPUT_BUF_SAMPLES  (AUDIO_PROCESS_SAMPLE_RATE * 4)
 
-/** Chunk size in stereo frames processed per AFE feed iteration.
- *  256 frames at 16 kHz = 16 ms — matches the capture task's read chunk. */
-#define AUDIO_PROCESS_CHUNK_FRAMES      256
+/** Chunk size in stereo frames processed per AFE feed iteration. Must
+ *  match the AFE's own get_feed_chunksize()/get_fetch_chunksize() (queried
+ *  and logged at init) — feeding a smaller buffer than the AFE expects is
+ *  a stack buffer overread, not just a quality issue (confirmed via
+ *  [DEBUG-afe] log: nsnet2 requires 512, not 256). */
+#define AUDIO_PROCESS_CHUNK_FRAMES      512
 
 /** Voice level EMA smoothing alpha (tuned for 16 ms update period).
  *  0.15 means the level adapts in ~100 ms (time constant ≈ 6 * 16 ms). */
@@ -55,7 +58,11 @@ extern "C" {
 /** Process task stack size (bytes).
  *  Measured on reference board: peak ~2400 bytes with ESP-SR.
  *  Allocate 4096 for headroom. */
-#define AUDIO_PROCESS_TASK_STACK_SIZE   4096
+/* Lives in PSRAM (xTaskCreateStatic in audio_process.c), so headroom is
+ * cheap. Bumped from 4096 after a stack overflow: 512-frame stereo/mono
+ * local buffers (~3 KB) plus the AFE/nsnet2 call chain (feed/fetch through
+ * a neural-net inference) blew a 4 KB stack immediately on task start. */
+#define AUDIO_PROCESS_TASK_STACK_SIZE   16384
 
 /** Process task priority — HIGH - 1, below capture (HIGH). */
 #define AUDIO_PROCESS_TASK_PRIORITY     (configMAX_PRIORITIES - 2)

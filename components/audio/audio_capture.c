@@ -27,6 +27,7 @@
 /* FreeRTOS */
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "esp_heap_caps.h"
 
 /* ── Log tag ─────────────────────────────────────────────────────────── */
 
@@ -40,6 +41,15 @@ static i2c_master_bus_handle_t s_i2c_bus = NULL;
 static esp_codec_dev_handle_t s_codec    = NULL;
 static TaskHandle_t       s_task        = NULL;
 static volatile bool      s_running     = false;
+
+/* Task stack lives in PSRAM (internal RAM gets fragmented by WiFi/TLS over
+ * uptime — see CAPTURE_TASK_STACK_SIZE comment). The TCB must be internal
+ * RAM (FreeRTOS requirement) but is heap_caps_malloc'd per start/stop
+ * rather than `static`, so it doesn't grow .bss — a static TCB here once
+ * tipped display_init()'s early DMA-buffer allocation over the edge and
+ * caused a 100%-reproducible boot crash. */
+static StaticTask_t      *s_task_tcb   = NULL;
+static uint8_t            *s_task_stack = NULL;
 
 /* ── Capture task stack size ────────────────────────────────────────────
  *
@@ -316,19 +326,37 @@ esp_err_t audio_capture_start(void)
 
     s_running = true;
 
-    BaseType_t created = xTaskCreate(
+    s_task_stack = heap_caps_malloc(CAPTURE_TASK_STACK_SIZE, MALLOC_CAP_SPIRAM);
+    s_task_tcb   = heap_caps_malloc(sizeof(StaticTask_t), MALLOC_CAP_INTERNAL);
+    if (!s_task_stack || !s_task_tcb) {
+        s_running = false;
+        ESP_LOGE(TAG, "capture task stack/TCB alloc failed");
+        ret = ESP_ERR_NO_MEM;
+        heap_caps_free(s_task_stack);
+        s_task_stack = NULL;
+        heap_caps_free(s_task_tcb);
+        s_task_tcb = NULL;
+        goto fail_codec;
+    }
+
+    s_task = xTaskCreateStatic(
         capture_task,
         "audio_cap",
         CAPTURE_TASK_STACK_SIZE,
         NULL,
         CAPTURE_TASK_PRIORITY,
-        &s_task
+        s_task_stack,
+        s_task_tcb
     );
 
-    if (created != pdPASS) {
+    if (!s_task) {
         s_running = false;
-        ESP_LOGE(TAG, "xTaskCreate failed");
+        ESP_LOGE(TAG, "xTaskCreateStatic failed");
         ret = ESP_ERR_NO_MEM;
+        heap_caps_free(s_task_stack);
+        s_task_stack = NULL;
+        heap_caps_free(s_task_tcb);
+        s_task_tcb = NULL;
         goto fail_codec;
     }
 
@@ -359,6 +387,13 @@ esp_err_t audio_capture_stop(void)
         vTaskDelay(pdMS_TO_TICKS(50));
         /* The task deletes itself on exit; NULL our handle          */
         s_task = NULL;
+
+        /* Safe to free now — the task has exited and no longer touches
+         * its own stack/TCB. */
+        heap_caps_free(s_task_stack);
+        s_task_stack = NULL;
+        heap_caps_free(s_task_tcb);
+        s_task_tcb = NULL;
     }
 
     if (s_codec) {
