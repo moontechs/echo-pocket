@@ -175,6 +175,22 @@ queue_store_err_t queue_store_reset_for_send_all(queue_index_t *queue,
                                                  queue_entry_t *entry);
 
 /**
+ * @brief Rename an entry's id and file path in place, and persist.
+ *
+ * Used to fix up recordings made offline (boot-relative "REC_BOOT_..." id)
+ * once SNTP has synced and the real recording time is known — the SD file
+ * itself must already have been renamed to @p new_file by the caller
+ * before this is called, so the two stay consistent.
+ *
+ * @param new_id    New recording ID (replaces entry->id).
+ * @param new_file  New full path to the file on SD (replaces entry->file).
+ */
+queue_store_err_t queue_store_rename_entry(queue_index_t *queue,
+                                           queue_entry_t *entry,
+                                           const char *new_id,
+                                           const char *new_file);
+
+/**
  * @brief Count entries in PENDING or FAILED state (for UI badge).
  */
 int queue_store_count_pending_failed(const queue_index_t *queue);

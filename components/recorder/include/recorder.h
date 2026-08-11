@@ -59,10 +59,16 @@ extern "C" {
 
 /**
  * sd_writer_task stack size.
- * Measured on reference board: peak usage ~2200 bytes with ESP-IDF v5.x.
- * Allocate 4096 bytes for headroom (FILE buffers are on heap, not stack).
+ * Measured on reference board: peak usage ~2200 bytes at 4096 with ESP-IDF
+ * v5.x — but that was too tight: a stack overflow was observed on the
+ * finalize→enqueue→flush path (deep FatFs/vfs call chain) once the boot-id
+ * reconciliation helper's locals got inlined into this task's frame too.
+ * Given internal RAM is the scarce resource on this board (see AGENTS.md
+ * §Memory) rather than grow the internal-RAM budget, the stack lives in
+ * PSRAM instead (CONFIG_SPIRAM_ALLOW_STACK_EXTERNAL_MEMORY) — same pattern
+ * as upload_task's HTTPS stack.
  */
-#define RECORDER_TASK_STACK_SIZE    4096
+#define RECORDER_TASK_STACK_SIZE    8192
 
 /**
  * sd_writer_task priority — HIGH - 2, below capture (HIGH) and AFE (HIGH - 1).

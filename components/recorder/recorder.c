@@ -19,7 +19,10 @@
 #include "board.h"
 
 #include <inttypes.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include "esp_log.h"
 #include "esp_err.h"
 #include "esp_event.h"
@@ -28,6 +31,7 @@
 #include "freertos/task.h"
 #include "freertos/queue.h"
 #include "sd_storage.h"
+#include "esp_heap_caps.h"
 
 /* ── Log tag ─────────────────────────────────────────────────────────── */
 
@@ -38,6 +42,7 @@ static const char *TAG = "recorder";
 typedef enum {
     RECORDER_CMD_START = 0,
     RECORDER_CMD_STOP,
+    RECORDER_CMD_RECONCILE_BOOT_IDS, /**< Time just synced — fix up REC_BOOT_ ids */
 } recorder_cmd_t;
 
 /* ── Read chunk size (frames per iteration) ────────────────────────────
@@ -53,6 +58,12 @@ static audio_mono_ringbuf_t *s_ringbuf   = NULL;
 static QueueHandle_t     s_cmd_queue     = NULL;
 static TaskHandle_t      s_task          = NULL;
 static volatile bool     s_running       = false;
+
+/* Task stack lives in PSRAM (CONFIG_SPIRAM_ALLOW_STACK_EXTERNAL_MEMORY) —
+ * internal RAM is the scarce resource on this board (see AGENTS.md
+ * §Memory), same pattern as upload_task's HTTPS stack. */
+static StaticTask_t s_task_tcb;
+static StackType_t *s_task_stack = NULL;
 
 /* Upload queue handle — set by recorder_set_queue_store() before use.    */
 static queue_index_t *s_queue = NULL;
@@ -92,6 +103,78 @@ static rec_id_err_t generate_next_id(char *buf, size_t buf_size)
         }
     }
     return err;
+}
+
+/**
+ * Resolve a "REC_BOOT_<uptime_s>_NNN" id into a proper wall-clock rec_id,
+ * given the current time and uptime. Reuses rec_id_generate's synced path
+ * rather than re-deriving the timestamp format.
+ */
+static bool resolve_boot_id(const char *boot_id, time_t now, uint32_t now_uptime_s,
+                            char *buf, size_t buf_size)
+{
+    uint32_t rec_uptime_s, counter;
+    if (!boot_id ||
+        sscanf(boot_id, "REC_BOOT_%9" SCNu32 "_%3" SCNu32, &rec_uptime_s, &counter) != 2) {
+        return false;
+    }
+    if (rec_uptime_s > now_uptime_s) {
+        return false; /* impossible offset — leave the id alone */
+    }
+    time_t rec_time = now - (time_t)(now_uptime_s - rec_uptime_s);
+    return rec_id_generate(buf, buf_size, true, rec_time, 0, counter) == REC_ID_OK;
+}
+
+/**
+ * Fix up any queued recordings still carrying a boot-relative id now that
+ * the wall clock is known — otherwise a recording made offline keeps its
+ * meaningless "REC_BOOT_..." name forever, even once uploaded.  Only
+ * touches PENDING/FAILED entries (never UPLOADING/SENT/RECORDING).
+ */
+static void reconcile_boot_ids(void)
+{
+    if (!s_queue) return;
+
+    time_t now = time(NULL);
+    uint32_t now_uptime_s = (uint32_t)(esp_timer_get_time() / 1000000);
+
+    int count = 0;
+    const queue_entry_t *entries = queue_store_get_entries(s_queue, &count);
+    if (!entries) return;
+
+    for (int i = 0; i < count; i++) {
+        const queue_entry_t *e = &entries[i];
+        if (e->state != QUEUE_STATE_PENDING && e->state != QUEUE_STATE_FAILED) {
+            continue;
+        }
+        if (strncmp(e->id, REC_ID_BOOT_PREFIX, strlen(REC_ID_BOOT_PREFIX)) != 0) {
+            continue;
+        }
+
+        char new_id[REC_ID_MAX_LEN];
+        if (!resolve_boot_id(e->id, now, now_uptime_s, new_id, sizeof(new_id))) {
+            ESP_LOGW(TAG, "Could not resolve boot id %s — leaving as-is", e->id);
+            continue;
+        }
+
+        char new_path[RECORDER_PATH_MAX];
+        build_path(new_path, sizeof(new_path), new_id);
+
+        if (rename(e->file, new_path) != 0) {
+            ESP_LOGW(TAG, "Failed to rename %s -> %s — leaving boot id unresolved",
+                     e->file, new_path);
+            continue;
+        }
+
+        queue_store_err_t qerr = queue_store_rename_entry(
+            s_queue, (queue_entry_t *)e, new_id, new_path);
+        if (qerr != QUEUE_STORE_OK) {
+            ESP_LOGE(TAG, "Failed to persist renamed entry %s: %s",
+                     new_id, queue_store_err_str(qerr));
+        } else {
+            ESP_LOGI(TAG, "Resolved offline recording %s -> %s", e->id, new_id);
+        }
+    }
 }
 
 /* ── Auto-split logic ────────────────────────────────────────────────── */
@@ -295,6 +378,12 @@ static void sd_writer_task(void *arg)
                     audio_capture_stop();
                     ESP_LOGI(TAG, "Recording stopped");
                 }
+            } else if (cmd == RECORDER_CMD_RECONCILE_BOOT_IDS) {
+                /* Runs here (not inline in the SNTP callback) because it
+                 * does SD file I/O — the LWIP task that SNTP calls back on
+                 * has only a 3KB stack, too little for rename()/JSON
+                 * flush. This task's stack is sized for SD I/O already. */
+                reconcile_boot_ids();
             }
         }
 
@@ -422,17 +511,29 @@ void recorder_init(audio_mono_ringbuf_t *ringbuf)
         return;
     }
 
-    BaseType_t created = xTaskCreate(
+    s_task_stack = heap_caps_malloc(RECORDER_TASK_STACK_SIZE, MALLOC_CAP_SPIRAM);
+    if (!s_task_stack) {
+        s_running = false;
+        vQueueDelete(s_cmd_queue);
+        s_cmd_queue = NULL;
+        ESP_LOGE(TAG, "Failed to allocate writer task stack (PSRAM)");
+        return;
+    }
+
+    s_task = xTaskCreateStatic(
         sd_writer_task,
         "sd_writer",
-        RECORDER_TASK_STACK_SIZE,
+        RECORDER_TASK_STACK_SIZE / sizeof(StackType_t),
         NULL,
         RECORDER_TASK_PRIORITY,
-        &s_task
+        s_task_stack,
+        &s_task_tcb
     );
 
-    if (created != pdPASS) {
+    if (!s_task) {
         s_running = false;
+        free(s_task_stack);
+        s_task_stack = NULL;
         vQueueDelete(s_cmd_queue);
         s_cmd_queue = NULL;
         ESP_LOGE(TAG, "Failed to create writer task");
@@ -504,6 +605,16 @@ void recorder_set_time_synced(bool synced)
     s_time_synced = synced;
     if (synced) {
         ESP_LOGI(TAG, "Time sync flag set — future recordings will use wall-clock timestamps");
+
+        /* Defer the actual reconciliation work to sd_writer_task — this
+         * setter is called from the SNTP callback, which runs on the LWIP
+         * task's tiny (3KB) stack. Just enqueueing a command is cheap. */
+        if (s_cmd_queue) {
+            recorder_cmd_t cmd = RECORDER_CMD_RECONCILE_BOOT_IDS;
+            if (xQueueSend(s_cmd_queue, &cmd, 0) != pdTRUE) {
+                ESP_LOGW(TAG, "set_time_synced: command queue full, dropping reconcile");
+            }
+        }
     }
 }
 

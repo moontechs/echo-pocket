@@ -302,7 +302,7 @@ void test_audio_filename_synced_saturday(void)
 {
     char buf[64];
     size_t len = telegram_format_audio_filename(
-        "REC_20260808_183005_001", buf, sizeof(buf));
+        "REC_20260808_183005_001", 0, 0, buf, sizeof(buf));
 
     TEST_ASSERT_GREATER_THAN(0, len);
     TEST_ASSERT_EQUAL_STRING("Sat, 08.08.2026, 18-30.mp3", buf);
@@ -312,33 +312,71 @@ void test_audio_filename_synced_known_weekdays(void)
 {
     char buf[64];
 
-    telegram_format_audio_filename("REC_20000101_000000_001", buf, sizeof(buf));
+    telegram_format_audio_filename("REC_20000101_000000_001", 0, 0, buf, sizeof(buf));
     TEST_ASSERT_EQUAL_STRING("Sat, 01.01.2000, 00-00.mp3", buf);
 
-    telegram_format_audio_filename("REC_20240229_235900_001", buf, sizeof(buf));
+    telegram_format_audio_filename("REC_20240229_235900_001", 0, 0, buf, sizeof(buf));
     TEST_ASSERT_EQUAL_STRING("Thu, 29.02.2024, 23-59.mp3", buf);
 
-    telegram_format_audio_filename("REC_19991231_120000_001", buf, sizeof(buf));
+    telegram_format_audio_filename("REC_19991231_120000_001", 0, 0, buf, sizeof(buf));
     TEST_ASSERT_EQUAL_STRING("Fri, 31.12.1999, 12-00.mp3", buf);
 
-    telegram_format_audio_filename("REC_20260101_090000_001", buf, sizeof(buf));
+    telegram_format_audio_filename("REC_20260101_090000_001", 0, 0, buf, sizeof(buf));
     TEST_ASSERT_EQUAL_STRING("Thu, 01.01.2026, 09-00.mp3", buf);
 }
 
-void test_audio_filename_offline_boot_id_falls_back(void)
+void test_audio_filename_offline_boot_id_falls_back_without_now(void)
 {
+    /* now=0 / now_uptime_s=0 means "caller doesn't know" — no reconstruction. */
     char buf[64];
     size_t len = telegram_format_audio_filename(
-        "REC_BOOT_12345_001", buf, sizeof(buf));
+        "REC_BOOT_012345_001", 0, 0, buf, sizeof(buf));
 
     TEST_ASSERT_GREATER_THAN(0, len);
-    TEST_ASSERT_EQUAL_STRING("REC_BOOT_12345_001.mp3", buf);
+    TEST_ASSERT_EQUAL_STRING("REC_BOOT_012345_001.mp3", buf);
+}
+
+void test_audio_filename_offline_boot_id_reconstructed_after_sync(void)
+{
+    /* Recorded at uptime=100s. Uploaded later once time has synced, at
+     * uptime=700s with wall clock 2026-08-08 18:30:05 UTC — so the actual
+     * recording happened 600s earlier, at 18:20:05 UTC. */
+    setenv("TZ", "UTC", 1);
+    tzset();
+
+    struct tm tm_upload = {0};
+    tm_upload.tm_year = 2026 - 1900;
+    tm_upload.tm_mon  = 8 - 1;
+    tm_upload.tm_mday = 8;
+    tm_upload.tm_hour = 18;
+    tm_upload.tm_min  = 30;
+    tm_upload.tm_sec  = 5;
+    time_t now = timegm(&tm_upload);
+
+    char buf[64];
+    size_t len = telegram_format_audio_filename(
+        "REC_BOOT_000100_001", now, 700, buf, sizeof(buf));
+
+    TEST_ASSERT_GREATER_THAN(0, len);
+    TEST_ASSERT_EQUAL_STRING("Sat, 08.08.2026, 18-20.mp3", buf);
+}
+
+void test_audio_filename_offline_boot_id_future_uptime_falls_back(void)
+{
+    /* Malformed/impossible case: recorded uptime > current uptime.
+     * Don't reconstruct into a bogus future/negative offset. */
+    char buf[64];
+    size_t len = telegram_format_audio_filename(
+        "REC_BOOT_000700_001", 1000, 100, buf, sizeof(buf));
+
+    TEST_ASSERT_GREATER_THAN(0, len);
+    TEST_ASSERT_EQUAL_STRING("REC_BOOT_000700_001.mp3", buf);
 }
 
 void test_audio_filename_null_rec_id_falls_back(void)
 {
     char buf[64];
-    size_t len = telegram_format_audio_filename(NULL, buf, sizeof(buf));
+    size_t len = telegram_format_audio_filename(NULL, 0, 0, buf, sizeof(buf));
 
     TEST_ASSERT_GREATER_THAN(0, len);
     TEST_ASSERT_EQUAL_STRING("voice.mp3", buf);
@@ -346,13 +384,13 @@ void test_audio_filename_null_rec_id_falls_back(void)
 
 void test_audio_filename_null_buffer(void)
 {
-    TEST_ASSERT_EQUAL(0, telegram_format_audio_filename("REC_TEST", NULL, 64));
+    TEST_ASSERT_EQUAL(0, telegram_format_audio_filename("REC_TEST", 0, 0, NULL, 64));
 }
 
 void test_audio_filename_zero_buf_size(void)
 {
     char buf[64];
-    TEST_ASSERT_EQUAL(0, telegram_format_audio_filename("REC_TEST", buf, 0));
+    TEST_ASSERT_EQUAL(0, telegram_format_audio_filename("REC_TEST", 0, 0, buf, 0));
 }
 
 void test_audio_filename_buffer_too_small_falls_back_gracefully(void)
@@ -361,7 +399,7 @@ void test_audio_filename_buffer_too_small_falls_back_gracefully(void)
      * and must NUL-terminate whatever fits. */
     char buf[4];
     size_t len = telegram_format_audio_filename(
-        "REC_20260808_183005_001", buf, sizeof(buf));
+        "REC_20260808_183005_001", 0, 0, buf, sizeof(buf));
 
     TEST_ASSERT_EQUAL(0, len);
     TEST_ASSERT_EQUAL('\0', buf[sizeof(buf) - 1]);

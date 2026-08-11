@@ -191,8 +191,13 @@ static void wifi_event_handler(void *arg, esp_event_base_t event_base,
             xEventGroupSetBits(s_wifi_event_group, WIFI_CONNECTED_BIT);
         }
 
-        /* First successful connect → run SNTP */
-        if (!s_time_synced) {
+        /* Start SNTP once — guard on esp_sntp_enabled() (whether the SNTP
+         * client is running), not s_time_synced (whether it has actually
+         * synced yet): a reconnect before the first sync response arrives
+         * would otherwise call esp_sntp_init() while already running,
+         * which asserts and crashes ("Operating mode must not be set
+         * while SNTP client is running"). */
+        if (!esp_sntp_enabled()) {
             ESP_LOGI(TAG, "First connect — starting SNTP sync");
             esp_sntp_setoperatingmode(SNTP_OPMODE_POLL);
             esp_sntp_setservername(0, "pool.ntp.org");

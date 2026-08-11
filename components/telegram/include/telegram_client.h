@@ -21,6 +21,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <time.h>
 #include "config.h"
 
 #ifdef __cplusplus
@@ -206,16 +207,28 @@ size_t telegram_format_caption(const char *rec_id,
  * "REC_YYYYMMDD_HHMMSS_NNN" id, produces "Ddd, DD.MM.YYYY, HH-MM.mp3"
  * (device local time, weekday computed from the calendar date — no
  * timezone/DST dependency; hyphen rather than colon because Telegram
- * mangles ':' in uploaded filenames, rendering it as a space). Otherwise
- * (offline "REC_BOOT_..." ids, or a NULL/malformed rec_id) falls back to
- * "<rec_id>.mp3".
+ * mangles ':' in uploaded filenames, rendering it as a space).
  *
- * @param rec_id    Recording ID string.
- * @param buf       Output buffer.
- * @param buf_size  Size of output buffer.
+ * When @p rec_id is instead an offline "REC_BOOT_<uptime_s>_NNN" id — a
+ * recording made before SNTP had synced — and the caller passes a nonzero
+ * @p now (current wall clock, post-sync) and @p now_uptime_s (current
+ * monotonic uptime), the original recording's wall-clock time is
+ * reconstructed as `now - (now_uptime_s - uptime_s)` and formatted the same
+ * way. This fixes filenames for recordings that get queued and uploaded
+ * later (e.g. no Wi-Fi at record time), which would otherwise upload with
+ * the meaningless boot-relative id baked into the name. Pass 0 for both to
+ * skip reconstruction (falls back to "<rec_id>.mp3"), e.g. when time is
+ * still unsynced.
+ *
+ * @param rec_id       Recording ID string.
+ * @param now          Current wall-clock time (time(NULL)), or 0 if unknown.
+ * @param now_uptime_s Current monotonic seconds since boot, or 0 if unknown.
+ * @param buf          Output buffer.
+ * @param buf_size     Size of output buffer.
  * @return  Number of bytes written (excluding NUL), or 0 if buf is too small.
  */
 size_t telegram_format_audio_filename(const char *rec_id,
+                                      time_t now, uint32_t now_uptime_s,
                                       char *buf, size_t buf_size);
 
 #ifdef __cplusplus

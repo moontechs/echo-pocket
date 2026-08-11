@@ -372,6 +372,21 @@ queue_store_err_t queue_store_reset_for_send_all(queue_index_t *queue,
     return queue_store_flush(queue);
 }
 
+queue_store_err_t queue_store_rename_entry(queue_index_t *queue,
+                                           queue_entry_t *entry,
+                                           const char *new_id,
+                                           const char *new_file)
+{
+    if (!queue) return QUEUE_STORE_ERR_NOT_INITIALIZED;
+    if (find_entry_index(queue, entry) < 0) return QUEUE_STORE_ERR_NOT_FOUND;
+    if (!new_id || !new_file) return QUEUE_STORE_ERR_IO;
+
+    ESP_LOGI(TAG, "Renaming queue entry %s -> %s", entry->id, new_id);
+    safe_copy(entry->id, new_id, sizeof(entry->id));
+    safe_copy(entry->file, new_file, sizeof(entry->file));
+    return queue_store_flush(queue);
+}
+
 /* ── Count helpers (for UI badge) ────────────────────────────────────── */
 
 int queue_store_count_pending_failed(const queue_index_t *queue)

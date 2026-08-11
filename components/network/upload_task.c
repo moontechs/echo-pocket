@@ -28,6 +28,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <time.h>
 #include <unistd.h>
 #include <sys/stat.h>
 #include "freertos/FreeRTOS.h"
@@ -38,6 +39,7 @@
 #include "esp_event.h"
 #include "esp_heap_caps.h"
 #include "esp_wifi.h"
+#include "esp_timer.h"
 
 static const char *TAG = "upload_task";
 
@@ -257,8 +259,9 @@ static int upload_drain_loop(void)
         build_temp_mp3_path(entry->file, mp3_path, sizeof(mp3_path));
 
         char upload_filename[64];
-        telegram_format_audio_filename(entry->id, upload_filename,
-                                       sizeof(upload_filename));
+        telegram_format_audio_filename(entry->id, time(NULL),
+                                       (uint32_t)(esp_timer_get_time() / 1000000),
+                                       upload_filename, sizeof(upload_filename));
 
         int message_id = 0;
         telegram_err_t terr;
